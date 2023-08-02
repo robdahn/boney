@@ -1,4 +1,5 @@
-function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Ybonepp,Ybonethick,Ybonemarrow,Yheadthick,Ya,Ymsk,out,opt)
+function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Ybonepp, ...
+  Ybonethick,Ybonemarrow,Yheadthick,Ya,Ymsk,out,job)
 %create_bone_surface. Surface-bases processing pipeline.
   vx_vol = sqrt(sum(Vo.mat(1:3,1:3).^2));
   
@@ -8,7 +9,7 @@ function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Y
 
   %% create surface 
   Ypp  = Ybonepp + 0; spm_smooth(Ypp,Ypp,4);  %Ypp  = Yc{5};  spm_smooth(Ypp,Ypp,4);
-  [Yboneppr,res] = cat_vol_resize(smooth3(Ybonepp),'reduceV',vx_vol,opt.reduce,6,'meanm'); %#ok<ASGLU>        ./min(vx_vol)
+  [Yboneppr,res] = cat_vol_resize(smooth3(Ybonepp),'reduceV',vx_vol,job.opts.reduce,6,'meanm'); %#ok<ASGLU>        ./min(vx_vol)
   txt = evalc(sprintf('[Yppc,CBS.faces,CBS.vertices] = cat_vol_genus0(Yboneppr,.5,0);')); %#ok<NASGU>  % try to use lower values to avoid running into the vene
   CBS.vertices = CBS.vertices .* repmat(res.vx_red,size(CBS.vertices,1),1) - repmat((res.vx_red-1)/2,size(CBS.vertices,1),1); %#ok<NODEF> 
   % CBS.vertices = CBS.vertices .* res.vx_red(1) - (res.vx_red-1)/2; %#ok<NODEF> 
@@ -94,7 +95,7 @@ function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Y
     cmd = sprintf(['CAT_DeformSurf "%s" none 0 0 0 "%s" "%s" none  0  1  -1  .1 ' ...   
                    'avg  %0.3f  %0.3f .2  .1  5  0 "0.1"  "0.1"  n 0  0  0 %d %g  0.0 0'], ...          
                     Vpp.fname,Pouter,Pouter,-.1, .1, 50, 0.01); 
-    cat_system(cmd,opt.opts.verb-3);
+    cat_system(cmd,job.opts.opts.verb-3);
     CBSo = loadSurf(Pouter);
   end
 
@@ -120,7 +121,7 @@ function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Y
   Stm.facevertexcdata = S.thick .* cat_surf_fun('isocolors',max(.1,1 - (cat_vol_grad(Ya*1000)>0.1) * .9 ),CBS, matlab_mm); 
   Smsk.facevertexcdata( cat_surf_fun('isocolors', single( Ymsk ) ,CBS, matlab_mm) > 1.5) = nan; 
   Sth.facevertexcdata( isnan( Smsk.facevertexcdata) ) = nan; 
-  if opt.mask
+  if ~isempty( job.opts.Pmask{1} )
     mskROIs = 0; % define unwanted ROIs
     for mski = mskROIs, Si.facevertexcdata(S.atlas==mski) = nan; end
   end
@@ -152,8 +153,8 @@ function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Y
       ri = 0; %#ok<FXSET> % case of failed atlas mapping 
       sROI.boneatlas_id(1,rii)       = inf;
       sROI.nonnanvol(1,rii)          = sum(S.atlas>intmax('uint16')) ./ numel(S.atlas);
-      if opt.mask, sROI.boneatlas_name{1,rii} = 'full-masked'; 
-      else,        sROI.boneatlas_name{1,rii} = 'full-unmasked'; 
+      if ~isempty( job.opts.Pmask{1} ), sROI.boneatlas_name{1,rii} = 'full-masked'; 
+      else,                             sROI.boneatlas_name{1,rii} = 'full-unmasked'; 
       end
       % bone marrow intensity 
       sROI.bonemarrow_mean(1,rii)    = cat_stat_nanmean(Si.facevertexcdata .* Smsk.facevertexcdata); 

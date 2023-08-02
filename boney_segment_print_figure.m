@@ -1,4 +1,4 @@
-function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tismri,Po,opt,Affine) % many things 
+function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tismri,Po,job,Affine) % many things 
 %print_figure. Print final report figure with volumes and surfaces.
 
 % ToDo
@@ -54,7 +54,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
 
   % == table 1: full spm classes values - maybe only expert? ==
   notab1 = 1; 
-  if opt.expert > 1 && ~notab1
+  if job.opts.expert > 1 && ~notab1
     mgid = find(seg8t.mg > 2/numel(seg8t.lkp));
     FN  = {'lkp','mg','mn','vr'};
     FNn = {sprintf('%d/%d SPM-Classes ',numel(mgid),numel(seg8t.lkp)),'Propotion','Mean','Std'}; 
@@ -119,7 +119,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
   % *
   % #####################
   % density ~ volume and so I use only one measure
-  if seg8t.isCTseg && ~opt.normCT 
+  if seg8t.isCTseg && ~job.opts.normCT 
     tis.seg8x = tismri.Tth; 
     FN  = {'clsn','seg8x','vol','volr'};                                  % 'den','clsG','seg8nv',
     FNn = {'TPM class','Med.Int.','Volume mm3','Volume (%TIV)'};     % 'Volume density','n-Class(well)','Main-std',
@@ -203,10 +203,14 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
     FN{2}  = {'minBone'   , 'medBone' , 'maxBone' , 'thBone'  , 'headthickmn'};
     FNn{2} = {'lBone*'    , 'mBone*'  , 'hBone*'  , 'BthBone' , 'thhead'};
     FNt{2} = {'%0.0f'     , '%0.0f'   , '%0.0f'   , '%0.1f mm', '%0.1f mm'};
-  else
+  elseif isfield(tis,'iBone')
     FN{2}  = {'minBone'   , 'medBone' , 'maxBone' , 'medBone0', 'iBone'       , 'thBone'  , 'headthickmn'};
     FNn{2} = {'lBone'     , 'mBone'   , 'hBone'   , 'medBone0', 'iBone'       , 'BthBone' , 'thhead'};
     FNt{2} = {'%0.3f'     , '%0.3f'   , '%0.3f'   , '%0.3f'   , '%0.3f'       , '%0.1f mm', '%0.1f mm'};
+  else
+    FN{2}  = {'minBone'   , 'medBone' , 'maxBone' , 'medBone0' };
+    FNn{2} = {'lBone'     , 'mBone'   , 'hBone'   , 'medBone0' };
+    FNt{2} = {'%0.3f'     , '%0.3f'   , '%0.3f'   , '%0.3f'    };
   end
   if isempty(St)
     FN{2}(end-1:end) = []; FNn{2}(end-1:end) = []; FNt{2}(end-1:end) = []; 
@@ -273,7 +277,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
  
 
   % method 0 only read the header and we can print only the basic values/tables 
-  if 0 % opt.opts.bmethod == 0
+  if 0 % job.opts.bmethod == 0
     %%    print(fg, '-djpeg', Po.report); 
     figfs10 = [ findobj(fg,'FontSize',10); findobj(fg,'FontSize',9); findobj(fg,'FontSize',11); findobj(fg,'FontSize',8)]; 
     for fsi = 1:numel(figfs10), try figfs10(fsi).FontSize = figfs10(fsi).FontSize * .8; end; end %#ok<TRYNC> 
@@ -284,12 +288,12 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
 
 
   % histogram 
-  if opt.output.report > 1 && opt.opts.bmethod > 0 
+  if job.output.report > 1 && job.opts.bmethod > 0 
     %%
     ax2 = axes('Position',[0.61 0.855-table1offset/3 0.40 0.13],'Parent',fg,'Color',[1 1 1]); hold on;
     ax2.YColor = [1 1 1]; ax2.XColor = [1 1 1]; ax2.YTick = []; ax2.XTick = []; 
     ax2 = axes('Position',[0.62 0.855-table1offset/3 0.37 0.13],'Parent',fg,'Color',[1 1 1]); hold on;
-    if seg8t.isCTseg && ~opt.normCT 
+    if seg8t.isCTseg && ~job.opts.normCT 
       for ci = numel(Yc)-1:-1:1
         % (tismri.Tth(2) ./ tis.WMth) correction to print the SPM 
         hhst(ci) = histogram(ax2,Ym( Yc{ci}(:)>.5 & Ym(:)>-1000 & Ym(:)<2000) ,-1000:10:2000, ...
@@ -297,7 +301,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
         hstmax(ci) = max( hhst(ci).Values )  / 3;
       end
       xlim([-300 1800]); %title('normalized intensities');
-    elseif opt.opts.bmethod > 0 
+    elseif job.opts.bmethod > 0 
       for ci = numel(Yc)-1:-1:1
         % (tismri.Tth(2) ./ tis.WMth) correction to print the SPM 
         hhst(ci) = histogram(ax2,Ym( Yc{ci}(:)>.5 & Ym(:)>0 & Ym(:)<2) ,0:0.01:2, ...
@@ -315,7 +319,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
     %%
     ylim([0 max(hstmax(1:5)*1.3 )])
     box on; 
-    if ~(seg8t.isCTseg && ~opt.normCT)
+    if ~(seg8t.isCTseg && ~job.opts.normCT)
       ax2.FontSize = fontsize * 0.85; 
       ax2.XTickLabelRotation = 0; 
       ax2.XTickLabel = {'0','','','0.5','','','1','','','1.5','','','2'};
@@ -324,7 +328,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
       xlabel('CT intensities of SPM classes'); 
     end
     ax2.YTick = []; 
-    if seg8t.isCTseg && ~opt.normCT 
+    if seg8t.isCTseg && ~job.opts.normCT 
       for ci = 1:3
         pl = plot([tismri.Tth(ci) tismri.Tth(ci)],[0 max(ylim)]); 
         pl.Color     = [ clscol(min(6,max(seg8t.lkp(ci))),:)];
@@ -345,7 +349,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
       pl.LineWidth = seg8t.mg(ci); %.^2 * 2; 
     end
     % backup?  plot([1 1],[0 max(ylim)],'-','Color',[.7 .7 .7]);
-    if opt.opts.bmethod>0
+    if job.opts.bmethod>0
       if numel(Yc)==6, lg = legend(flip({'GM','WM','CSF','bone','head'}),'box','off'); lg.Position(1) = .895; end 
     else
       legend(flip({'bone'}),'box','off'); 
@@ -358,7 +362,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
 
 
   %% == images ==
-  if opt.output.report > 1
+  if job.output.report > 1
     spm_orthviews('Reset')
     pos = {[0.008 0.375 0.486 0.35]; [0.506 0.375 0.486 0.35]};
     % T1 + SPM segmentation
@@ -461,7 +465,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
     
     % this is replaced by spm_orthviews('redraw'); 
     if exist('orthviewlegend','var')
-      if opt.opts.bmethod > 0
+      if job.opts.bmethod > 0
         orthviewlegend = get(findobj(get(get(st.vols{1}.ax{1}.ax,'parent'),'children'),'Type','Image','Tag',''),'parent');
         orthviewlegend.YTickLabel = {'BG','lBone','hBone','muscle','fat'};
         orthviewlegend.FontSize   =  orthviewlegend.FontSize * 0.85;
@@ -506,7 +510,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
 
   %% == surface ==
   clear h; 
-  if ~isempty(Stm) && opt.output.report > 1
+  if ~isempty(Stm) && job.output.report > 1
     % thickness map
     hCS{1} = subplot('Position',[0.015 0.20 0.23 0.15],'Parent',fg,'visible','off');  sview{1} = 'l';
     hCS{2} = subplot('Position',[0.255 0.20 0.23 0.15],'Parent',fg,'visible','off');  sview{2} = 'r';
@@ -536,7 +540,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
 
   end
 
-  if ~isempty(Si) && opt.output.report > 1
+  if ~isempty(Si) && job.output.report > 1
     hCS{1} = subplot('Position',[0.5 + 0.015 0.20 0.23 0.15],'Parent',fg,'visible','off');  sview{1} = 'l';
     hCS{2} = subplot('Position',[0.5 + 0.255 0.20 0.23 0.15],'Parent',fg,'visible','off');  sview{2} = 'r';
     hCS{3} = subplot('Position',[0.5 + 0.015 0.01 0.23 0.19],'Parent',fg,'visible','off');  sview{3} = 't';
@@ -616,62 +620,4 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
     for fsi = 1:numel(figfs10), try figfs10(fsi).FontSize = figfs10(fsi).FontSize / .75; end; end %#ok<TRYNC> 
   end
 
-end
-%=======================================================================
-function [Theader,Tline,Tavg, Cheader, MAfn, matm, mmatm]   = prepare_print(P,opt)
-%prepare_print. Create table elements for the in-line report.
-  if 0
-    MAfn    = {'Tw','Thbg','Tfat','Tbone','Tres','Tcnr',      'BG',  'CSF','GM',   'muscle','fat',   'bone','marrow',   'MBI' , 'BT' , 'HDT' }; % 'Pll', Tw, Tfat, Thg, Tcnr
-    MAffn   = {'s' ,'s'   ,'s'   ,'s'    ,'f'   ,'f'   ,      'f' ,  'f'  ,'f' ,   'f'     ,'f'  ,   'f'   ,'f'     ,   'f'   , 'f'  , 'f'   }; % 'e'  ,
-    MAfsep  = [0   ,0     ,0     ,0      ,0     ,0     ,      1   ,  0    ,0   ,   1       ,0    ,   1     ,0       ,   0     , 0    , 0     ]; % 0    ,
-  else
-    MAfn    = {'Tw','Thbg','Tfat','Tbone','Tres','Tcnr',      'BG',  'CSF','GM',   'Tskull','Thead',  'MED' , 'MBI'  , 'BT' , 'HDT' }; % 'Pll', Tw, Tfat, Thg, Tcnr
-    MAffn   = {'s' ,'s'   ,'s'   ,'s'    ,'f'   ,'f'   ,      'f' ,  'f'  ,'f' ,   'f'     ,'f'    ,  'f'   , 'f'    , 'f'  , 'f'   }; % 'e'  ,
-    MAfsep  = [0   ,0     ,0     ,0      ,0     ,0     ,      1   ,  0    ,0   ,   1       ,0      ,  1     ,  0     , 0    , 0 ]; % 0    ,
-  end
-  
-  Cheader = {'scan'};
-  Theader = sprintf(sprintf('%%%ds:',opt.snspace(1)-1),'scan');
-  Tline   = sprintf('%%5d) %%%ds:',opt.snspace(1)-8);
-  Tavg    = sprintf('%%%ds:',opt.snspace(1)-1);
-  for fi = 1:numel(MAfn)
-    Cheader = [Cheader MAfn{fi}]; 
-    AMfni   = strrep( MAfn{fi} ,'_','');
-    if MAfsep(fi), sep = ' |'; else, sep = ''; end
-    Theader = sprintf(sprintf('%%s%%s%%%ds' ,opt.snspace(2)),Theader, sep, AMfni ); 
-    switch MAffn{fi}
-      case {'s','d'}
-        Tline   = sprintf('%s%s%%%d%s', Tline , sep, opt.snspace(2), MAffn{fi});
-        Tavg    = sprintf('%s%s%%%d%s', Tavg  , sep, opt.snspace(2), MAffn{fi});
-      otherwise
-        Tline   = sprintf('%s%s%%%d.%d%s',Tline , sep, opt.snspace(2), opt.snspace(3) .* (MAffn{fi}=='f'),MAffn{fi});
-        Tavg    = sprintf('%s%s%%%d.%d%s',Tavg  , sep, opt.snspace(2), opt.snspace(3) .* (MAffn{fi}=='f'),MAffn{fi});
-    end
-  end
-  % add time 
-  Tline   = sprintf('%s%%4.0fs',Tline);
-  
-  % main result table
-  matm    = num2cell(nan(numel(P),numel(MAfn)));
-  mmatm   = 10.5*ones(numel(P),numel(MAfn));
-  
-  % print title
-  if opt.opts.verb
-    fprintf('\nBone Preprocessing:\n');
-    if opt.opts.verb 
-      methodstr = {'SPMmat8','MedBoneSurf','rMedBoneSurf'};
-      reportstr = {'Table','Table + Volumes','Table + Volumes + Surfaces'};
-      fprintf('  Method:   %d (%s)\n', opt.opts.bmethod, methodstr{opt.opts.bmethod+1});
-      fprintf('  Report:   %d (%s)\n', opt.output.report, reportstr{opt.output.report});
-      if opt.opts.bmethod>0
-        fprintf('  Reduce:   %d (%s)\n', opt.reduce, reportstr{opt.reduce});
-      end
-      % parameter ######################
-      %  - method id + name it 
-      %  - report option + name it (only tables, imags, full)
-      %  - warnings/information for atypical settings
-      % ################################
-    end
-    fprintf('\n%s\n%s\n',  Theader,repmat('-',size(Theader)));  
-  end
 end

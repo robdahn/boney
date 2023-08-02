@@ -1,10 +1,12 @@
-function out = boney_segment_filenames(P,opt)
+function out = boney_segment_filenames(P,job)
 %bonefilenames(P). Pepare output filesnames. 
+
+%#ok<*AGROW> 
 
   for i = 1:numel(P)
 
     % use subdirectories 
-    if opt.subdirs
+    if job.opts.subdirs
       out(i).P.mridir    = 'mri'; 
       out(i).P.surfdir   = 'surf';
       out(i).P.reportdir = 'report';
@@ -55,33 +57,33 @@ function out = boney_segment_filenames(P,opt)
 
 
     % xml/mat output
-    out(i).P.report = fullfile(out(i).P.reportpath,sprintf('bonereport%d_%s.jpg',opt.opts.bmethod,ff(2:end)));              
-    out(i).P.xml    = fullfile(out(i).P.reportpath,sprintf('catbones%d_%s.xml',opt.opts.bmethod,ff(2:end)));
-    out(i).P.mat    = fullfile(out(i).P.reportpath,sprintf('catbones%d_%s.mat',opt.opts.bmethod,ff(2:end)));
+    out(i).P.report = fullfile(out(i).P.reportpath,sprintf('bonereport%d_%s.jpg',job.opts.bmethod,ff(2:end)));              
+    out(i).P.xml    = fullfile(out(i).P.reportpath,sprintf('catbones%d_%s.xml',job.opts.bmethod,ff(2:end)));
+    out(i).P.mat    = fullfile(out(i).P.reportpath,sprintf('catbones%d_%s.mat',job.opts.bmethod,ff(2:end)));
     
 
     % vols
-    if opt.output.writevol
+    if job.output.writevol
       vols = {'pp','bonemarrow','headthick'};
       for vi = 1:numel(vols)
         % ... subject affine warped ... 
         prefix = {'','r'}; postfix = {'','_affine'};
         for pi = 1:numel(prefix)
           out(i).P.([prefix{pi} vols{vi} postfix{pi}]) = fullfile(out(i).P.mripath, ...
-            sprintf('%s%s%d_%s%s%s', prefix{pi}, vols{vi}, opt.opts.bmethod, ff(2:end), postfix{pi}, ee));
+            sprintf('%s%s%d_%s%s%s', prefix{pi}, vols{vi}, job.opts.bmethod, ff(2:end), postfix{pi}, ee));
         end
       end
     end
 
     
     % surfs
-    if opt.output.writesurf
-      out(i).P.central   = fullfile(out(i).P.surfpath,sprintf('%s%d.central.%s.gii','bone',opt.opts.bmethod,ff));        % central
-      out(i).P.marrow    = fullfile(out(i).P.surfpath,sprintf('%s%d.marrow.%s'     ,'bone',opt.opts.bmethod,ff));        % marrow
-      out(i).P.thick     = fullfile(out(i).P.surfpath,sprintf('%s%d.thickness.%s'  ,'bone',opt.opts.bmethod,ff));        % thickness
-      out(i).P.headthick = fullfile(out(i).P.surfpath,sprintf('%s%d.thickness.%s'  ,'head',opt.opts.bmethod,ff));        % thickness
-      out(i).P.marrowmin = fullfile(out(i).P.surfpath,sprintf('%s%d.marrowmin.%s'  ,'bone',opt.opts.bmethod,ff));        % minimal bone values
-      out(i).P.marrowmax = fullfile(out(i).P.surfpath,sprintf('%s%d.marrowmax.%s'  ,'bone',opt.opts.bmethod,ff));        % maximum bone values
+    if 1 %job.output.writesurf
+      out(i).P.central   = fullfile(out(i).P.surfpath,sprintf('%s%d.central.%s.gii','bone',job.opts.bmethod,ff));        % central
+      out(i).P.marrow    = fullfile(out(i).P.surfpath,sprintf('%s%d.marrow.%s'     ,'bone',job.opts.bmethod,ff));        % marrow
+      out(i).P.thick     = fullfile(out(i).P.surfpath,sprintf('%s%d.thickness.%s'  ,'bone',job.opts.bmethod,ff));        % thickness
+      out(i).P.headthick = fullfile(out(i).P.surfpath,sprintf('%s%d.thickness.%s'  ,'head',job.opts.bmethod,ff));        % thickness
+      out(i).P.marrowmin = fullfile(out(i).P.surfpath,sprintf('%s%d.marrowmin.%s'  ,'bone',job.opts.bmethod,ff));        % minimal bone values
+      out(i).P.marrowmax = fullfile(out(i).P.surfpath,sprintf('%s%d.marrowmax.%s'  ,'bone',job.opts.bmethod,ff));        % maximum bone values
     end
   end
 end

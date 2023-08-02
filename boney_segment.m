@@ -7,27 +7,29 @@ function out = boney_segment(job)
 %  job         .. SPM job structure
 %   .files     .. SPM m-files
 %   .opts      .. structure of input values
-%   .bmethod   .. method used for evaluation (default=2): 
+%    .bmethod  .. [SPM,CAT]
+%    .bmethod  .. method used for evaluation (default=2): 
 %                  0 - SPM seg8t mat values evaluation (fast)
 %                  1 - SPM volumes with problems for high intensity bone 
 %                      marrow 
 %                  2 - refined volumes  
-%   .writevol  .. write volume output (default=1) 
-%   .writesurf .. write surface data (default=1)
-%   .report    .. create JPG report file (default=1) 
-%   .verb      .. display progress 
+%    .verb      .. display progress 
 %                 (0 - be silent, 1 - one line per subject, 2 - details)
-%   .opt.opt.opts.affreg    .. do affine registration based (default=1) 
-%   .reduce    .. voxel binning for surface creation (higher values create 
+%    .affreg    .. do affine registration based (default=1) 
+%    .reduce    .. voxel binning for surface creation (higher values create 
 %                 surfaces with less vertices, i.e., details)
 %                 - reducion factor vs. vertices in humans:   
 %                     1~120k, 2~30k, 3~13k, 4~7k, 6~3k, 8~2k
 %                 - robust results for 1-4
-%   .mask      .. mask problematic regions (default=1)
-%
-%  out         .. structure of output values
-%   .raw       .. original results (e.g. min,max,median,std, ...) for the 
-%                 different regions etc. 
+%    .mask      .. mask problematic regions (default=1)
+%   .output     .. structure of output values
+%    .report    .. create JPG report file (default=1) 
+%    .writevol  .. write volume output (default=0) 
+%    .writesurf .. write surface data (default=0)
+%    
+%   .out
+%    .raw       .. original results (e.g. min,max,median,std, ...) for the 
+%                  different regions etc. 
 %    .spm8     .. SPM data from the Unified Segmentation  
 %    .tis      .. global estimated 
 %    .vol      .. volume-based global/regional evaluation of the bone/head
@@ -50,9 +52,9 @@ function out = boney_segment(job)
 
   global cat_err_res; %#ok<GVMIS> % for CAT error report
   
-  if ~exist('opt','var'), help boney_segment; return; end
+  if ~exist('job','var'), help boney_segment; return; end
   
-  P = opt.files; 
+  P = job.files; 
   if isempty(P) || isempty(P{1})
     help boney_segment; 
     return; 
@@ -62,28 +64,28 @@ function out = boney_segment(job)
   % == defaults ==
   def.files             = {};       % SPM m-files
   def.opts.verb         = 2;        % display progress (0 - be silent, 1 - one line per subject, 2 - details)
-  def.opts.method       = 2;        % method: 0 - SPM seg8t eval only, 1 - SPM vols, 2 - refined SPM vols,  
+  def.opts.bmethod      = 2;        % method: 0 - SPM seg8t eval only, 1 - SPM vols, 2 - refined SPM vols,  
   def.opts.rerun        = 0;        % rerun processing (0 - no load previous result if available, 1 - yes) 
-  def.opts.subdirs      = 0;        % use subdirs 
   def.opts.affreg       = 0;        % do affine registration based on new skull-stripping  
   def.opts.reduce       = 4;        % voxel binning for surface creation (higher values create surfaces with less vertices, i.e., details)
                                     %  - reducion factor vs. vertices in humans:   1~120k, 2~30k, 3~13k, 4~7k, 6~3k, 8~2k
                                     %  - robust results for 1-4
-  def.opts.reslim       = 1.5;      % general resolution limit 
+  def.opts.subdirs      = 1; 
   def.opts.snspace      = [80,7,2]; % cmd print format
-  def.opts.expert       = 2;        % user level (0 - default, 1 - expert, 2 - developer)
-  def.opts.fst          = 1;        % estimate also first version 
   def.opts.normCT       = 0; 
   def.opts.Patlas       = fullfile(spm('dir'),'toolbox','cat12','templates_volumes_not_distributed','cat_KADA_bone-regions.nii');
   def.opts.Pmask        = fullfile(spm('dir'),'toolbox','cat12','templates_volumes_not_distributed','cat_KADA_bone-marrowmask.nii');
   def.opts.MarkColor    = cat_io_colormaps('marks+',40); 
+  def.opts.reslim       = 1.5;      % general resolution limit 
+  def.opts.expert       = 2;        % user level (0 - default, 1 - expert, 2 - developer)
+  def.opts.fst          = 1;        % estimate also first version 
   def.output.report     = 1;        % write report
   def.output.writevol   = 1;        % write volume output 
   def.output.writesurf  = 1;        % write surface data 
-  opt                   = cat_io_checkinopt(opt,def);
+  job                   = cat_io_checkinopt(job,def);
   
   % filenames for dependencies 
-  out = boney_segment_filenames(P,opt);
+  out = boney_segment_filenames(P,job);
   % if ..., return; end % matlabbatch
 
     
@@ -122,11 +124,11 @@ function out = boney_segment(job)
   % * Pll - not really interesting 
   % * cls numbers? - most time snot relevant > but for report
   % * write table as csv and add conclusion on command line
-  [Theader, Tline,Tavg, ~ ,MAfn,matm,mmatm] = prepare_print(P,opt);
+  [Theader, Tline,Tavg, ~ ,MAfn,matm,mmatm] = boney_segment_prepare_print(P,job);
   stime3 = clock; i = 1; 
   
   %%
-  spm_progress_bar('Init',numel(opt.files),'Bone Segment','Volumes Complete');
+  spm_progress_bar('Init',numel(job.files),'Bone Segment','Volumes Complete');
   for i = 1:numel(P)
     clearvars -global cat_err_res;
     cat_err_res.stime        = clock; 
@@ -134,39 +136,39 @@ function out = boney_segment(job)
     stime2 = clock;   
 
     if ... %cat_io_rerun(which(mfilename),out(i).P.xml) || ...
-        cat_io_rerun(out(i).P.org,out(i).P.xml,0) || opt.output.rerun
+        cat_io_rerun(out(i).P.org,out(i).P.xml,0) || job.output.rerun
   
   
       % == GET SPM DATA ==
       % - get and evaluate SPM preprocessing structure (seg8t vs. tis)
       % - get cmd line output table row (matm & mmatm)
-      stime = cat_io_cmd('  Load SPM','g5','',opt.opts.verb>1); 
+      stime = cat_io_cmd('  Load SPM','g5','',job.opts.verb>1); 
       [ seg8t , tis , matm(i,:), mmatm(i,:), vx_vol ] = boney_segment_get_segmat(out(i),MAfn); 
-      opt.reslim = max(opt.reslim,mean(vx_vol)); % limit processing resolution 
+      job.reslim = max(job.opts.reslim,mean(vx_vol)); % limit processing resolution 
 
   
-      if opt.opts.bmethod
+      if job.opts.bmethod
         % == load MRI and segmentation ==
         %ds('d2sm','',vx_vol,Ym .* (0.5 + 0.5*Ybone) ,Ya,90)
-        stime = cat_io_cmd('  Load MRIs','g5','',opt.opts.verb>1,stime); 
-        if out(i).CTseg, opt.affreg = -1; end 
-        [Vo,Yo,Yc,Ya,Ymsk,Ym, Affine, RES, BB] = boney_segment_loadMRI(out(i).P, opt, seg8t, tis, 1:5, 25); % CT rand issue
+        stime = cat_io_cmd('  Load MRIs','g5','',job.opts.verb>1,stime); 
+        if out(i).CTseg, job.affreg = -1; end 
+        [Vo,Yo,Yc,Ya,Ymsk,Ym, Affine, RES, BB] = boney_segment_loadMRI(out(i).P, job, seg8t, tis, 1:5, 25); % CT rand issue
         spm_progress_bar('Set',i - 0.8); vx_vol = RES.vx_volr; 
       
-        if opt.fst
-          stime = cat_io_cmd('  fst bone measures','g5','',opt.opts.verb>1,stime); 
+        if job.opts.fst
+          stime = cat_io_cmd('  fst bone measures','g5','',job.opts.verb>1,stime); 
           out(i).fst = boney_segment_simpleBone(seg8t,Yo,Yc); 
         end
   
         % == evaluate/test the SPM segmentation == 
-        stime  = cat_io_cmd('  Evaluate MRIs','g5','',opt.opts.verb>1,stime); 
-        [tismri,Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol,0,opt,seg8t,tis); % full estimation with refined tissue peaks
+        stime  = cat_io_cmd('  Evaluate MRIs','g5','',job.opts.verb>1,stime); 
+        [tismri,Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol,0,job,seg8t,tis); % full estimation with refined tissue peaks
         spm_progress_bar('Set',i - 0.7);
         
   
         %% == refine SPM segmentation or just prepare some maps == 
-        if opt.opts.bmethod > 1  && ~out(i).CTseg
-          stime = cat_io_cmd('  Refine SPM','g5','',opt.opts.verb>1,stime); 
+        if job.opts.bmethod > 1  && ~out(i).CTseg
+          stime = cat_io_cmd('  Refine SPM','g5','',job.opts.verb>1,stime); 
           [Yc,Ye,clsmod] = boney_segment_refineSPM(Yo,Ym,Yc,Ybraindist0,tis,tismri);
         else
           Ye = cell(0); 
@@ -177,8 +179,8 @@ function out = boney_segment(job)
         % == get bone measures == 
         % Y*   .. bone/head maps for surface mapping 
         % vROI .. extracted global/regional bone/head values 
-        stime = cat_io_cmd('  Extract bone measures','g5','',opt.opts.verb>1,stime);
-        [Ybonepp,Ybonethick,Ybonemarrow,Yhdthick,vROI] = boney_segment_extractbone(Vo,Yo,Ym,Yc,Ye,Ya,Ymsk,seg8t,tis,out(i),opt,vx_vol,RES,BB);
+        stime = cat_io_cmd('  Extract bone measures','g5','',job.opts.verb>1,stime);
+        [Ybonepp,Ybonethick,Ybonemarrow,Yhdthick,vROI] = boney_segment_extractbone(Vo,Yo,Ym,Yc,Ye,Ya,Ymsk,seg8t,tis,out(i),job,vx_vol,RES,BB);
         spm_progress_bar('Set',i - 0.4);
  
 
@@ -195,8 +197,8 @@ function out = boney_segment(job)
         %% == surface-bases processing ==
         % S*   .. bone surface with bone/head measures
         % sROI .. extracted global/regional bone/head surface values
-        stime = cat_io_cmd('  Extract bone surfaces','g5','',opt.opts.verb>1,stime); 
-        [Si,St,Stm,Sth,sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Ybonepp,Ybonethick,Ybonemarrow,Yhdthick,Ya,Ymsk,out(i),opt);
+        stime = cat_io_cmd('  Extract bone surfaces','g5','',job.opts.verb>1,stime); 
+        [Si,St,Stm,Sth,sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Ybonepp,Ybonethick,Ybonemarrow,Yhdthick,Ya,Ymsk,out(i),job);
 
 
 
@@ -276,7 +278,7 @@ tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata
 %          nout(si).tis.seg8conr; 
          
           %% write output maps
-          if opt.output.writevol
+          if job.output.writevol
             %%
             tdim = seg8t.tpm(1).dim; 
             M0   = seg8t.image.mat;          
@@ -298,7 +300,7 @@ tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata
           
             job.output.bonemarrow  = struct('native',1,'warped',0,'dartel',3);
             % midline map also for masking masking
-            cat_io_writenii(Vo,Ybonemarrow,'',sprintf('bonemarrow%d_',opt.opts.bmethod), ...
+            cat_io_writenii(Vo,Ybonemarrow,'',sprintf('bonemarrow%d_',job.opts.bmethod), ...
               'bone percentage position map','uint16',[0,0.001], ... 
               min([1 0 2],[job.output.bonemarrow.native job.output.bonemarrow.warped job.output.bonemarrow.dartel]),trans);
           end
@@ -319,16 +321,17 @@ tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata
         matm{i,end-3} = median(Yo(Yc{4}>.3) / tis.seg8o(2)); % classic
       end
       matm{i,end-2}   = mn(3); %cat_stat_nanmean(Si.facevertexcdata);
-      matm{i,end-1}   = tismri.tBone; %cat_stat_nanmean(Si.facevertexcdata);
-      matm{i,end}     = tismri.headthickmd; %cat_stat_nanmean(Si.facevertexcdata);
-    
+      try
+        matm{i,end-1}   = tismri.tBone; %cat_stat_nanmean(Si.facevertexcdata);
+        matm{i,end}     = tismri.headthickmd; %cat_stat_nanmean(Si.facevertexcdata);
+      end
   
       %% == create report ==
-      if opt.output.report
-        stime = cat_io_cmd('  Create report','g5','',opt.opts.verb>1,stime); 
-        boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tismri,out(i).P,opt,Affine);
+      if job.output.report
+        stime = cat_io_cmd('  Create report','g5','',job.opts.verb>1,stime); 
+        boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tismri,out(i).P,job,Affine);
       end
-      if opt.opts.verb>1, fprintf('% 5.0fs\n',etime(clock,stime)); end
+      if job.opts.verb>1, fprintf('% 5.0fs\n',etime(clock,stime)); end
       spm_progress_bar('Set',i - 0.1);
     
 
@@ -355,7 +358,7 @@ tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata
         outi     = cat_io_xml(out(i).P.xml);
         rerunstr = 'loaded';
       catch 
-        optb     = opt; optb.verb = 0; optb.rerun = 1; optb.files = opt.files(i);
+        optb     = job; optb.verb = 0; optb.rerun = 1; optb.files = job.files(i);
         outi     = boney_segment(optb);
         
         rerunstr = 'rerun';
@@ -366,7 +369,7 @@ tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata
         matm(i,:)  = out(i).repstr.matm; 
         mmatm(i,:) = out(i).repstr.mmatm;
       catch
-        optb       = opt; optb.verb = 0; optb.rerun = 1; optb.files = opt.files(i);
+        optb       = job; optb.verb = 0; optb.rerun = 1; optb.files = job.files(i);
         outi       = boney_segment(optb);
         out        = cat_io_mergeStruct(out,outi); 
         out(i)     = out(end); out(end) = []; 
@@ -375,7 +378,7 @@ tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata
       end
     end
 
-    if opt.opts.verb
+    if job.opts.verb
       %% Todo
       %  - Link volume with SEG overlay 
       % [-] Volume with surf overlay + "[MBI3D,TH3D]" Links
@@ -393,16 +396,16 @@ tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata
         matm{i,end-2} = matm{i,end-2} / 1000;
         matm{i,end-1} = matm{i,end-1} / 1000;
         %%
-        cat_io_cprintf( opt.MarkColor( min(size(opt.MarkColor,1),max(1,floor( (matm{i,end-2} - 1) * ...
-          size(opt.MarkColor,1)))),:),sprintf( Tline,i,...
-            sprintf( sprintf('%%%ds',opt.snspace(1)-8) , spm_str_manip(P{i},['a' num2str(opt.snspace(1) - 14)])), ...
-            ... spm_file( sprintf( sprintf('%%%ds',opt.snspace(1)-8) , spm_str_manip(P{i},['a' num2str(opt.snspace(1) - 14)])),'link',sprintf('spm_display(''%s'');',P{i})), ...
+        cat_io_cprintf( job.MarkColor( min(size(job.MarkColor,1),max(1,floor( (matm{i,end-2} - 1) * ...
+          size(job.MarkColor,1)))),:),sprintf( Tline,i,...
+            sprintf( sprintf('%%%ds',job.snspace(1)-8) , spm_str_manip(P{i},['a' num2str(job.snspace(1) - 14)])), ...
+            ... spm_file( sprintf( sprintf('%%%ds',job.snspace(1)-8) , spm_str_manip(P{i},['a' num2str(job.snspace(1) - 14)])),'link',sprintf('spm_display(''%s'');',P{i})), ...
             matm{i,:},etime(clock,stime2)));
       else    
-        cat_io_cprintf( opt.MarkColor( min(size(opt.MarkColor,1),max(1,floor( matm{i,end-2} * 3 / 9.5 * ...
-          size(opt.MarkColor,1)))),:),sprintf( Tline,i,...
-            sprintf( sprintf('%%%ds',opt.snspace(1)-8) , spm_str_manip(P{i},['a' num2str(opt.snspace(1) - 14)])), ...
-            ... spm_file( sprintf( sprintf('%%%ds',opt.snspace(1)-8) , spm_str_manip(P{i},['a' num2str(opt.snspace(1) - 14)])),'link',sprintf('spm_display(''%s'');',P{i})), ...
+        cat_io_cprintf( job.opts.MarkColor( min(size(job.opts.MarkColor,1),max(1,floor( matm{i,end-2} * 3 / 9.5 * ...
+          size(job.opts.MarkColor,1)))),:),sprintf( Tline,i,...
+            sprintf( sprintf('%%%ds',job.opts.snspace(1)-8) , spm_str_manip(P{i},['a' num2str(job.opts.snspace(1) - 14)])), ...
+            ... spm_file( sprintf( sprintf('%%%ds',job.snspace(1)-8) , spm_str_manip(P{i},['a' num2str(job.snspace(1) - 14)])),'link',sprintf('spm_display(''%s'');',P{i})), ...
             matm{i,:},etime(clock,stime2)));
       end
 
@@ -417,7 +420,7 @@ tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata
 
   end
   % final print
-  if opt.opts.verb
+  if job.opts.verb
     spm_progress_bar('Clear');
     fprintf('done.\n')
   end

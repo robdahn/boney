@@ -1,4 +1,4 @@
-function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,opt,seg8t,tis,cls,bd) % TODO: (1) tissue-base intensity scaling; (2) use/eval affreg?
+function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,job,seg8t,tis,cls,bd) % TODO: (1) tissue-base intensity scaling; (2) use/eval affreg?
 % loadMRI. Load MRI and segmentation.
 %
 %  [Vo,Yo,Yc,Ya,Ym, Affine] = loadMRI(P,Pa)
@@ -8,7 +8,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,o
 %  Pa,Va,Ya .. atlas image
 %
 
-%opt.affreg, 1:5, opt.reslim, 25 ,opt); 
+%job.opts.affreg, 1:5, job.opts.reslim, 25 ,opt); 
   
   if ~exist('cls'   ,'var'), cls    = 1:5; end 
   if ~exist('bd'    ,'var'), bd     = 25;  end 
@@ -57,7 +57,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,o
     if tis.weighting == 2 % MT
       Ym = (Yo - min([-.5 tis.seg8o ])) / (tis.seg8o(2) - min([-.5 tis.seg8o ]));
     elseif tis.weighting == -1 % CT
-      if opt.normCT 
+      if job.opts.normCT 
         Ym = (Yo - min( tis.seg8o )) / max(tis.seg8o(:) - min(tis.seg8o(:)));
       else
         Ym = Yo; 
@@ -70,8 +70,8 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,o
 
 
   % == do affine registration ==
-  % ##################### & opt.refine ????
-  if opt.affreg>0  
+  % ##################### & job.opts.refine ????
+  if job.opts.affreg>0  
     VG            = seg8t.tpm(1);
     if ~exist('Ytpmbrain','var')
       Ytpmbrain = spm_read_vols(seg8t.tpm(1)) +  spm_read_vols(seg8t.tpm(2)) +  spm_read_vols(seg8t.tpm(3)); 
@@ -87,10 +87,10 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,o
     VF.pinfo      = repmat([1;0],1,size(VF,3));
     VF            = cat_spm_smoothto8bit(VF,6);
     
-    if opt.affreg == 2  
+    if job.opts.affreg == 2  
       evalc('Affine_com  = cat_vol_set_com(VF);'); % avoid output
       Affine_com(1:3,4) = -Affine_com(1:3,4); %#ok<NODEF> 
-    elseif opt.affreg == 3
+    elseif job.opts.affreg == 3
       Affine_com = eye(4);
     else
       Affine_com = seg8t.Affine; 
@@ -98,11 +98,11 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,o
   
     % prepare affine parameter 
     aflags = struct('sep',12, ... max(6,max(sqrt(sum(VG(1).mat(1:3,1:3).^2)))), ...
-      'regtype','subj','WG',[],'WF',[],'globnorm',1); % job.opt.opts.affreg
+      'regtype','subj','WG',[],'WF',[],'globnorm',1); % job.job.opts.opts.affreg
     warning off
     Affine  = spm_affreg(VG, VF, aflags, Affine_com); 
     warning on
-  elseif opt.affreg<0 || isempty(seg8t.Affine) || all(all(seg8t.Affine==eye(4)))
+  elseif job.opts.affreg<0 || isempty(seg8t.Affine) || all(all(seg8t.Affine==eye(4)))
     %%
     VF            = spm_vol(seg8t.image(1));
     VF.dat(:,:,:) = single(Yc{1} + Yc{2} + Yc{3});
@@ -110,10 +110,10 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,o
     VF.pinfo      = repmat([1;0],1,size(VF,3));
     VF            = cat_spm_smoothto8bit(VF,6); %#ok<NASGU> 
 
-    if abs(opt.affreg) == 2 || isempty(seg8t.Affine) || all(all(seg8t.Affine==eye(4))) 
+    if abs(job.opts.affreg) == 2 || isempty(seg8t.Affine) || all(all(seg8t.Affine==eye(4))) 
       evalc('Affine_com  = cat_vol_set_com(VF);'); % avoid output
       Affine_com(1:3,4) = -Affine_com(1:3,4); %#ok<NODEF> 
-    elseif abs(opt.affreg) == 3
+    elseif abs(job.opts.affreg) == 3
       Affine_com = eye(4);
     else
       Affine_com = seg8t.Affine; 
@@ -132,8 +132,8 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,o
 
 
   % load atlas in individual space by appling the affine transformation
-  if ~isempty(opt.output.Patlas{1})
-    Va = spm_vol(opt.output.Patlas{1});
+  if ~isempty(job.opts.Patlas{1})
+    Va = spm_vol(job.opts.Patlas{1});
     Ya = zeros(size(Ym),'single'); 
     for zi = 1:size(Ym,3)
       Ya(:,:,zi) = single(spm_slice_vol( Va , ...
@@ -147,8 +147,8 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,o
   end
   
   % load mask in individual space by appling the affine transformation
-  if ~isempty(opt.output.Pmask{1})
-    Vmsk = spm_vol(opt.output.Pmask{1});
+  if ~isempty(job.opts.Pmask{1})
+    Vmsk = spm_vol(job.opts.Pmask{1});
     Ymsk = zeros(size(Ym),'single'); 
     for zi = 1:size(Ym,3)
       Ymsk(:,:,zi) = single(spm_slice_vol( Vmsk , ...
@@ -163,7 +163,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,o
   end
   
   % extend atlas to all voxels
-  if ~isempty(opt.output.Patlas{1}) || ~isempty(opt.output.Pmask)
+  if ~isempty(job.opts.Patlas{1}) || ~isempty(job.opts.Pmask)
     [~,YI] = cat_vbdist(single(Ya>0)); Ya = Ya(YI);   
   end  
   
@@ -176,9 +176,9 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,o
   end
 
   % limit resolution 
-  [Yo,Ym,RES] = cat_vol_resize({Yo,Ym}  ,'reduceV' ,tis.res_vx_vol,opt.reslim,16,'meanm');
-  [Ya,Ymsk]   = cat_vol_resize({Ya,Ymsk},'reduceV' ,tis.res_vx_vol,opt.reslim,16,'nearest');
+  [Yo,Ym,RES] = cat_vol_resize({Yo,Ym}  ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'meanm');
+  [Ya,Ymsk]   = cat_vol_resize({Ya,Ymsk},'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'nearest');
   for ci = 1:numel(Yc)
-    Yc{ci} = cat_vol_resize(Yc{ci},'reduceV' ,tis.res_vx_vol,opt.reslim,16,'meanm');
+    Yc{ci} = cat_vol_resize(Yc{ci},'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'meanm');
   end
 end
