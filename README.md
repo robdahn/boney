@@ -23,8 +23,8 @@ Run SPM and open the toolbox:
 <code>spm fmri; spm_boney;</code>
 
 Open the bone processing batch: 
-( image of bone menu + bone-processing-batch )
-![Image of the Boney menu and the bone-processing-batch](/images/boney_software_bone-processing.jpg "Shown is the bone-processing batch that can be used to extract processed bone measures into a CSV table.")
+![Image of the Boney menu and the bone-processing-batch](/images/Boney_toolbox.png "Shown is the bone-processing batch that can be used to extract processed bone measures into a CSV table.")
+
 and select the structural images that should be processed, adopt some parameters (see paragraph Parameters and SPM batch help) and start the processing. 
 
 After the processing has finished, you can use the XML2CSV batch to extract the bone values of relevant subjects within one table for further analyses.
