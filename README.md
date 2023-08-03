@@ -1,7 +1,7 @@
 # Boney
 This is the Boney toolbox, an extension to [SPM12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) and its [CAT12](http://www.neuro.uni-jena.de/cat) toolbox to support additional measurements to quantify the bone and head structure.  It is developed by *Polona Kalc* and *Robert Dahnke* and free but copyright software, distributed under the terms of the <em>[GNU General Public License](http://www.gnu.org/licenses/gpl-2.0.html)</em> as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
-If you find any bug, please report them at <polona.kalc@med.uni-jena.de> or <robert.dahnke@uni-jena.de>.
+If you find any bug, please report them to <polona.kalc@med.uni-jena.de> or <robert.dahnke@uni-jena.de>.
 
 
 ## Introduction 
