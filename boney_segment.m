@@ -36,13 +36,13 @@ function out = boney_segment(job)
 %    .surf     .. surface-based global/regional evaluation of the bone/head
 %   .main      .. most relevant values (see ...)
 % 
-% ______________________________________________________________________
+% _________________________________________________________________________
 %
-% Christian Gaser, Robert Dahnke
+% Robert Dahnke
 % Structural Brain Mapping Group (https://neuro-jena.github.io)
 % Departments of Neurology and Psychiatry
 % Jena University Hospital
-% ______________________________________________________________________
+% _________________________________________________________________________
 % $Id$
 
 % TODO: 
@@ -61,7 +61,7 @@ function out = boney_segment(job)
   end
 
 
-  % == defaults ==
+  % == defaults paraemter ==
   def.files             = {};       % SPM m-files
   def.opts.verb         = 2;        % display progress (0 - be silent, 1 - one line per subject, 2 - details)
   def.opts.bmethod      = 2;        % method: 0 - SPM seg8t eval only, 1 - SPM vols, 2 - refined SPM vols,  
@@ -86,9 +86,23 @@ function out = boney_segment(job)
   
   % filenames for dependencies 
   out = boney_segment_filenames(P,job);
-  % if ..., return; end % matlabbatch
+  
 
-    
+
+% #######################
+% if ..., return; end % matlabbatch
+%
+% call SPM / CAT preprocessing
+% * use some different parameterization 
+% * 
+% #######################
+
+
+
+
+
+   
+  % =======================================================================
   % TODO: 
   % * Check volumes and CSV to detect bad images (QC?) and segmentations 
   %   (soft values and high variance in values)
@@ -114,20 +128,22 @@ function out = boney_segment(job)
   % * colorbar histogram for surf
   % * simple version just to report SPM segmentation 
   %   > render skull + brain with pbt 1 mm with thicknes ;-)
-  
-  
-  
+  %
+  % * list of used CAT functions
+  %
+  % =======================================================================
+
+
   % create table elements for the in-line report
   % TODO: 
-  % * one line >> first name than progress 
-  % * better integration of links and seperation characters?
-  % * Pll - not really interesting 
-  % * cls numbers? - most time snot relevant > but for report
+  % * Visual feature:  one line progress >> first name than progress 
   % * write table as csv and add conclusion on command line
-  [Theader, Tline,Tavg, ~ ,MAfn,matm,mmatm] = boney_segment_prepare_print(P,job);
-  stime3 = clock; i = 1; 
+  [~, Tline, ~, ~ ,MAfn,matm,mmatm] = boney_segment_prepare_print(P,job);
+  stime3 = clock; i = 1; %#ok<NASGU> 
   
-  %%
+
+
+  %% main loop over all subjects
   spm_progress_bar('Init',numel(job.files),'Bone Segment','Volumes Complete');
   for i = 1:numel(P)
     clearvars -global cat_err_res;
@@ -156,7 +172,7 @@ function out = boney_segment(job)
         spm_progress_bar('Set',i - 0.8); vx_vol = RES.vx_volr; 
       
         if job.opts.fst
-          stime = cat_io_cmd('  fst bone measures','g5','',job.opts.verb>1,stime); 
+          stime = cat_io_cmd('  Fast bone measures','g5','',job.opts.verb>1,stime); 
           out(i).fst = boney_segment_simpleBone(seg8t,Yo,Yc); 
         end
   

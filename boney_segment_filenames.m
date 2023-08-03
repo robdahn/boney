@@ -1,7 +1,26 @@
 function out = boney_segment_filenames(P,job)
-%bonefilenames(P). Pepare output filesnames. 
+%bonefilenames(P). Prepare output filesnames and directories. 
+%  
+% out = boney_segment_filenames(P,job)
+% 
+% P   .. list of m-files
+% job .. main job structure to include some parameters in the filename etc.
+% out .. main output structure
+%  .P .. the field with all the filenames
+% _________________________________________________________________________
+%
+% Robert Dahnke
+% Structural Brain Mapping Group (https://neuro-jena.github.io)
+% Departments of Neurology and Psychiatry
+% Jena University Hospital
+% _________________________________________________________________________
+% $Id$
 
-%#ok<*AGROW> 
+% TODO: 
+% * add CAT preprocessing case
+% * creation of surface names allways required?
+
+  %#ok<*AGROW> 
 
   for i = 1:numel(P)
 
@@ -32,24 +51,28 @@ function out = boney_segment_filenames(P,job)
     out(i).P.ppff   = ff;
     out(i).P.ee     = ee; 
 
+
     % input volumes
     out(i).P.org    = fullfile(pp,[ff(ffs:ffe) ee]);
     if out(i).CTseg
       out(i).P.bc   = out(i).P.org;
       out(i).P.seg8 = fullfile(pp,sprintf('mb_fit_CTseg.mat'));
-    else
+    else % SPM case
       out(i).P.bc   = P{i};
       out(i).P.seg8 = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
+% ############## possible CAT case that would have to use the CAT xml/mat file      
     end
     if ~exist(out(i).P.seg8,'file')
       cat_io_cprintf('err','Cannot process "%s" because the seg8.mat is missing. \n',P{i});
       out(i).process = 0;
     end
 
+
     % output dirs
     out(i).P.mripath    = fullfile(pp,out(i).P.mridir); 
     out(i).P.surfpath   = fullfile(pp,out(i).P.surfdir); 
     out(i).P.reportpath = fullfile(pp,out(i).P.reportdir); 
+
     % create dirs if required
     if ~exist(out(i).P.mripath   ,'dir'), mkdir(out(i).P.mripath); end
     if ~exist(out(i).P.surfpath  ,'dir'), mkdir(out(i).P.surfpath); end
@@ -57,9 +80,9 @@ function out = boney_segment_filenames(P,job)
 
 
     % xml/mat output
-    out(i).P.report = fullfile(out(i).P.reportpath,sprintf('bonereport%d_%s.jpg',job.opts.bmethod,ff(2:end)));              
-    out(i).P.xml    = fullfile(out(i).P.reportpath,sprintf('catbones%d_%s.xml',job.opts.bmethod,ff(2:end)));
-    out(i).P.mat    = fullfile(out(i).P.reportpath,sprintf('catbones%d_%s.mat',job.opts.bmethod,ff(2:end)));
+    out(i).P.report = fullfile(out(i).P.reportpath, sprintf('bonereport%d_%s.jpg', job.opts.bmethod, ff(2:end)));              
+    out(i).P.xml    = fullfile(out(i).P.reportpath, sprintf('catbones%d_%s.xml'  , job.opts.bmethod, ff(2:end)));
+    out(i).P.mat    = fullfile(out(i).P.reportpath, sprintf('catbones%d_%s.mat'  , job.opts.bmethod, ff(2:end)));
     
 
     % vols
@@ -76,14 +99,15 @@ function out = boney_segment_filenames(P,job)
     end
 
     
-    % surfs
+    % surfs - Are these to be writen anyway?
+% #################    
     if 1 %job.output.writesurf
-      out(i).P.central   = fullfile(out(i).P.surfpath,sprintf('%s%d.central.%s.gii','bone',job.opts.bmethod,ff));        % central
-      out(i).P.marrow    = fullfile(out(i).P.surfpath,sprintf('%s%d.marrow.%s'     ,'bone',job.opts.bmethod,ff));        % marrow
-      out(i).P.thick     = fullfile(out(i).P.surfpath,sprintf('%s%d.thickness.%s'  ,'bone',job.opts.bmethod,ff));        % thickness
-      out(i).P.headthick = fullfile(out(i).P.surfpath,sprintf('%s%d.thickness.%s'  ,'head',job.opts.bmethod,ff));        % thickness
-      out(i).P.marrowmin = fullfile(out(i).P.surfpath,sprintf('%s%d.marrowmin.%s'  ,'bone',job.opts.bmethod,ff));        % minimal bone values
-      out(i).P.marrowmax = fullfile(out(i).P.surfpath,sprintf('%s%d.marrowmax.%s'  ,'bone',job.opts.bmethod,ff));        % maximum bone values
+      out(i).P.central   = fullfile(out(i).P.surfpath, sprintf('%s%d.central.%s.gii', 'bone', job.opts.bmethod, ff));        % central
+      out(i).P.marrow    = fullfile(out(i).P.surfpath, sprintf('%s%d.marrow.%s'     , 'bone', job.opts.bmethod, ff));        % marrow
+      out(i).P.thick     = fullfile(out(i).P.surfpath, sprintf('%s%d.thickness.%s'  , 'bone', job.opts.bmethod, ff));        % thickness
+      out(i).P.headthick = fullfile(out(i).P.surfpath, sprintf('%s%d.thickness.%s'  , 'head', job.opts.bmethod, ff));        % thickness
+      out(i).P.marrowmin = fullfile(out(i).P.surfpath, sprintf('%s%d.marrowmin.%s'  , 'bone', job.opts.bmethod, ff));        % minimal bone values
+      out(i).P.marrowmax = fullfile(out(i).P.surfpath, sprintf('%s%d.marrowmax.%s'  , 'bone', job.opts.bmethod, ff));        % maximum bone values
     end
   end
 end
