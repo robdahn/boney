@@ -21,7 +21,6 @@ function [Theader,Tline,Tavg, Cheader, MAfn, matm, mmatm] = ...
 % Departments of Neurology and Psychiatry
 % Jena University Hospital
 % _________________________________________________________________________
-% $Id$
 
 
 % TODO: 

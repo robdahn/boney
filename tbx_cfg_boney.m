@@ -103,14 +103,14 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   % main method of this toolbox
   bmethod               = cfg_menu;
   bmethod.tag           = 'bmethod';
-  bmethod.name          = 'Bone precessing method';
-  bmethod.labels        = {'Volume-based', 'Surface-based'};
-  bmethod.values        = {3,4};
+  bmethod.name          = 'Bone processing method';
+  bmethod.labels        = {'SPM mat-file', 'Volume-based', 'Surface-based'};
+  bmethod.values        = {1, 2, 3};
   if expertgui
-    bmethod.labels      = [ { 'SPM mat-file' , 'Volume-based (old version without refinement)' , 'Volume-based (old version with refinement)' } , bmethod.labels ];
-    bmethod.values      = [ {0,1,2 }                                                                                                            , bmethod.values ];
+    bmethod.labels      = [ { 'Volume-based (old version without refinement)' , 'Volume-based (old version with refinement)' 'Surface-based'} , bmethod.labels ];
+    bmethod.values      = [ {4, 5}                                                                                                            , bmethod.values ];
   end
-  bmethod.val           = {4};
+  bmethod.val           = {3};
   bmethod.help          = {[ ...
     'Bone processing method using volumes or additional surfaces to extract bone intensities. ' ...
     'Values are normlized for tissue contrast but still depending on image weighting (e.g. T1, T2, PD, EPI) and image protocol parameters (e.g. fat supression) ' ...
@@ -234,9 +234,9 @@ function dep = vout_boney_cfg_segment(job)
 %vout_segment. SPM dependency structure for boney_segment. 
 
   dep            = cfg_dep;
-  dep.sname      = 'Volumes';
-  dep.src_output = substruct('.','mat');
-  dep.tgt_spec   = cfg_findspec({{'filter','','strtype','e'}});
+  dep.sname      = 'XML';
+  dep.src_output = substruct('.','xml');
+  dep.tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
 
   if job.output.writevol
     dep(end+1)          = cfg_dep;

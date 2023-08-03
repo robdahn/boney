@@ -1,4 +1,4 @@
-function [ seg8t, tis, matm, mmatm, vx_vol ] = boney_segment_get_segmat(out,MAfn)   % TODO: (1) lkp tests; (2) skull-stripping/defacing tests; (3) TIV estimate  
+function [ seg8t, tis, matm, mmatm, vx_vol ] = boney_segment_get_segmat(out,MAfn)   
 %get_segmat. Get and evaluate SPM preprocessing structure.
 %
 %  [seg8t, tis, tis, matm, vx_vol] = get_spm8(P,MAfn)
@@ -15,12 +15,22 @@ function [ seg8t, tis, matm, mmatm, vx_vol ] = boney_segment_get_segmat(out,MAfn
 % Comments: 
 % * SPM tissue peaks for [GM WM CSF bone head background]
 %   - default is [1 1 2 3 4 2]: 
-%     . in T1 the lower CSF peak is the right one whereas the other one is PVE to GM or in the best case meninges?  
+%     . in T1 the lower CSF peak is the right one whereas the other one is 
+%       PVE to GM or in the best case meninges?  
 %       > would need a seperate class?
 %     . the lower CSF threshold trend to overestimation in younger subjects - PVE?
 %       > the CSF value is less robust for normalization 
 %     . in mixed tissues, higher mg result often in higher vr that bias the mn  
+% _________________________________________________________________________
+%
+% Robert Dahnke
+% Structural Brain Mapping Group (https://neuro-jena.github.io)
+% Departments of Neurology and Psychiatry
+% Jena University Hospital
+% _________________________________________________________________________
 
+
+% TODO: (1) lkp tests; (2) skull-stripping/defacing tests; (3) TIV estimate  
 
 % load SPM mat 
   seg8t          = load(out.P.seg8); 

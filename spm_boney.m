@@ -1,13 +1,24 @@
 function spm_boney(expertgui)
 % Toolbox wrapper to call boney functions
 % _________________________________________________________________________
+%
+% Robert Dahnke
+% Structural Brain Mapping Group (https://neuro-jena.github.io)
+% Departments of Neurology and Psychiatry
+% Jena University Hospital
 % _________________________________________________________________________
-% Robert Dahnke, 20191003
 
 %#ok<*NASGU>
 
 global boney
 
+% Test for CAT installation 
+catdir = fullfile( spm('dir') , 'toolbox' , 'cat12'); 
+if ~exist( catdir , 'dir' )
+  error('Error:NoCAT:(',sprintf('Cannot see CAT12 directory: \n%s', catdir))
+end
+
+%% define default parameters
 if exist('expertgui','var')
   switch expertgui
     case {0,'default'},   expertgui = 0; 

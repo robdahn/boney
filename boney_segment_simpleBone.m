@@ -28,7 +28,6 @@ function out = boney_segment_simpleBone(seg8t,Ym,Yp)
 % Departments of Neurology and Psychiatry
 % Jena University Hospital
 % _________________________________________________________________________
-% $Id$
 
 
 

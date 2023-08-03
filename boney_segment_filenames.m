@@ -14,7 +14,6 @@ function out = boney_segment_filenames(P,job)
 % Departments of Neurology and Psychiatry
 % Jena University Hospital
 % _________________________________________________________________________
-% $Id$
 
 % TODO: 
 % * add CAT preprocessing case
