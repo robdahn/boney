@@ -1,6 +1,7 @@
 function boney = tbx_cfg_boney(expertgui)
-% Configuration file for boney toolbox batches
+% Configuration file for boney toolbox batches.
 % _________________________________________________________________________
+% ###### Please write more about this ...
 % _________________________________________________________________________
 % Robert Dahnke 2023
 %
