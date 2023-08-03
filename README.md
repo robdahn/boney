@@ -1,13 +1,13 @@
 # Boney
-This is the Boney toolbox, an extension to [SPM12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) and its [CAT12](http://www.neuro.uni-jena.de/cat) toolbox to support additional measurements to quantify the bone and head structure.  It is developed by <em>Polona Kalc</em> and <em>Robert Dahnke</em> and free but copyright software, distributed under the terms of the <em>[GNU General Public License](http://www.gnu.org/licenses/gpl-2.0.html)</em> as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+This is the Boney toolbox, an extension to [SPM12](http://www.fil.ion.ucl.ac.uk/spm/software/spm12/) and its [CAT12](http://www.neuro.uni-jena.de/cat) toolbox to support additional measurements to quantify the bone and head structure.  It is developed by *Polona Kalc* and *Robert Dahnke* and free but copyright software, distributed under the terms of the <em>[GNU General Public License](http://www.gnu.org/licenses/gpl-2.0.html)</em> as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
 If you find any bug, please report them at <polona.kalc@med.uni-jena.de> or <robert.dahnke@uni-jena.de>.
 
 
 ## Introduction 
 Why some people believe that bones are more interesting than a naked women ...
-... <em>bone mineral density</em> (*BMD*) 
-... <em>body mass index</em> (*BMI*) 
+... *bone mineral density* (**BMD**) 
+... *body mass index* (**BMI**) 
 
 
 ## Quick method
@@ -25,7 +25,7 @@ Run SPM and open the toolbox:
 Open the bone processing batch: 
 ( image of bone menu + bone-processing-batch )
 ![Image of the Boney menu and the bone-processing-batch](/images/boney_software_bone-processing.jpg "Shown is the bone-processing batch that can be used to extract processed bone measures into a CSV table.")
-and select the structural images that should be processed, adopt some parameters (see paragraph parameters and SPM batch help) and start the processing. 
+and select the structural images that should be processed, adopt some parameters (see paragraph Parameters and SPM batch help) and start the processing. 
 
 After the processing has finished, you can use the XML2CSV batch to extract the bone values of relevant subjects within one table for further analyses.
 ![Image of the Boney menu and the XML2CSV-batch](/images/boney_software_XML2CSV.jpg "Shown is the XML2CSV batch that can be used to extract processed bone measures into a CSV table.")
@@ -38,7 +38,7 @@ SPM is faster but may fail in some cases, often by inital affine registration pr
 In addition you can select between different complex bone processes routines - SPMmat, volume, surface.  
 ...
 
-Furthermore, you can specify whenever output files are writen, such as the short bone-report (as a JPG), or the processed NIFTI volumes or  GIFTI surfaces that are also shown in the bone-report.
+Furthermore, you can specify whenever output files are writen, such as the short bone-report (as a JPG), or the processed NIFTI volumes or GIFTI surfaces that are also shown in the bone-report.
 
 
 ## Results Validation 
