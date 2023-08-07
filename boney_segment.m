@@ -87,13 +87,12 @@ function out = boney_segment(job)
   def.output.writevol   = 1;        % write volume output 
   def.output.writesurf  = 1;        % write surface data 
   job                   = cat_io_checkinopt(job,def);
-  job.output.report     = min(job.output.report,job.opts.bmethod); % no surface output without surface processing
+  job.output.report     = min(job.output.report,max(1,job.opts.bmethod)); % no surface output without surface processing
 
 
   % filenames for dependencies 
   [out,job.opts.fmethod] = boney_segment_filenames(P,job);
   
-
 
 % #######################
 % if ..., return; end % matlabbatch
@@ -102,7 +101,7 @@ function out = boney_segment(job)
 % * use some different parameterization 
 % * 
 % #######################
-  if job.opts.fmethod 
+  if job.opts.fmethod % if as input-files segments were used we use them and do not reprocess at all 
     boney_segment_preprocessing(P, out, job.opts.pmethod, job.opts.bias, job.opts.prerun);
   end
 

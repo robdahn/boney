@@ -34,34 +34,48 @@ function [out,fmethod] = boney_segment_filenames(P,job)
     [~,PC]  = spm_str_manip(P,'tC'); 
   end
 
+  if job.opts.subdirs
+    mridir    = 'mri'; 
+  else
+    mridir    = '';
+  end
+
   % basic test for selected preprocessed data m*.nii, c*.nii, or p*.nii 
   % - in case of preprocessed data the original file is not relevant and
   % - no new preprocessing is done, i.e., missing files have to create errors
   % - CAT support BIDS what makes it complicated
-  fmethod = 0; 
+  fmethod = 0; out = [];  
   if ~isempty(PC.s) && ( strcmp(PC.s(1),'m') || strcmp(PC.s(1),'c') || strcmp(PC.s(1),'p') ) 
     if strcmp(PC.s(1),'m')
       % try to handle the m-file input by updating the pmethod 
       prefix1 = 2; 
       if job.opts.pmethod == 0 && ...
         exist( fullfile(fileparts(P{1}), ['c1' PC.m{1} '.nii']),'file') && ...
-        exist( fullfile(fileparts(P{1}), ['p1' PC.m{1} '.nii']),'file') 
+        exist( fullfile(fileparts(P{1}), mridir, ['p1' PC.m{1} '.nii']),'file') 
         % if m* input is used and SPM and CAT segments are available and 
         % neither SPM nor CAT is selected the uses has to select a
         % segmentation
-          error('Ups, should I use SPM or CAT? Please select the SPM-c1 or the CAT-p1 segmentation files!')
+          error('  Ups, should I use SPM or CAT? Please select the SPM-c1 or the CAT-p1 segmentation files!\n')
       else
         % if m* input is used and we have either SPM or CAT and previous 
         % segmentation flag is used than update based on the input
         % segmentation 
         for si = 1:numel(P)
           for ci = 1:5
-            if exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','c', ci, PC.m{1})),'file')
-              job.opts.pmethod = 1; fmethod = 1; 
-            elseif exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','p1', ci, PC.m{1})),'file')
-              job.opts.pmethod = 2; fmethod = 2; 
+            if job.opts.pmethod == 0
+              if exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','c', ci, PC.m{1})),'file') 
+                job.opts.pmethod = 1; 
+              elseif exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','p1', ci, PC.m{1})),'file') 
+                job.opts.pmethod = 2;
+              else
+                error(sprintf('  Ups, miss SPM-c%d and/or CAT-p%d segmentation file of subject %d.\n',ci,ci,si));
+              end
             else
-              error('Ups, miss SPM-c1 and/or CAT-p%d segmentation file of subject %d: ',ci,si)
+              if exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','c', ci, PC.m{1})),'file') && job.opts.pmethod==2
+                error(sprintf('  Ups, found SPM c*-segmetnation files but you select CAT segmenation.\n'));
+              elseif exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','p1', ci, PC.m{1})),'file') && job.opts.pmethod==1
+                error(sprintf('  Ups, found CAT p*-segmetnation files but you select SPM segmenation.\n'));
+              end
             end
           end
         end
@@ -70,31 +84,42 @@ function [out,fmethod] = boney_segment_filenames(P,job)
       prefix1 = 3; 
       % if SPM or CAT segments are selected then just update the setting
       fmethod = 1 + PC.s(1)=='p'; 
-      switch [ fmethod job.opts.pmethod ]
-        case [ 1 2 ]
-          cat_io_cprintf('warn','SPM-preprocessing results are selected alhtough CAT is choosen for processing > Use SPM!\n')
-          job.opts.pmethod = 1; 
-        case [ 2 1 ]
-          cat_io_cprintf('warn','CAT-preprocessing results are selected alhtough SPM is choosen for processing > Use CAT!\n')
-          job.opts.pmethod = 2; 
+      if all([ fmethod job.opts.pmethod ] == [ 1 2 ])
+        cat_io_cprintf('warn','SPM-preprocessing results are selected alhtough CAT is choosen for processing > Use SPM!\n')
+        job.opts.pmethod = 1; 
+      elseif all([ fmethod job.opts.pmethod ] == [ 2 1 ])
+        cat_io_cprintf('warn','CAT-preprocessing results are selected alhtough SPM is choosen for processing > Use CAT!\n')
+        job.opts.pmethod = 2; 
       end
     end
 
     % test for preprocessed data
     deleteP = false(size(P)); 
+    if job.opts.pmethod == 1, sprefix = 'c'; pmethod = 'SPM'; else, sprefix = 'p'; pmethod = 'CAT'; end
     for si = 1:numel(P)
+      if ~exist( fullfile(fileparts(P{si}), sprintf('m%s.nii',PC.m{1})),'file')
+        cat_io_cprintf('err',sprintf('  Ups, miss SPM/CAT m-file of subject %d.\n',si))
+        deleteP(si) = true; 
+      end
       for ci = 1:5
-        if ~exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii',PC.s(1),  ci, PC.m{1})),'file')
-          cat_io_cprintf('err','Ups, miss SPM-c1 and/or CAT-p%d segmentation file of subject %d: ',ci,si)
+        if ~exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii',sprefix,  ci, PC.m{1})),'file')
+          cat_io_cprintf('err',sprintf('  Ups, miss %s-%s%d segmentation file of subject %d.\n', ...
+            pmethod,sprefix,ci,si))
           deleteP(si) = true; 
         end
       end
     end
     P(deleteP) = [];
   else
+    fmethod = job.opts.pmethod; 
     prefix1 = 1; 
   end 
- 
+
+  if isempty(P)
+    error(sprintf('  Upsi, no files for processing!\n')); 
+  end
+
+
 
   for i = 1:numel(P)
 
@@ -126,7 +151,7 @@ function [out,fmethod] = boney_segment_filenames(P,job)
       out(i).P.ppff   = ff;
       out(i).P.ee     = ee; 
       out(i).P.prefix = ff(1:ffs-1);
-
+   
       % input volumes
       out(i).P.org    = fullfile(pp,[ff(ffs:ffe) ee]);
       if out(i).CTseg
