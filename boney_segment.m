@@ -64,13 +64,17 @@ function out = boney_segment(job)
   % == defaults paraemter ==
   def.files             = {};       % SPM m-files
   def.opts.verb         = 2;        % display progress (0 - be silent, 1 - one line per subject, 2 - details)
-  def.opts.bmethod      = 2;        % method: 0 - SPM seg8t eval only, 1 - SPM vols, 2 - refined SPM vols,  
+  def.opts.pmethod      = 1;        % preprocessing method: 1-SPM12, 2-CAT12 
+  def.opts.bmethod      = 2;        % method: 0 - SPM seg8t eval only, 1 - volume-based, 2 - surface based
+  def.opts.prerun       = 0;        % avoid preprocessing in matching files of SPM/CAT are available
+  def.opts.bias         = 1;        % strong bias correction
   def.opts.rerun        = 0;        % rerun processing (0 - no load previous result if available, 1 - yes) 
   def.opts.affreg       = 0;        % do affine registration based on new skull-stripping  
   def.opts.reduce       = 4;        % voxel binning for surface creation (higher values create surfaces with less vertices, i.e., details)
                                     %  - reducion factor vs. vertices in humans:   1~120k, 2~30k, 3~13k, 4~7k, 6~3k, 8~2k
                                     %  - robust results for 1-4
-  def.opts.subdirs      = 1; 
+  def.opts.refine       = 1;        % refine segmenation 
+  def.opts.subdirs      = 1;        % use subdirectories 
   def.opts.snspace      = [80,7,2]; % cmd print format
   def.opts.normCT       = 0; 
   def.opts.Patlas       = fullfile(spm('dir'),'toolbox','cat12','templates_volumes_not_distributed','cat_KADA_bone-regions.nii');
@@ -83,9 +87,11 @@ function out = boney_segment(job)
   def.output.writevol   = 1;        % write volume output 
   def.output.writesurf  = 1;        % write surface data 
   job                   = cat_io_checkinopt(job,def);
-  
+  job.output.report     = min(job.output.report,job.opts.bmethod); % no surface output without surface processing
+
+
   % filenames for dependencies 
-  out = boney_segment_filenames(P,job);
+  [out,job.opts.fmethod] = boney_segment_filenames(P,job);
   
 
 
@@ -96,8 +102,9 @@ function out = boney_segment(job)
 % * use some different parameterization 
 % * 
 % #######################
-
-
+  if job.opts.fmethod 
+    boney_segment_preprocessing(P, out, job.opts.pmethod, job.opts.bias, job.opts.prerun);
+  end
 
 
 
@@ -183,7 +190,7 @@ function out = boney_segment(job)
         
   
         %% == refine SPM segmentation or just prepare some maps == 
-        if job.opts.bmethod > 1  && ~out(i).CTseg
+        if job.opts.refine && ~out(i).CTseg
           stime = cat_io_cmd('  Refine SPM','g5','',job.opts.verb>1,stime); 
           [Yc,Ye,clsmod] = boney_segment_refineSPM(Yo,Ym,Yc,Ybraindist0,tis,tismri);
         else
@@ -210,12 +217,12 @@ function out = boney_segment(job)
         end
 
   
+if job.opts.bmethod>1
         %% == surface-bases processing ==
         % S*   .. bone surface with bone/head measures
         % sROI .. extracted global/regional bone/head surface values
         stime = cat_io_cmd('  Extract bone surfaces','g5','',job.opts.verb>1,stime); 
         [Si,St,Stm,Sth,sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Ybonepp,Ybonethick,Ybonemarrow,Yhdthick,Ya,Ymsk,out(i),job);
-
 
 
         mn = cat_stat_kmeans(Si.facevertexcdata(St.facevertexcdata>5 & Si.facevertexcdata>0 ),3); % maximum value 
@@ -250,7 +257,9 @@ tismri.headthickmd  = cat_stat_nanmedian( Stm.facevertexcdata(St.facevertexcdata
 tismri.headthickmn  = cat_stat_nanmean(   Stm.facevertexcdata(St.facevertexcdata>5 & Stm.facevertexcdata>0 ) );
 tismri.headthicksd  = cat_stat_nanstd(    Stm.facevertexcdata(St.facevertexcdata>5 & Stm.facevertexcdata>0 ) );
 tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata>5 & Stm.facevertexcdata>0 ) );
-
+else
+  St = ''; Si = ''; Stm = '';
+end
 
       else
         %[pp,ff] = spm_fileparts(P{i}); ff = ff(2:end);
@@ -264,8 +273,7 @@ tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata
           Vo = spm_vol(P{i});
           Yo = single(spm_read_vols(Vo));
       
-          [pp,ff,ee] = spm_fileparts(P{i});
-          Pc4  = fullfile(pp,sprintf('c%d%s%s',4,ff(2:end),ee));
+          Pc4  = fullfile(out(i).P.orgpp,sprintf('c%d%s%s',4,out(i).P.orgff,out(i).P.ee));
           Vc4  = spm_vol(Pc4); 
           Yc4  = single(spm_read_vols(Vc4));
           [Ytiv,redR] = cat_vol_resize(Yc4,'reduceV',vx_vol,4,8,'max');
@@ -360,7 +368,7 @@ tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata
       out(i).tis     = tis; 
       out(i).repstr  = struct('mmatm',mmatm(i,:), 'matm', {matm(i,:)}, 'Theader', {MAfn}); 
       if ~isempty('tismri'), out(i).tismri  = tismri; end
-      if exist('vROI','var'), out(i).sROI     = sROI;    end
+      if exist('sROI','var'), out(i).sROI     = sROI;    end
       if exist('vROI','var'), out(i).vROI     = vROI;    end
 
       % export to XML 

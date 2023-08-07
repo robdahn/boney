@@ -51,7 +51,7 @@ function boney = tbx_cfg_boney(expertgui)
   files               = cfg_files;
   files.tag           = 'files';
   files.name          = 'Images';
-  files.help          = {'Select images that should be processed.'};
+  files.help          = {'Select images that should be processed or select the bias-corrected processed images "m*.nii".'};
   files.filter        = 'image';
   files.ufilter       = '.*';
   files.num           = [1 Inf];
@@ -64,8 +64,9 @@ function boney = tbx_cfg_boney(expertgui)
   if expertgui 
     verb.labels       = [ verb.labels, {'Yes - Details'} ];
     verb.values       = [ verb.values, {2} ];
+    verb.help         = {'Currently with details to support more information in testing. '};
   end
-  verb.val            = {1}; 
+  verb.val            = {2}; 
   verb.hidden         = expertgui<1; 
   
   
@@ -96,9 +97,8 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   pmethod.tag           = 'pmethod';
   pmethod.name          = 'Preprocessing method';
   pmethod.labels        = {'SPM','CAT'};
-  pmethod.values        = {'spm','cat'};
-  pmethod.val           = {'spm'};
-  pmethod.hidden        = expertgui<2; %%%%%%
+  pmethod.values        = {1,2};
+  pmethod.val           = {1};
   pmethod.help          = {'Preprocessing method to segment the different tissue classes in the given image.';''};
 
   % main method of this toolbox
@@ -106,16 +106,16 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   bmethod.tag           = 'bmethod';
   bmethod.name          = 'Bone processing method';
   bmethod.labels        = {'SPM mat-file', 'Volume-based', 'Surface-based'};
-  bmethod.values        = {1, 2, 3};
-  if expertgui
-    bmethod.labels      = [ { 'Volume-based (old version without refinement)' , 'Volume-based (old version with refinement)' 'Surface-based'} , bmethod.labels ];
-    bmethod.values      = [ {4, 5}                                                                                                            , bmethod.values ];
+  bmethod.values        = {0, 1, 2};
+  if expertgui & 0 %########################## not prepared
+    bmethod.labels      = [ bmethod.labels , { 'Volume-based (old version)' } ];
+    bmethod.values      = [ bmethod.values , { 3 } ];
   end
-  bmethod.val           = {3};
+  bmethod.val           = {2};
   bmethod.help          = {[ ...
     'Bone processing method using volumes or additional surfaces to extract bone intensities. ' ...
     'Values are normlized for tissue contrast but still depending on image weighting (e.g. T1, T2, PD, EPI) and image protocol parameters (e.g. fat supression) ' ...
-    'and harmonization (e.g. via external tools such as COMBAT) is recommendet. '];''};
+    'and harmonization (e.g. via external tools such as COMBAT) is recommendet. ']; ''};
 
   % not sure if this is useful
   % SPM/CAT will come with an affine registration that focuses on brain tissues rather than the skull
@@ -129,14 +129,27 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   affreg.hidden         = expertgui<2; %%%%%%
   affreg.help           = {'Apply bone-focused affine registration.';''};
 
+  refine                = cfg_menu;
+  refine.tag            = 'refine';
+  refine.name           = 'Refine preprocessing';
+  refine.labels         = {'No','Yes'};
+  refine.values         = {0,1};
+  refine.val            = {1};
+  refine.hidden         = expertgui<0; % ########### set to 1 later
+  refine.help           = {[ ...
+    'Without fat supression, the bone marrow can have high intensities that can be misslabed as head. ' ...
+    'This can be seen als large local underestimations of bone thickness and bone intensity - ' ...
+    'typically good vissible on the skull surface. ' ...
+    'Morphological operations were used to close such wholes and obtain a more complete skull segment. '];''};
+  
   rerun                 = cfg_menu;
-  rerun.tag            = 'rerun';
-  rerun.name           = 'Rerun preprocessing';
-  rerun.labels         = {'No','Yes'};
-  rerun.values         = {0,1};
-  rerun.val            = {0};
-  rerun.hidden         = expertgui<2;
-  rerun.help           = {'Run processing even if the output already exist.';''};
+  rerun.tag             = 'rerun';
+  rerun.name            = 'Rerun preprocessing';
+  rerun.labels          = {'No','Yes'};
+  rerun.values          = {0,1};
+  rerun.val             = {0};
+  rerun.hidden          = expertgui<2;
+  rerun.help            = {'Run processing even if the output already exist.';''};
 
   reduce                = cfg_menu;
   reduce.tag            = 'reduce';
@@ -178,7 +191,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   opts                  = cfg_exbranch;
   opts.tag              = 'opts';
   opts.name             = 'Options';
-  opts.val              = { pmethod , bmethod, affreg, reduce, atlas, mask, nproc, rerun, verb }; 
+  opts.val              = { pmethod , bmethod, affreg, reduce, refine, atlas, mask, nproc, rerun, verb }; 
   opts.help             = {'Specify processing parameters and atlas/mask files.'};
 
 

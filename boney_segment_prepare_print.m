@@ -75,13 +75,19 @@ function [Theader,Tline,Tavg, Cheader, MAfn, matm, mmatm] = ...
   if job.opts.verb
     fprintf('\nBone Preprocessing:\n');
     if job.opts.verb 
-      methodstr = {'SPMmat8','MedBoneSurf','rMedBoneSurf'};
+      verbosestr = {'No','Yes','Yes - Details'};
+      pmethodstr = {'previous','SPM','CAT'};
+      bmethodstr = {'SPMmat8','Volume-based','Surface-based', ...
+        'Volume-based (old version without refinement)','Volume-based (old version with refinement)'};
       reportstr = {'Table','Table + Volumes','Table + Volumes + Surfaces'};
-      fprintf('  Method:   %d (%s)\n', job.opts.bmethod, methodstr{job.opts.bmethod+1});
-      fprintf('  Report:   %d (%s)\n', job.output.report, reportstr{job.output.report});
-      if job.opts.bmethod>0
-        fprintf('  Reduce:   %d (%s)\n', job.opts.reduce, reportstr{job.opts.reduce});
+      fprintf('  Preprocessing   method:   %d (%s)\n', job.opts.pmethod, pmethodstr{job.opts.pmethod+1});
+      fprintf('  Bone processing method:   %d (%s)\n', job.opts.bmethod, bmethodstr{job.opts.bmethod+1});
+      fprintf('  Report:                   %d (%s)\n', job.output.report, reportstr{job.output.report});
+      if job.opts.bmethod>1
+        fprintf('  Reduce-factor:            %d \n', job.opts.reduce);
       end
+      fprintf('  Verbose processing:       %d (%s)\n', job.opts.verb, verbosestr{job.opts.verb});
+      
       % further parameter ?!
       % ################################
       %  - preprocessing (SEG-CT/SPM/CAT)

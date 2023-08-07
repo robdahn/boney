@@ -1,12 +1,13 @@
-function out = boney_segment_filenames(P,job)
+function [out,fmethod] = boney_segment_filenames(P,job)
 %bonefilenames(P). Prepare output filesnames and directories. 
 %  
-% out = boney_segment_filenames(P,job)
+% [out,pmethod] = boney_segment_filenames(P,job)
 % 
 % P   .. list of m-files
 % job .. main job structure to include some parameters in the filename etc.
 % out .. main output structure
 %  .P .. the field with all the filenames
+% pmethod .. update preprocessing method 
 % _________________________________________________________________________
 %
 % Robert Dahnke
@@ -19,7 +20,81 @@ function out = boney_segment_filenames(P,job)
 % * add CAT preprocessing case
 % * creation of surface names allways required?
 
-  %#ok<*AGROW> 
+  %#ok<*AGROW>
+
+  % try to get the prefix
+  if numel(P)==1
+    % if we have only one file the 'C' option of spm_str_manip is not working
+    [~,ff]  = spm_fileparts(P{1});
+    PC.s    = ff(1);
+    PC.m{1} = ff(2:end);
+  
+    % test for other files
+  else
+    [~,PC]  = spm_str_manip(P,'tC'); 
+  end
+
+  % basic test for selected preprocessed data m*.nii, c*.nii, or p*.nii 
+  % - in case of preprocessed data the original file is not relevant and
+  % - no new preprocessing is done, i.e., missing files have to create errors
+  % - CAT support BIDS what makes it complicated
+  fmethod = 0; 
+  if ~isempty(PC.s) && ( strcmp(PC.s(1),'m') || strcmp(PC.s(1),'c') || strcmp(PC.s(1),'p') ) 
+    if strcmp(PC.s(1),'m')
+      % try to handle the m-file input by updating the pmethod 
+      prefix1 = 2; 
+      if job.opts.pmethod == 0 && ...
+        exist( fullfile(fileparts(P{1}), ['c1' PC.m{1} '.nii']),'file') && ...
+        exist( fullfile(fileparts(P{1}), ['p1' PC.m{1} '.nii']),'file') 
+        % if m* input is used and SPM and CAT segments are available and 
+        % neither SPM nor CAT is selected the uses has to select a
+        % segmentation
+          error('Ups, should I use SPM or CAT? Please select the SPM-c1 or the CAT-p1 segmentation files!')
+      else
+        % if m* input is used and we have either SPM or CAT and previous 
+        % segmentation flag is used than update based on the input
+        % segmentation 
+        for si = 1:numel(P)
+          for ci = 1:5
+            if exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','c', ci, PC.m{1})),'file')
+              job.opts.pmethod = 1; fmethod = 1; 
+            elseif exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','p1', ci, PC.m{1})),'file')
+              job.opts.pmethod = 2; fmethod = 2; 
+            else
+              error('Ups, miss SPM-c1 and/or CAT-p%d segmentation file of subject %d: ',ci,si)
+            end
+          end
+        end
+      end
+    else
+      prefix1 = 3; 
+      % if SPM or CAT segments are selected then just update the setting
+      fmethod = 1 + PC.s(1)=='p'; 
+      switch [ fmethod job.opts.pmethod ]
+        case [ 1 2 ]
+          cat_io_cprintf('warn','SPM-preprocessing results are selected alhtough CAT is choosen for processing > Use SPM!\n')
+          job.opts.pmethod = 1; 
+        case [ 2 1 ]
+          cat_io_cprintf('warn','CAT-preprocessing results are selected alhtough SPM is choosen for processing > Use CAT!\n')
+          job.opts.pmethod = 2; 
+      end
+    end
+
+    % test for preprocessed data
+    deleteP = false(size(P)); 
+    for si = 1:numel(P)
+      for ci = 1:5
+        if ~exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii',PC.s(1),  ci, PC.m{1})),'file')
+          cat_io_cprintf('err','Ups, miss SPM-c1 and/or CAT-p%d segmentation file of subject %d: ',ci,si)
+          deleteP(si) = true; 
+        end
+      end
+    end
+    P(deleteP) = [];
+  else
+    prefix1 = 1; 
+  end 
+ 
 
   for i = 1:numel(P)
 
@@ -36,34 +111,57 @@ function out = boney_segment_filenames(P,job)
   
     
     % get original file name based on the type of intput segmentation
-    [pp,ff,ee]      = spm_fileparts(P{i}); 
-    out(i).CTseg    = contains(ff,'_CTseg');
-    if out(i).CTseg
-      if strcmp(ff(1:2),'c0'), ffs = 18; elseif strcmp(ff(1:2),'ss'), ffs = 4; end 
-      ffe = numel(ff) - 6;
-    else
-      if ff(1)=='m', ffs = 2; elseif ff(1)=='c', ffs = 3; end 
-      ffe = numel(ff);
-    end
-    out(i).P.orgpp  = pp; 
-    out(i).P.orgff  = ff(ffs:ffe);
-    out(i).P.ppff   = ff;
-    out(i).P.ee     = ee; 
+    if fmethod == 0 
+      [pp,ff,ee]      = spm_fileparts(P{i}); 
+      out(i).CTseg    = contains(ff,'_CTseg');
+      if out(i).CTseg
+        if strcmp(ff(1:2),'c0'), ffs = 18; elseif strcmp(ff(1:2),'ss'), ffs = 4; end 
+        ffe = numel(ff) - 6;
+      else
+        ffs = prefix1; 
+        ffe = numel(ff);
+      end
+      out(i).P.orgpp  = pp; 
+      out(i).P.orgff  = ff(ffs:ffe);
+      out(i).P.ppff   = ff;
+      out(i).P.ee     = ee; 
+      out(i).P.prefix = ff(1:ffs-1);
 
+      % input volumes
+      out(i).P.org    = fullfile(pp,[ff(ffs:ffe) ee]);
+      if out(i).CTseg
+        out(i).P.bc   = out(i).P.org;
+        out(i).P.seg8 = fullfile(pp,sprintf('mb_fit_CTseg.mat'));
+      else % SPM case
+        out(i).P.bc   = P{i};
+        out(i).P.seg8 = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
+  % ############## possible CAT case that would have to use the CAT xml/mat file      
+      end
+      if ~exist(out(i).P.seg8,'file')
+        cat_io_cprintf('err','Cannot process "%s" because the seg8.mat is missing. \n',P{i});
+        out(i).process = 0;
+      end
 
-    % input volumes
-    out(i).P.org    = fullfile(pp,[ff(ffs:ffe) ee]);
-    if out(i).CTseg
-      out(i).P.bc   = out(i).P.org;
-      out(i).P.seg8 = fullfile(pp,sprintf('mb_fit_CTseg.mat'));
-    else % SPM case
-      out(i).P.bc   = P{i};
-      out(i).P.seg8 = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
-% ############## possible CAT case that would have to use the CAT xml/mat file      
-    end
-    if ~exist(out(i).P.seg8,'file')
-      cat_io_cprintf('err','Cannot process "%s" because the seg8.mat is missing. \n',P{i});
-      out(i).process = 0;
+    else 
+      [pp,ff,ee]      = spm_fileparts(P{i}); 
+      out(i).CTseg    = 0;
+      out(i).P.org    = P{i};
+      out(i).P.orgpp  = pp; 
+      out(i).P.orgff  = ff;
+      out(i).P.ee     = ee; 
+      out(i).P.bc     = fullfile( pp , sprintf('%s%s%s','m',ff,ee) ); 
+      out(i).P.ppff   = ['m' ff];
+      %out(i).P.p0     = ['p0' ff];
+      if job.opts.pmethod==1
+        ffx = 'c'; 
+        out(i).P.seg8 = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
+      else
+        ffx = 'p'; 
+        out(i).P.seg8 = fullfile(pp,sprintf('cat_%s.xml',out(i).P.orgff));   
+      end
+      for ci = 1:5
+        out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
+      end
     end
 
 
