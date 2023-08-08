@@ -152,13 +152,21 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
     tistext(fni,1)   = text(0.01              , 0.95-table1offset-(0.045*fni) +0.01*(fni==1), ...
       sprintf('\\bf%s',FNn{fni}) ,'Fontname',fontname,'FontSize',...
       fontsize,'color',fontcolor,'Interpreter','tex','Parent',ax);
-    if fni==1, tistext(fni,1).FontWeight = 'bold'; end
+    if ~strcmpi(spm_check_version,'octave') 
+      if fni==1, tistext(fni,1).FontWeight = 'bold'; end
+    else
+      if fni==1, set(tistext(fni,1),'FontWeight','bold'); end
+    end
     for lkpi=numel(tis.clsn):-1:1 % down to avoid overlap
       if iscell(tis.(FN{fni})), tmpval = tis.(FN{fni}){lkpi}; else, tmpval = tis.(FN{fni})(lkpi); end
       if ~isnan(tmpval)
         tistext(fni,lkpi+1) = text(0.12 + 0.082*(lkpi), 0.95-table1offset-(0.045*fni) +0.01*(fni==1), sprintf( FNt{fni}, tmpval ),...
           'Fontname',fontname,'FontSize',fontsize,'color',fontcolor,'Interpreter','tex','Parent',ax,'HorizontalAlignment','right');
-        if fni==1, tistext(fni,lkpi+1).FontWeight = 'bold'; tistext(fni,lkpi+1).Color = clscol(lkpi,:);  end
+        if ~strcmpi(spm_check_version,'octave') 
+          if fni==1, tistext(fni,lkpi+1).FontWeight = 'bold'; tistext(fni,lkpi+1).Color = clscol(lkpi,:);  end
+        else
+          if fni==1, set(tistext(fni,lkpi+1),'FontWeight','bold','Color',clscol(lkpi,:));  end
+        end
       end
       %if fni==3, tistext(fni,lkpi+1).Color = grycol( max(1,min(10,round(8 - tmpval))) ,:);  end
     end
@@ -225,23 +233,46 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
         segtext(fni,lkpi+1) = text(0.03 + 0.075*(fni-1), 0.64-(fnj-1)*0.12-table1offset-(0.05), sprintf( FNt{fnj}{fni},  tis.(FN{fnj}{fni}) ),...
           'Fontname',fontname,'FontSize',fontsize,'color',fontcolor,'Interpreter','tex','HorizontalAlignment','center','Parent',ax);
       end
-%      if fni==1, segtext(fni,lkpi+1).Color = twcol(  max(1,min(size(twcol,1),tis.(FN{fnj}{fni}(1:end-1)))) , :); end
-      if fni==2, segtext(fni,lkpi+1).Color = mrkcol( max(1,min(100,round( 100 * (tis.(FN{fnj}{fni})+1) / 4 ))) , :); end % RES
+      if ~strcmpi(spm_check_version,'octave') 
+        %if fni==1, segtext(fni,lkpi+1).Color = twcol(  max(1,min(size(twcol,1),tis.(FN{fnj}{fni}(1:end-1)))) , :); end
+        if fni==2, segtext(fni,lkpi+1).Color = mrkcol( max(1,min(100,round( 100 * (tis.(FN{fnj}{fni})+1) / 4 ))) , :); end % RES
+      else
+        %if fni==1, set(segtext(fni,lkpi+1),'Color',twcol(  max(1,min(size(twcol,1),tis.(FN{fnj}{fni}(1:end-1)))) , :)); end
+        if fni==2, set(segtext(fni,lkpi+1),'Color',mrkcol( max(1,min(100,round( 100 * (tis.(FN{fnj}{fni})+1) / 4 ))) , :)); end % RES
+      end
       if fnj == 1
         if fni >2 && fni < 6
-          switch segtext(fni,lkpi+1).String
-            case 'low',  segtext(fni,lkpi+1).Color = [ .0 .0 1.0]; 
-            case 'mid',  segtext(fni,lkpi+1).Color = [ .6 .5  .0]; 
-            case 'high', segtext(fni,lkpi+1).Color = [ .8 .2  .0]; 
-            otherwise,   segtext(fni,lkpi+1).Color = [1.0 .0  .0]; 
+          if ~strcmpi(spm_check_version,'octave') 
+            switch segtext(fni,lkpi+1).String
+              case 'low',  segtext(fni,lkpi+1).Color = [ .0 .0 1.0]; 
+              case 'mid',  segtext(fni,lkpi+1).Color = [ .6 .5  .0]; 
+              case 'high', segtext(fni,lkpi+1).Color = [ .8 .2  .0]; 
+              otherwise,   segtext(fni,lkpi+1).Color = [1.0 .0  .0]; 
+            end
+          else
+            switch get(segtext(fni,lkpi+1),'String')
+              case 'low',  set(segtext(fni,lkpi+1),'Color',[ .0 .0 1.0]); 
+              case 'mid',  set(segtext(fni,lkpi+1),'Color',[ .6 .5  .0]); 
+              case 'high', set(segtext(fni,lkpi+1),'Color',[ .8 .2  .0]); 
+              otherwise,   set(segtext(fni,lkpi+1),'Color',[1.0 .0  .0]); 
+            end
           end
         end
       else
         if seg8t.isCTseg
-          if fni > 0 && fni<4, segtext(fni,lkpi+1).Color = jetcol( max(1,min(100,round(0.07 * tis.(FN{fnj}{fni})))),:);  end
-          if fni > 3,          segtext(fni,lkpi+1).Color = jetcol( max(1,min(100,round(5 * tis.(FN{fnj}{fni})))),:);  end
+          if ~strcmpi(spm_check_version,'octave') 
+            if fni > 0 && fni<4, segtext(fni,lkpi+1).Color = jetcol( max(1,min(100,round(0.07 * tis.(FN{fnj}{fni})))),:);  end
+            if fni > 3,          segtext(fni,lkpi+1).Color = jetcol( max(1,min(100,round(5 * tis.(FN{fnj}{fni})))),:);  end
+          else
+            if fni > 0 && fni<4, set(segtext(fni,lkpi+1),'Color',jetcol( max(1,min(100,round(0.07 * tis.(FN{fnj}{fni})))),:));  end
+            if fni > 3,          set(segtext(fni,lkpi+1),'Color',jetcol( max(1,min(100,round(5 * tis.(FN{fnj}{fni})))),:));  end
+          end
         else
-          if fni > 4,          segtext(fni,lkpi+1).Color = jetcol( max(1,min(100,round(5 * tis.(FN{fnj}{fni})))),:);  end
+          if ~strcmpi(spm_check_version,'octave') 
+            if fni > 4,          segtext(fni,lkpi+1).Color = jetcol( max(1,min(100,round(5 * tis.(FN{fnj}{fni})))),:);  end
+          else
+            if fni > 4,          set(segtext(fni,lkpi+1),'Color',jetcol( max(1,min(100,round(5 * tis.(FN{fnj}{fni})))),:));  end
+          end
         end
       end
     end
@@ -288,10 +319,14 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
 
 
   % histogram 
-  if job.output.report > 1 && job.opts.bmethod > 0 
+  if job.output.report > 1 && job.opts.bmethod > 0 && ~strcmpi(spm_check_version,'octave') 
     %%
     ax2 = axes('Position',[0.61 0.855-table1offset/3 0.40 0.13],'Parent',fg,'Color',[1 1 1]); hold on;
-    ax2.YColor = [1 1 1]; ax2.XColor = [1 1 1]; ax2.YTick = []; ax2.XTick = []; 
+    if ~strcmpi(spm_check_version,'octave') 
+      ax2.YColor = [1 1 1]; ax2.XColor = [1 1 1]; ax2.YTick = []; ax2.XTick = []; 
+    else
+      set(ax2,'YColor',[1 1 1],'XColor',[1 1 1],'YTick',[],'XTick',[]); 
+    end
     ax2 = axes('Position',[0.62 0.855-table1offset/3 0.37 0.13],'Parent',fg,'Color',[1 1 1]); hold on;
     if seg8t.isCTseg && ~job.opts.normCT 
       for ci = numel(Yc)-1:-1:1
@@ -308,21 +343,20 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
           'LineStyle','none','FaceColor',clscol(ci,:));
         hstmax(ci) = max( hhst(ci).Values ) ;
       end
-      xlim([0 2]); ax2.XTick = 0:1/6:2; % grid on;  %title('normalized intensities');
+      xlim([0 2]); set(ax2,'XTick',0:1/6:2); % ax2.XTick = 0:1/6:2; % grid on;  %title('normalized intensities');
     else
       % not loaded
       hhst(4) = histogram(ax2,Ybonemarrow(Ybonemarrow(:)>0),0:0.01:2, ...
         'LineStyle','none','FaceColor',clscol(ci,:));
       hstmax(4) = max( hhst(4).Values ) ;
-      xlim([0 2]); ax2.XTick = 0:1/6:2; % grid on;  %title('normalized intensities');
+      xlim([0 2]); set(ax2,'XTick',0:1/6:2); %  ax2.XTick = 0:1/6:2; % grid on;  %title('normalized intensities');
     end
     %%
     ylim([0 max(hstmax(1:5)*1.3 )])
     box on; 
     if ~(seg8t.isCTseg && ~job.opts.normCT)
-      ax2.FontSize = fontsize * 0.85; 
-      ax2.XTickLabelRotation = 0; 
-      ax2.XTickLabel = {'0','','','0.5','','','1','','','1.5','','','2'};
+      set(ax2,'FontSize',fontsize * 0.85, 'XTickLabelRotation', 0, ... 
+        'XTickLabel', {'0','','','0.5','','','1','','','1.5','','','2'});
       xlabel('normalized intensities with normalized SPM classes'); 
     else
       xlabel('CT intensities of SPM classes'); 
@@ -331,26 +365,33 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
     if seg8t.isCTseg && ~job.opts.normCT 
       for ci = 1:3
         pl = plot([tismri.Tth(ci) tismri.Tth(ci)],[0 max(ylim)]); 
-        pl.Color     = [ clscol(min(6,max(seg8t.lkp(ci))),:)];
+        set(pl,'Color',[ clscol(min(6,max(seg8t.lkp(ci))),:)]);
       end
       for ci = 1:numel(tismri.iBonemn)
         pl = plot( repmat(tismri.iBonemn(ci),1,2) ,[0 max(ylim)]); 
-        pl.Color = [ clscol(4,:)];
+        set(pl,'Color',[ clscol(4,:)]);
       end
       pl = plot( repmat( tis.report.fat ,1,2) ,[0 max(ylim)]); 
-      pl.Color = [ clscol(5,:)];
+      set(pl,'Color',[ clscol(5,:)]);
       pl = plot( repmat( tis.report.muscle ,1,2) ,[0 max(ylim)]); 
-      pl.Color = [ clscol(5,:)];
+      set(pl,'Color',[ clscol(5,:)]);
     else
       for ci = 1:numel(seg8t.mn)
         pl = plot([seg8t.mn(ci) seg8t.mn(ci)] / tis.WMth,[0 max(ylim)]); 
       end
-      pl.Color     = [ clscol(min(6,max(seg8t.lkp(ci))),:) min(1,max(0,seg8t.mg(ci) * .7*sum(seg8t.lkp(ci)==seg8t.lkp).^.5))];
-      pl.LineWidth = seg8t.mg(ci); %.^2 * 2; 
+      set(pl,'Color',[ clscol(min(6,max(seg8t.lkp(ci))),:) min(1,max(0,seg8t.mg(ci) * .7*sum(seg8t.lkp(ci)==seg8t.lkp).^.5))]);
+      set(pl,'LineWidth',seg8t.mg(ci)); %.^2 * 2; 
     end
     % backup?  plot([1 1],[0 max(ylim)],'-','Color',[.7 .7 .7]);
-    if job.opts.bmethod>0
-      if numel(Yc)==6, lg = legend(flip({'GM','WM','CSF','bone','head'}),'box','off'); lg.Position(1) = .895; end 
+    if job.opts.bmethod>0 
+      if ~strcmpi(spm_check_version,'octave') 
+        if numel(Yc)==6, lg = legend(flip({'GM','WM','CSF','bone','head'}),'box','off'); lg.Position(1) = .895; end 
+      else
+        if numel(Yc)==6
+          lg = legend(flip({'GM','WM','CSF','bone','head'}),'box','off'); 
+          lgpos = get(lg,'Position'); lgpos(1) = .895; set(lg,'Position',lgpos); 
+        end 
+      end
     else
       legend(flip({'bone'}),'box','off'); 
     end
@@ -521,6 +562,10 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
     imat = spm_imatrix(seg8t.Affine); Rigid = spm_matrix([imat(1:6) ones(1,3)*mean(imat(7:9)) 0 0 0]); clear imat;
     V = (Rigid * ([Stm.vertices, ones(size(Stm.vertices,1),1)])' )'; V(:,4) = []; Stm.vertices = V;
 
+    if ~strcmpi(spm_check_version,'octave') 
+      Si.vertices  = [Si.vertices(:,2)  Si.vertices(:,1)  Si.vertices(:,3)];
+      Stm.vertices = [Stm.vertices(:,2) Stm.vertices(:,1) Stm.vertices(:,3)];
+    end
     for ci = 1:4
       h{ci} = cat_surf_render2(Stm,'parent',hCS{ci}); 
       cat_surf_render2('Clim',h{ci},[0 20]); 
@@ -533,8 +578,13 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
     end
     
     cb = cat_surf_render2('Colorbar',h{4});
-    cb.colourbar.Location = 'South';
-    cb.colourbar.Position = [0.275 0.015 0.2 0.005];
+    if ~strcmpi(spm_check_version,'octave') 
+      cb.colourbar.Location = 'South';
+      cb.colourbar.Position = [0.275 0.015 0.2 0.005];
+    else
+      set(cb.colourbar,'Location','South','Position',[0.275 0.015 0.2 0.005]);
+    end
+    
     text(0.5,0.015,'Bone thickness (tBone)','fontsize',fontsize-1,'FontName',fontname,...
         'HorizontalAlignment','center','Parent',hCS{5}); 
 
@@ -567,8 +617,12 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
 
     if 1
       cb = cat_surf_render2('Colorbar',h{4});
-      cb.colourbar.Location = 'South';
-      cb.colourbar.Position = [0.5 + 0.275 0.015 0.2 0.005];
+      if ~strcmpi(spm_check_version,'octave') 
+        cb.colourbar.Location = 'South';
+        cb.colourbar.Position = [0.5 + 0.275 0.015 0.2 0.005];
+      else
+        set(cb.colourbar,'Location','South','Position',[0.5 + 0.275 0.015 0.2 0.005]);
+      end
       text(0.5,0.015,'Bone intensity (iBone)','fontsize',fontsize-1,'FontName',fontname,...
         'HorizontalAlignment','center','Parent',hCS{5}); 
 

@@ -78,7 +78,9 @@ function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo, ...
   % add min
   Si.facevertexcdata = single(spm_mesh_smooth(M,double(Si.facevertexcdata),10));
   Si.facevertexcdata(Si.facevertexcdata<=1) = nan; 
-  Si = cat_surf_fun('approxnans',Si);
+  if ~strcmpi(spm_check_version,'octave') 
+    Si = cat_surf_fun('approxnans',Si); % ################  currently not working under octave ...
+  end
 
   cat_io_FreeSurfer('write_surf_data',out.P.thick,Si.facevertexcdata);
 
@@ -144,11 +146,13 @@ function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo, ...
   S.thick     = cat_surf_fun('isocolors',Ybonethick , CBS, matlab_mm);
   S.hdthick   = cat_surf_fun('isocolors',Yheadthick , CBS, matlab_mm);
   St.facevertexcdata = S.thick;
-  St.facevertexcdata(St.facevertexcdata<=2) = nan; 
   Sth.facevertexcdata = S.hdthick; 
-  Sth.facevertexcdata(Sth.facevertexcdata<=2) = nan; 
-  St  = cat_surf_fun('approxnans',St);
-  Si  = cat_surf_fun('approxnans',Si);
+  if ~strcmpi(spm_check_version,'octave') 
+    St.facevertexcdata(St.facevertexcdata<=2) = nan; 
+    Sth.facevertexcdata(Sth.facevertexcdata<=2) = nan; 
+    St  = cat_surf_fun('approxnans',St);
+    Si  = cat_surf_fun('approxnans',Si);
+  end
   Stm.facevertexcdata = S.thick .* cat_surf_fun('isocolors',max(.1,1 - (cat_vol_grad(Ya*1000)>0.1) * .9 ),CBS, matlab_mm); 
   Smsk.facevertexcdata( cat_surf_fun('isocolors', single( Ymsk ) ,CBS, matlab_mm) > 1.5) = nan; 
   Sth.facevertexcdata( isnan( Smsk.facevertexcdata) ) = nan; 

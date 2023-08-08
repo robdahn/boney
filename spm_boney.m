@@ -50,9 +50,9 @@ Phelp   = fullfile( spm('Dir'), 'toolbox', 'boney', 'README.html');
 mode = {' ',' Expert mode',' Developer mode'}; 
 SPMid = spm('FnBanner',mfilename,rev);
 spm('FnUIsetup',['BONEY' mode{boney.expertgui + 1}]); 
-F   = spm_figure('GetWin'); spm_figure('clear',F); 
-imshow(Pposter, 'border', 'tight'); 
-
+F = spm_figure('GetWin'); spm_figure('clear',F); 
+h = imshow(Pposter); 
+set(get(h,'Parent'),'Position',[0 0 1 1]);
 
 % main menu
 % -------------------------------------------------------------------------
@@ -86,8 +86,8 @@ h3 = uimenu(h0,...
     'spm_figure(''clear'',F); ' ...
     'JW  = findobj(F.Children,''Type'',''hgjavacomponent''); ' ...
     'JW.Visible = ''off''; ' ...
-    '' ...
-    'imshow(''' Pposter ''',  ''border'', ''tight''); '], ...
+    'imshow(''' Pposter '''); ' ...
+    'set(get(h,''Parent''),''Position'',[0 0 1 1]); ' ], ...
   'HandleVisibility', 'off');
 
 h4 = uimenu(h0,...
@@ -104,10 +104,19 @@ cat_io_cprintf([0.0 0.0 0.5],sprintf([ ...
     '    \n' ...
     '    Boney Toolbox\n' ...
     '    Version ' rev ' alpha ']));
- if boney.expertgui==1
-   cat_io_cprintf([0.0 0.0 1.0],sprintf('(Expert mode)')); 
- elseif boney.expertgui==2
-   cat_io_cprintf([1.0 0.0 0.0],sprintf('(Developer mode)')); 
- end
- fprintf('\n\n');
+if boney.expertgui==1
+  cat_io_cprintf([0.0 0.0 1.0],sprintf('(Expert mode)')); 
+elseif boney.expertgui==2
+  cat_io_cprintf([1.0 0.0 0.0],sprintf('(Developer mode)')); 
+end
+fprintf('\n\n');
+ 
+if strcmpi(spm_check_version,'octave') 
+% in Ocatve the menu is not working  
+  spm_jobman('interactive','','spm.tools.boney.segment');
+  fprintf('warn',...
+    ['The GUI may not working under Octave yet. To create a result table call: \n\n '...
+     '   spm_jobman(''interactive'','''',''spm.tools.cat.tools.xml2csv''); \n\n']); 
+end
+
 end

@@ -148,7 +148,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
       [Yir,Ymr]           = cat_vol_resize( {Yo .* (Yc{ci}>.5),(Yc{ci}>.9)} ,'reduceV' ,1,2,32,'meanm'); 
     end
     tismri.Tsd(ci)        = cat_stat_nanstd(Yir(Ymr>.5));
-    tismri.Tiqr(ci)       = iqr(Yir(Ymr>.5 & ~isnan(Yir)),'all');
+    tismri.Tiqr(ci)       = iqr(Yir(Ymr(:)>.5 & ~isnan(Yir(:))));
     clear Yir; 
   end
   

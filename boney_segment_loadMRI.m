@@ -138,7 +138,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,j
     for zi = 1:size(Ym,3)
       Ya(:,:,zi) = single(spm_slice_vol( Va , ...
         (Va.mat \ Affine * Vo.mat) * spm_matrix([0 0 zi]), ... % apply affine tranformation
-        size(Ym,1:2),[0,NaN])); % nearest neighbor interpolation 
+        [size(Ym,1), size(Ym,2)],[0,NaN])); % nearest neighbor interpolation 
     end
     clear Va;
     [~,YD] = cat_vbdist(single(Ya>0),smooth3(Yc{6})<.5); Ya = Ya(YD);
@@ -153,7 +153,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,j
     for zi = 1:size(Ym,3)
       Ymsk(:,:,zi) = single(spm_slice_vol( Vmsk , ...
         (Vmsk.mat \ Affine * Vo.mat) * spm_matrix([0 0 zi]), ... % apply affine tranformation
-        size(Ym,1:2),[0,NaN])); % nearest neighbor interpolation 
+        [size(Ym,1),size(Ym,2)],[0,NaN])); % nearest neighbor interpolation 
     end
     clear Vmsk; 
     [~,YD] = cat_vbdist(single(Ymsk>0),smooth3(Yc{6})<.5); Ymsk = Ymsk(YD);
