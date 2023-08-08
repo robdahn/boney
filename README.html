@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Boney Toolbox Overview</title>
+  <style>
+    html {
+      line-height: 1.5;
+      font-family: Georgia, serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 40em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 1em;
+      }
+    }
+    @media print {
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+      text-align: justify;
+    }
+    a {
+      color: #1a1a9a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, 'Lucida Console', Consolas, monospace;
+      font-size: 85%;
+      margin: 0;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h1 id="boney">Boney</h1>
+<p>This is the Boney toolbox, an extension to <a href="http://www.fil.ion.ucl.ac.uk/spm/software/spm12/">SPM12</a> and its <a href="http://www.neuro.uni-jena.de/cat">CAT12</a> toolbox, supporting the extraction of measurements related to the bone and head structure. It is developed by <em>Polona Kalc</em> and <em>Robert Dahnke</em> and is a free but copyright software, distributed under the terms of the <em><a href="http://www.gnu.org/licenses/gpl-2.0.html">GNU General Public License</a></em> as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.</p>
+<p>If you find any bugs, please report them to <a href="mailto:polona.kalc@med.uni-jena.de">polona.kalc@med.uni-jena.de</a> or <a href="mailto:robert.dahnke@uni-jena.de">robert.dahnke@uni-jena.de</a>.</p>
+<h2 id="introduction">Introduction</h2>
+<p>As Ingmar Bergman posited in The Seventh Seal: <em>'A skull is more interesting than a naked woman.'</em> Yet the neuroimaging community has continued to strip the skull and discard the relevant information hidden in the layers of the head tissues. The increasing interest in the bone-brain crosstalk suggests the implication of the bone metabolism in mood, cognition, energy metabolism, etc. (<a href="10.1084/jem.20171320">Khrimian et al. 2017</a>; <a href="https://doi.org/10.1080/00207454.2020.1770247">Nakamura, Imaoka, and Takeda 2021</a> ; <a href="10.1038/nrendo.2017.181">Obri et al. 2018</a>; <a href="https://doi.org/10.1515/hmbci-2016-0030">Rousseaud et al. 2016</a>). Furthermore, low bone mineral density (BMD)/osteoporosis has been associated to an increased risk of Alzheimer's disease (<a href="https://doi.org/10.3233/JAD-180569">Kostev, Hadji, and Jacob 2018</a>; <a href="https://doi.org/10.1016/j.jamda.2022.07.012">Zhang et al. 2022</a>; <a href="10.1212/WNL.0000000000207220">Xiao et al. 2023</a>). However, the bone mineral density measures are typically not available in open-access brain-imaging databases, such as IXI, ADNI, AIBL, OASIS, etc. We therefore decided to extract a proxy measure for head BMD from the skull.</p>
+<h2 id="quick-method">Quick method</h2>
+<p>To extract bone parameters from MRI data, we use a refined SPM tissue segmentation procedure and derive different cranial intensity and thickness measures that can be used to approximate the head BMD measure. An estimation of the head's skin-fold (subcutaneous fat thickness) is also available and can be used as an additional information to the typically available BMI measure.</p>
+<h2 id="quick-start">Quick start</h2>
+<p>Install Matlab/Octave, <a href="http://www.fil.ion.ucl.ac.uk/spm/software/spm12/">SPM12</a> and its <a href="http://www.neuro.uni-jena.de/cat">CAT12</a> toolbox. Download the zip-file and unpack it into your SPM12 toolbox directory.</p>
+<p>Run SPM and open the toolbox:</p>
+<p><code>spm fmri; spm_boney;</code></p>
+<p>Open the bone processing batch: <img src="images/Boney_toolbox.png" title="Shown is the bone-processing batch that can be used to extract processed bone measures into a CSV table." alt="Image of the Boney menu and the bone-processing-batch" /></p>
+<p>and select the structural images that should be processed. Adapt relevant parameters (see paragraph Parameters and SPM batch help) and start the processing. Voilà!</p>
+<p>After the processing has finished, you can use the XML2CSV batch to extract the estimated (bone) values for further analyses.</p>
+<h2 id="parameters">Parameters</h2>
+<p>You can select different predefined SPM and CAT segmentation routines with various predefined settings. SPM's routine is faster but may fail in some cases, often because of the inital affine registration problems.</p>
+<p>In addition, you can select between different advanced processing routines for the bone measures (e.g., SPMmat, volume, surface).<br />
+We would advise the use of the refined measure, which is robust to the exclusion of the parts within the diploë.</p>
+<p>Furthermore, you can specify which output files to write, e.g., the short bone-report (as a JPG), or the processed NIFTI volumes or GIFTI surfaces that are also shown in the bone-report.</p>
+<h2 id="references">References</h2>
+<p>You can find out more about the bone and skin-fold thickness measures in the paper ...</p>
+</body>
+</html>

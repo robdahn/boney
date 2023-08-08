@@ -46,7 +46,7 @@ addpath(fullfile(spm('dir'),'toolbox','boney'));
 rev = '0.1';
 
 Pposter = fullfile( spm('Dir'), 'toolbox', 'boney', 'docs', 'Kalc-HBM2023-Scull.jpg'); 
-Phelp   = fullfile( spm('Dir'), 'toolbox', 'boney', 'docs', 'Boney_help.html'); 
+Phelp   = fullfile( spm('Dir'), 'toolbox', 'boney', 'README.html'); 
 mode = {' ',' Expert mode',' Developer mode'}; 
 SPMid = spm('FnBanner',mfilename,rev);
 spm('FnUIsetup',['BONEY' mode{boney.expertgui + 1}]); 
@@ -96,9 +96,9 @@ h3 = uimenu(h0,...
 
 h4 = uimenu(h0,...
   'Label',            'Show help',...
-  'Separator',        'on',...
+  'Separator',        'off',...
   'Tag',              'Help',...
-  'CallBack',         ['web(' Phelp ')']); 
+  'CallBack',         ['web(''' Phelp ''')']); 
  
 
 %% command line output
