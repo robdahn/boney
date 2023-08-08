@@ -66,6 +66,7 @@ function out = boney_segment(job)
   def.opts.verb         = 2;        % display progress (0 - be silent, 1 - one line per subject, 2 - details)
   def.opts.pmethod      = 1;        % preprocessing method: 1-SPM12, 2-CAT12 
   def.opts.bmethod      = 2;        % method: 0 - SPM seg8t eval only, 1 - volume-based, 2 - surface based
+  def.opts.ctpm         = 1;        % TPM selector: 1 - default TPM for adults; 2 - children TPM; 
   def.opts.prerun       = 0;        % avoid preprocessing in matching files of SPM/CAT are available
   def.opts.bias         = 1;        % strong bias correction
   def.opts.rerun        = 0;        % rerun processing (0 - no load previous result if available, 1 - yes) 
@@ -87,22 +88,18 @@ function out = boney_segment(job)
   def.output.writevol   = 1;        % write volume output 
   def.output.writesurf  = 1;        % write surface data 
   job                   = cat_io_checkinopt(job,def);
-  job.output.report     = min(job.output.report,max(1,job.opts.bmethod)); % no surface output without surface processing
+
+  % no surface output (report==3) without surface processing (bmethod == 2)
+  job.output.report     = min(job.output.report,max(2,job.opts.bmethod + 1)); 
 
 
   % filenames for dependencies 
   [out,job.opts.fmethod] = boney_segment_filenames(P,job);
   
 
-% #######################
-% if ..., return; end % matlabbatch
-%
-% call SPM / CAT preprocessing
-% * use some different parameterization 
-% * 
-% #######################
-  if job.opts.fmethod % if as input-files segments were used we use them and do not reprocess at all 
-    boney_segment_preprocessing(P, out, job.opts.pmethod, job.opts.bias, job.opts.prerun);
+  if job.opts.fmethod 
+    % call SPM/CAT preprocessing if raw images are used  
+    boney_segment_preprocessing(P, out, job.opts.ctpm, job.opts.pmethod, job.opts.bias, job.opts.prerun);
   end
 
 
@@ -130,19 +127,22 @@ function out = boney_segment(job)
   % * test Brutforce segmentation 1 and 2  
   % * update Yc map (at least print this one) ... diff muscles/bone?
   % * Ym-scaling in MT incrorrect
-  % * colorbar vol from reportfig
+  % * colorbar vol from reportfig !!!!!!!!!!
   % * colorbar histogram for surf
-  % * simple version just to report SPM segmentation 
+  % * simple version just to report SPM segmentation (=simplest case)
   %   > render skull + brain with pbt 1 mm with thicknes ;-)
   %
-  % * list of used CAT functions
+  % * list of used CAT functions ?
+  % 
+  % * further postprocessing in case of children (use children TPM as 
+  %   indicator) to correct the head-scull missalignment.
   %
   % =======================================================================
 
 
   % create table elements for the in-line report
   % TODO: 
-  % * Visual feature:  one line progress >> first name than progress 
+  % * Visual feature:  one line progress >> first name than progress .... 
   % * write table as csv and add conclusion on command line
   [~, Tline, ~, ~ ,MAfn,matm,mmatm] = boney_segment_prepare_print(P,job);
   stime3 = clock; i = 1; %#ok<NASGU> 
@@ -158,7 +158,7 @@ function out = boney_segment(job)
     stime2 = clock;   
 
     if ... %cat_io_rerun(which(mfilename),out(i).P.xml) || ...
-        cat_io_rerun(out(i).P.org,out(i).P.xml,0) || job.output.rerun
+        cat_io_rerun(out(i).P.org,out(i).P.xml,0) || job.opts.rerun
   
   
       % == GET SPM DATA ==
@@ -272,7 +272,7 @@ end
           Vo = spm_vol(P{i});
           Yo = single(spm_read_vols(Vo));
       
-          Pc4  = fullfile(out(i).P.orgpp,sprintf('c%d%s%s',4,out(i).P.orgff,out(i).P.ee));
+          Pc4  = out(i).P.cls{4}; %fullfile(out(i).P.orgpp,sprintf('c%d%s%s',4,out(i).P.orgff,out(i).P.ee));
           Vc4  = spm_vol(Pc4); 
           Yc4  = single(spm_read_vols(Vc4));
           [Ytiv,redR] = cat_vol_resize(Yc4,'reduceV',vx_vol,4,8,'max');
@@ -300,6 +300,7 @@ end
           tismri.voliqr = iqr( Ybonemarrow(Yc4(:)>.5) );
 %          nout(si).tis.seg8conr; 
          
+
           %% write output maps
           if job.output.writevol
             %%
@@ -349,6 +350,7 @@ end
         matm{i,end}     = tismri.headthickmd; %cat_stat_nanmean(Si.facevertexcdata);
       end
   
+
       %% == create report ==
       if job.output.report
         stime = cat_io_cmd('  Create report','g5','',job.opts.verb>1,stime); 
@@ -361,7 +363,9 @@ end
       
       %% == create output structure
       if isfield(seg8t.image,'private'), seg8t.image = rmfield(seg8t.image,'private'); end
-      if isfield(seg8t.tpm,  'private'), seg8t.tpm   = rmfield(seg8t.tpm  ,'private'); end
+      if isfield(seg8t,'tpm') % SPM but not CAT
+        if isfield(seg8t.tpm,  'private'), seg8t.tpm   = rmfield(seg8t.tpm  ,'private'); end
+      end
       if isfield(seg8t, 'sett'), seg8t  = rmfield(seg8t ,'sett'); end
       out(i).spm8    = seg8t; 
       out(i).tis     = tis; 
@@ -442,6 +446,7 @@ end
     spm_progress_bar('Set',i);
 
   end
+
   % final print
   if job.opts.verb
     spm_progress_bar('Clear');

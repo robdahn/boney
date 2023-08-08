@@ -55,7 +55,8 @@ function [out,fmethod] = boney_segment_filenames(P,job)
         % if m* input is used and SPM and CAT segments are available and 
         % neither SPM nor CAT is selected the uses has to select a
         % segmentation
-          error('  Ups, should I use SPM or CAT? Please select the SPM-c1 or the CAT-p1 segmentation files!\n')
+          error('boney:segment:unclearSelection', ...
+            '  Ups, should I use SPM or CAT? Please select the SPM-c1 or the CAT-p1 segmentation files!\n')
       else
         % if m* input is used and we have either SPM or CAT and previous 
         % segmentation flag is used than update based on the input
@@ -68,13 +69,16 @@ function [out,fmethod] = boney_segment_filenames(P,job)
               elseif exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','p1', ci, PC.m{1})),'file') 
                 job.opts.pmethod = 2;
               else
-                error(sprintf('  Ups, miss SPM-c%d and/or CAT-p%d segmentation file of subject %d.\n',ci,ci,si));
+                error('boney:segment:missingSegmentationInput', ...
+                  '  Ups, miss SPM-c%d and/or CAT-p%d segmentation file of subject %d.\n',ci,ci,si);
               end
             else
               if exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','c', ci, PC.m{1})),'file') && job.opts.pmethod==2
-                error(sprintf('  Ups, found SPM c*-segmetnation files but you select CAT segmenation.\n'));
+                error('boney:segment:unclearSetup', ...
+                  '  Ups, found SPM c*-segmetnation files but you select CAT segmenation.\n');
               elseif exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii','p1', ci, PC.m{1})),'file') && job.opts.pmethod==1
-                error(sprintf('  Ups, found CAT p*-segmetnation files but you select SPM segmenation.\n'));
+                error('boney:segment:unclearSetup', ...
+                  '  Ups, found CAT p*-segmetnation files but you select SPM segmenation.\n');
               end
             end
           end
@@ -137,6 +141,7 @@ function [out,fmethod] = boney_segment_filenames(P,job)
     
     % get original file name based on the type of intput segmentation
     if fmethod == 0 
+      % selection by processed file
       [pp,ff,ee]      = spm_fileparts(P{i}); 
       out(i).CTseg    = contains(ff,'_CTseg');
       if out(i).CTseg
@@ -157,10 +162,9 @@ function [out,fmethod] = boney_segment_filenames(P,job)
       if out(i).CTseg
         out(i).P.bc   = out(i).P.org;
         out(i).P.seg8 = fullfile(pp,sprintf('mb_fit_CTseg.mat'));
-      else % SPM case
+      else % SPM12 case
         out(i).P.bc   = P{i};
         out(i).P.seg8 = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
-  % ############## possible CAT case that would have to use the CAT xml/mat file      
       end
       if ~exist(out(i).P.seg8,'file')
         cat_io_cprintf('err','Cannot process "%s" because the seg8.mat is missing. \n',P{i});
@@ -168,24 +172,36 @@ function [out,fmethod] = boney_segment_filenames(P,job)
       end
 
     else 
+      % selection by RAW file
       [pp,ff,ee]      = spm_fileparts(P{i}); 
       out(i).CTseg    = 0;
       out(i).P.org    = P{i};
       out(i).P.orgpp  = pp; 
       out(i).P.orgff  = ff;
       out(i).P.ee     = ee; 
-      out(i).P.bc     = fullfile( pp , sprintf('%s%s%s','m',ff,ee) ); 
       out(i).P.ppff   = ['m' ff];
-      %out(i).P.p0     = ['p0' ff];
-      if job.opts.pmethod==1
+      if job.opts.pmethod == 1
         ffx = 'c'; 
-        out(i).P.seg8 = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
+        out(i).P.seg8   = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
+        out(i).P.bc     = fullfile( pp , sprintf('%s%s%s','m',ff,ee) ); 
+        for ci = 1:5
+          out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
+        end
       else
         ffx = 'p'; 
-        out(i).P.seg8 = fullfile(pp,sprintf('cat_%s.xml',out(i).P.orgff));   
-      end
-      for ci = 1:5
-        out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
+        out(i).P.seg8   = fullfile(pp, out(i).P.reportdir, sprintf('cat_%s.xml',out(i).P.orgff));   
+        % we have to use the filename from the XML to get the original image 
+        % as it could be hidden by BIDS 
+        Sxml            = cat_io_xml( out(i).P.seg8 ); 
+        [pp,ff,ee]      = spm_fileparts( Sxml.filedata.fname ); 
+        out(i).P.org    = Sxml.filedata.fname;
+        out(i).P.orgpp  = pp; 
+        out(i).P.orgff  = ff;
+        out(i).P.ee     = ee;
+        out(i).P.bc     = Sxml.filedata.Fm; 
+        for ci = 1:5
+          out(i).P.cls{ci} = fullfile( pp , out(i).P.mridir , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
+        end
       end
     end
 

@@ -1,4 +1,14 @@
-function P = boney_segment_preprocessing(P,out,method,bias,rerun)
+function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
+%boney_segment_preprocessing. Call SPM12 or CAT12 segmentation.
+% 
+%  P = boney_segment_preprocessing(P,out,method,bias,rerun)
+%
+%  P        .. updated structures of processed files 
+%  out(:).P .. other input files 
+%  ctpm     .. TPM selector (1-default SPM TPM for adults, 2-children)
+%  pmethod  .. preprocesing method (1-SPM; 2-CAT; ?-segCT)
+%  bias     .. use strong bias corretion (i.e., 30 mm)
+%  rerun    .. run preprocessing even if all files exist
 % _________________________________________________________________________
 %
 % Robert Dahnke
@@ -7,8 +17,12 @@ function P = boney_segment_preprocessing(P,out,method,bias,rerun)
 % Jena University Hospital
 % _________________________________________________________________________
   
+% TODO: 
+% * Optimization of the segmentation data storing as one label rather than
+%   many segment files. 
+
   % check for already processed files
-  PC = P; PC{1} = out(1).P.org; for i=2:numel(PC), PC{i}  = out(i).P.org; end
+  PC = spm_file(P,'ext','.nii'); PC{1} = out(1).P.org; for i=2:numel(PC), PC{i}  = out(i).P.org; end
   if rerun
     PC = P; 
   else
@@ -16,26 +30,36 @@ function P = boney_segment_preprocessing(P,out,method,bias,rerun)
     Ppc = P; Ppc{1} = out(1).P.cls{1}; for i=2:numel(P), Ppc{i} = out(i).P.cls{1}; end
     
     % have to use CAT developer GUI for rerun function 
-    oldexpertgui =  cat_get_defaults('extopts.expertgui');
+    oldexpertgui = cat_get_defaults('extopts.expertgui');
     cat_get_defaults('extopts.expertgui',2);
-    rpc = cat_io_rerun(PC,Ppc,0) > 0;
+    rpc = cat_io_rerun(PC,Ppc,1) > 0; % estimate if reprocessing is required
     cat_get_defaults('extopts.expertgui',oldexpertgui);
-    PC  = PC(rpc); 
+    PC  = PC(rpc); % only keep cases that need preprocessing
   end
 
   %% processing
   if ~isempty(PC)
-    switch method
+    switch ctpm
+      case 1, Ptpm = fullfile(spm('dir'),'tpm',sprintf('TPM.nii')); 
+      case 2, Ptpm = fullfile(spm('dir'),'toolbox','boney',sprintf('TPM_Age11.5.nii'));
+    end
+    switch pmethod
       case {1,'spm'}
-        matlabbatch = SPM_preprocessing(PC, bias);
+        matlabbatch = SPM_preprocessing(PC, Ptpm, bias);
       case {2,'cat'} % not working
-        matlabbatch = CAT_preprocessing(PC, 0, bias); %nproc
+        expertgui = cat_get_defaults('extopts.expertgui');
+        if expertgui < 2, cat12('expert'); end % need expert/developer batch to write class 4 to 6
+        matlabbatch = CAT_preprocessing(PC, Ptpm, bias, expertgui); 
       otherwise
         error('unkown preprocessing method')
     end
   
     % data optimization 
-    
+% #####################
+% The idea was to combine all 6 classes in one label map to save space but 
+% also time in loading these images from disk (factor 6!). 
+% However, this would need further additional checks and case handling.
+% #####################
 
     % run SPM batch
     spm_jobman('run',matlabbatch); 
@@ -44,47 +68,53 @@ function P = boney_segment_preprocessing(P,out,method,bias,rerun)
 
 end
 % subfunction with the main CAT matlabbatch
-function matlabbatch = SPM_preprocessing(P,bias)
-  matlabbatch{1}.spm.spatial.preproc.channel.vols       = P;
-  matlabbatch{1}.spm.spatial.preproc.channel.biasreg    = 0.001;
-  matlabbatch{1}.spm.spatial.preproc.channel.biasfwhm   = 60 - 30*bias;
-  matlabbatch{1}.spm.spatial.preproc.channel.write      = [0 1]; % write bias corrected image
+function matlabbatch = SPM_preprocessing(P,Ptmp,bias)
+%SPM_preprocessing. Create SPM12 segmentation matlabbatch.
+  matlabbatch{1}.spm.spatial.preproc.channel.vols        = P;
+  matlabbatch{1}.spm.spatial.preproc.channel.biasreg     = 0.001;
+  matlabbatch{1}.spm.spatial.preproc.channel.biasfwhm    = 60 - 30*bias;
+  matlabbatch{1}.spm.spatial.preproc.channel.write       = [0 1]; % write bias corrected image
+  % use default classes (a skull-stripped case is irrelevant here ;-)
   ngaus = [1 1 2 4 3 2]; 
   for ti = 1:6
-    matlabbatch{1}.spm.spatial.preproc.tissue(ti).tpm    = ...
-      {fullfile(spm('dir'),'tpm',sprintf('TPM.nii,%d',ti))};
+    matlabbatch{1}.spm.spatial.preproc.tissue(ti).tpm    = {sprintf('%s,%d',Ptmp,ti)};
     matlabbatch{1}.spm.spatial.preproc.tissue(ti).ngaus  = ngaus(ti);
     matlabbatch{1}.spm.spatial.preproc.tissue(ti).native = [ti<6 0];
     matlabbatch{1}.spm.spatial.preproc.tissue(ti).warped = [0 0];
   end
-  matlabbatch{1}.spm.spatial.preproc.warp.mrf           = 1;
-  matlabbatch{1}.spm.spatial.preproc.warp.cleanup       = 1;
-  matlabbatch{1}.spm.spatial.preproc.warp.reg           = [0 0.001 0.5 0.05 0.2];
-  matlabbatch{1}.spm.spatial.preproc.warp.affreg        = 'subj';
-  matlabbatch{1}.spm.spatial.preproc.warp.fwhm          = 0;
-  matlabbatch{1}.spm.spatial.preproc.warp.samp          = 5;
-  matlabbatch{1}.spm.spatial.preproc.warp.write         = [0 0];
-  matlabbatch{1}.spm.spatial.preproc.warp.vox           = NaN;
-  matlabbatch{1}.spm.spatial.preproc.warp.bb            = [NaN NaN NaN; NaN NaN NaN];
+  matlabbatch{1}.spm.spatial.preproc.warp.mrf            = 1;
+  matlabbatch{1}.spm.spatial.preproc.warp.cleanup        = 1;
+  matlabbatch{1}.spm.spatial.preproc.warp.reg            = [0 0.001 0.5 0.05 0.2];
+  % subj was more robust compair to the default (=mri) 
+  matlabbatch{1}.spm.spatial.preproc.warp.affreg         = 'subj';
+  matlabbatch{1}.spm.spatial.preproc.warp.fwhm           = 0;
+  % surprissingly samp=5 was more robust than 3 that failed in good bone segmenation in many UKB cases
+  matlabbatch{1}.spm.spatial.preproc.warp.samp           = 5; % default is 3 
+  matlabbatch{1}.spm.spatial.preproc.warp.write          = [0 0];
+  matlabbatch{1}.spm.spatial.preproc.warp.vox            = NaN;
+  matlabbatch{1}.spm.spatial.preproc.warp.bb             = [NaN NaN NaN; NaN NaN NaN];
 end
-function matlabbatch = CAT_preprocessing(P, nproc, bias)
 % subfunction with the main CAT matlabbatch
+function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expert)
+%CAT_preprocessing. Create CAT12 segmentation matlabbatch.
   matlabbatch{1}.spm.tools.cat.estwrite.data                              = P;
   matlabbatch{1}.spm.tools.cat.estwrite.data_wmh                          = {''};
-  matlabbatch{1}.spm.tools.cat.estwrite.nproc                             = nproc;
+  matlabbatch{1}.spm.tools.cat.estwrite.nproc                             = 0; % if parallel than maybe the whole processing
   matlabbatch{1}.spm.tools.cat.estwrite.useprior                          = '';
-  matlabbatch{1}.spm.tools.cat.estwrite.opts.tpm                          = {'/Users/dahnke/Documents/MATLAB/spm12g/tpm/TPM.nii'};
-  matlabbatch{1}.spm.tools.cat.estwrite.opts.affreg                       = 'sub';
-  matlabbatch{1}.spm.tools.cat.estwrite.opts.ngaus                        = [1 1 2 3 4 2];
-  matlabbatch{1}.spm.tools.cat.estwrite.opts.warpreg                      = [0 0.001 0.5 0.05 0.2];
-  matlabbatch{1}.spm.tools.cat.estwrite.opts.bias.biasstr                 = 0.5 + 0.5*bias;
-  matlabbatch{1}.spm.tools.cat.estwrite.opts.acc.accstr                   = 0.5;
-  matlabbatch{1}.spm.tools.cat.estwrite.opts.redspmres                    = 0;
+  matlabbatch{1}.spm.tools.cat.estwrite.opts.tpm                          = Ptmp;
+  matlabbatch{1}.spm.tools.cat.estwrite.opts.affreg                       = 'subj';
+  if expert == 2
+    matlabbatch{1}.spm.tools.cat.estwrite.opts.ngaus                      = [1 1 2 3 4 2];
+    matlabbatch{1}.spm.tools.cat.estwrite.opts.warpreg                    = [0 0.001 0.5 0.05 0.2];
+    matlabbatch{1}.spm.tools.cat.estwrite.opts.redspmres                  = 0;
+  end
+  matlabbatch{1}.spm.tools.cat.estwrite.opts.biasstr                      = 0.5 + 0.5*bias;
+  matlabbatch{1}.spm.tools.cat.estwrite.opts.accstr                       = 0.5;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.restypes.optimal = [1 0.3];
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.setCOM       = 1;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.APP          = 1070;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.affmod       = 0;
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.NCstr        = 0; % faster ? 
+  matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.NCstr        = .5; % faster? - no better robust 
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.spm_kamap    = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.LASstr       = 0.5;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.LASmyostr    = 0;
@@ -94,12 +124,23 @@ function matlabbatch = CAT_preprocessing(P, nproc, bias)
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.WMHC         = 2;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.SLC          = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.mrf          = 1;
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.T1           = {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/T1.nii')};
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.brainmask    = {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/brainmask.nii')};
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.cat12atlas   = {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/cat.nii')};
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.darteltpm    = {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/Template_1_Dartel.nii')};
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.shootingtpm  = {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/Template_0_GS.nii')};
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.regstr       = 0.5;
+  if expert == 2
+    matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.T1           = ...
+      {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/T1.nii')};
+    matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.brainmask    = ...
+      {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/brainmask.nii')};
+    matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.cat12atlas   = ...
+      {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/cat.nii')};
+    matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.darteltpm    = ...
+      {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/Template_1_Dartel.nii')};
+    matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.shootingtpm  = ...
+      {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/Template_0_GS.nii')};
+    matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.regstr       = 0.5;
+  else
+    matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.regmethod.shooting.shootingtpm = ...
+      {'/Users/dahnke/Documents/MATLAB/spm12g/toolbox/cat12/templates_MNI152NLin2009cAsym/Template_0_GS.nii'};
+    matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.regmethod.shooting.regstr = 0.5;
+  end
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.bb           = 12;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.vox          = 1.5;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.surface.pbtres            = 0.5;
@@ -168,15 +209,17 @@ function matlabbatch = CAT_preprocessing(P, nproc, bias)
   matlabbatch{1}.spm.tools.cat.estwrite.output.TPMC.mod       = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.output.TPMC.dartel    = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.output.atlas.native   = 0;
-  matlabbatch{1}.spm.tools.cat.estwrite.output.atlas.warped   = 0;
-  matlabbatch{1}.spm.tools.cat.estwrite.output.atlas.dartel   = 0;
+  if expertgui == 2
+    matlabbatch{1}.spm.tools.cat.estwrite.output.atlas.warped = 0;
+    matlabbatch{1}.spm.tools.cat.estwrite.output.atlas.dartel = 0;
+  end
   matlabbatch{1}.spm.tools.cat.estwrite.output.label.native   = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.output.label.warped   = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.output.label.dartel   = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.output.labelnative    = 0;
-  matlabbatch{1}.spm.tools.cat.estwrite.output.bias.native    = 0;
+  matlabbatch{1}.spm.tools.cat.estwrite.output.bias.native    = 1; % image (m*)
   matlabbatch{1}.spm.tools.cat.estwrite.output.bias.warped    = 0;
-  matlabbatch{1}.spm.tools.cat.estwrite.output.bias.dartel    = 1; % image (m*)
+  matlabbatch{1}.spm.tools.cat.estwrite.output.bias.dartel    = 0; 
   matlabbatch{1}.spm.tools.cat.estwrite.output.las.native     = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.output.las.warped     = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.output.las.dartel     = 0;

@@ -23,7 +23,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,j
     if seg8t.isCTseg % CTseg 
       Pc{ci}  = fullfile(P.orgpp,sprintf('c%02d%s%s',ci,P.ppff(4:end),P.ee));
     else
-      Pc{ci}  = fullfile(P.orgpp,sprintf('c%d%s%s',ci,P.orgff,P.ee));
+      Pc{ci}  = P.cls{ci}; %fullfile(P.orgpp,sprintf('c%d%s%s',ci,P.orgff,P.ee));
     end
     Vc(ci)  = spm_vol(Pc{ci}); 
     Yc{ci}  = single(spm_read_vols(Vc(ci)));

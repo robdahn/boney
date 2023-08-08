@@ -33,40 +33,63 @@ function [ seg8t, tis, matm, mmatm, vx_vol ] = boney_segment_get_segmat(out,MAfn
 % TODO: (1) lkp tests; (2) skull-stripping/defacing tests; (3) TIV estimate  
 
 % load SPM mat 
-  seg8t          = load(out.P.seg8); 
-  if out.CTseg
-    seg8t.dat.model.gmm = rmfield(seg8t.dat.model.gmm,{'T','Sig'});
-    % #### this is not fully working and the classe values are strange ...
-    seg8t.lkp     = seg8t.sett.gmm.mg_ix;
-    seg8t.mn      = seg8t.dat.model.gmm.m; 
-    seg8t.mg      = seg8t.dat.model.gmm.gam'; 
-    seg8t.vr      = seg8t.dat.model.gmm.W; 
-     
-    tmp           = spm_load_priors8(ps_fullfile(spm('dir'),'TPM','TPM.nii'));
-    seg8t.tpmA    = tmp;
-    seg8t.tpm     = rmfield(tmp.V,'private');
-    seg8t.Affine  = eye(4);
-    seg8t.image   = spm_vol(out.P.org);
-    seg8t.isCTseg = 1; 
-    seg8t         = rmfield(seg8t,'dat');
-    seg8t.sett    = rmfield(seg8t.sett,'B');
-  else
-    seg8t         = rmfield(seg8t,{'Twarp','Tbias','MT'}); % store this one for later 
-    seg8t.isCTseg = 0; 
-    
-    if numel( seg8t.image ) > 1
-      iid         = contains(out.P.org,{seg8t.image.fname}); 
-      seg8t.image = seg8t.image(iid);
-      seg8t.mn    = seg8t.mn(iid,:);
-      seg8t.vr    = seg8t.vr(iid,iid,:);
+  if strcmp(out.P.seg8(end-2:end),'mat')
+    seg8t          = load(out.P.seg8); 
+    if out.CTseg
+      seg8t.dat.model.gmm = rmfield(seg8t.dat.model.gmm,{'T','Sig'});
+      % #### this is not fully working and the classe values are strange ...
+      seg8t.lkp     = seg8t.sett.gmm.mg_ix;
+      seg8t.mn      = seg8t.dat.model.gmm.m; 
+      seg8t.mg      = seg8t.dat.model.gmm.gam'; 
+      seg8t.vr      = seg8t.dat.model.gmm.W; 
+       
+      tmp           = spm_load_priors8(ps_fullfile(spm('dir'),'TPM','TPM.nii'));
+      seg8t.tpmA    = tmp;
+      seg8t.tpm     = rmfield(tmp.V,'private');
+      seg8t.Affine  = eye(4);
+      seg8t.image   = spm_vol(out.P.org);
+      seg8t.isCTseg = 1; 
+      seg8t         = rmfield(seg8t,'dat');
+      seg8t.sett    = rmfield(seg8t.sett,'B');
+    else
+      seg8t         = rmfield(seg8t,{'Twarp','Tbias','MT'}); % store this one for later 
+      seg8t.isCTseg = 0; 
+      
+      if numel( seg8t.image ) > 1
+        iid         = contains(out.P.org,{seg8t.image.fname}); 
+        seg8t.image = seg8t.image(iid);
+        seg8t.mn    = seg8t.mn(iid,:);
+        seg8t.vr    = seg8t.vr(iid,iid,:);
+      end
     end
+    vx_vol          = sqrt(sum(seg8t.image(1).mat(1:3,1:3).^2));
+
+% ###################
+% It would be helpful to include quality measures here (or later for speed up) 
+% by using the CAT QC batch
+% ###################
+  else
+    % read CAT XML rather than the SPM file 
+    Sxml  = cat_io_xml(out.P.seg8); 
+    seg8t = Sxml.SPMpreprocessing;
+    if ~isfield(seg8t,'mg') % older cat versions don't have this field!
+      for i = 1:max(seg8t.lkp)
+        seg8t.mg(seg8t.lkp == i,1) = 1 / sum(seg8t.lkp == i); 
+      end
+    end
+    seg8t.image   = spm_vol( Sxml.filedata.fname ); 
+    seg8t.isCTseg = 0; 
+    vx_vol        = Sxml.qualitymeasures.res_vx_vol;
+% ###################
+% In case of CAT we could directly use the QC ratings.
+% ###################
   end
-  vx_vol         = sqrt(sum(seg8t.image(1).mat(1:3,1:3).^2));
   
 
 
-  % check for problems and skip in worst case
-  if numel(seg8t.tpm) ~= 6 
+
+  %% check for problems and skip in worst case
+  if max(seg8t.lkp) ~= 6 
     cat_io_cprintf('err','ERROR: Only 6 class models are supported yet!\n');
     return
   end

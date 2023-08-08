@@ -107,7 +107,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   bmethod.name          = 'Bone processing method';
   bmethod.labels        = {'SPM mat-file', 'Volume-based', 'Surface-based'};
   bmethod.values        = {0, 1, 2};
-  if expertgui & 0 %########################## not prepared
+  if expertgui & 0 %########################## not prepared yet
     bmethod.labels      = [ bmethod.labels , { 'Volume-based (old version)' } ];
     bmethod.values      = [ bmethod.values , { 3 } ];
   end
@@ -126,7 +126,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   affreg.labels         = {'No','Yes'};
   affreg.values         = {0,1};
   affreg.val            = {0};
-  affreg.hidden         = expertgui<2; %%%%%%
+  affreg.hidden         = expertgui<2; % ###########
   affreg.help           = {'Apply bone-focused affine registration.';''};
 
   refine                = cfg_menu;
@@ -135,7 +135,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   refine.labels         = {'No','Yes'};
   refine.values         = {0,1};
   refine.val            = {1};
-  refine.hidden         = expertgui<0; % ########### set to 1 later
+  refine.hidden         = expertgui<0;; % ########### set later to 1 
   refine.help           = {[ ...
     'Without fat supression, the bone marrow can have high intensities that can be misslabed as head. ' ...
     'This can be seen als large local underestimations of bone thickness and bone intensity - ' ...
@@ -148,12 +148,28 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   rerun.labels          = {'No','Yes'};
   rerun.values          = {0,1};
   rerun.val             = {0};
-  rerun.hidden          = expertgui<2;
+  rerun.hidden          = expertgui<0;; % ############## set later to 1
   rerun.help            = {'Run processing even if the output already exist.';''};
 
+  % General resolution limit:   
+  % Would be good to use this even before SPM/CAT to stabilize and speedup  
+  % the whole preprocessing. However, then the output images would have 
+  % also a different size. 
+  reslim                = cfg_menu;
+  reslim.tag            = 'reslim';
+  reslim.name           = 'Resolution limit';
+  reslim.labels         = {'0.5 mm','1.0 mm', '1.5 mm'};
+  reslim.values         = {0.5,1,1.5};
+  reslim.val            = {1.5};
+  reslim.hidden         = expertgui<1;
+  reslim.help           = ... 
+   {['Limit processing resolution for the whole pipelime to stabilize and speed-up the processing. ' ...
+     'The limit gives the required resolution after reduction, i.e. an image of .75 would be reduced ' ...
+     'to 1.5 mm, whereas 0.8 would not be reduced. '];''};
+  
   reduce                = cfg_menu;
   reduce.tag            = 'reduce';
-  reduce.name           = 'Processing resolution';
+  reduce.name           = 'Surface processing resolution';
   reduce.labels         = {'full','half','third','quater'};
   reduce.values         = {1,2,3,4};
   reduce.val            = {2};
@@ -187,12 +203,21 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   atlas.num             = [0 1];
   atlas.hidden          = expertgui<1;
 
+  ctpm                  = cfg_menu;
+  ctpm.tag              = 'ctpm';
+  ctpm.name             = 'TPM';
+  ctpm.labels           = {'Adults','Childen'};
+  ctpm.values           = {1,2};
+  ctpm.val              = {1};
+  ctpm.help             = {'Select TPM (Tissue Probility Map) for preprocessing. ';''};
+
+  
   % main parameter structure passed to cat_plot_boxplot
   opts                  = cfg_exbranch;
   opts.tag              = 'opts';
   opts.name             = 'Options';
-  opts.val              = { pmethod , bmethod, affreg, reduce, refine, atlas, mask, nproc, rerun, verb }; 
-  opts.help             = {'Specify processing parameters and atlas/mask files.'};
+  opts.val              = { ctpm, pmethod, bmethod, reslim, affreg, refine, reduce, atlas, mask, nproc, rerun, verb }; 
+  opts.help             = {'Specify processing parameters and atlas/mask files. '};
 
 
 
