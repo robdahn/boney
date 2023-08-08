@@ -24,6 +24,7 @@ Run SPM and open the toolbox:
 <code>spm fmri; spm_boney;</code>
 
 Open the bone processing batch: 
+
 ![Image of the Boney menu and the bone-processing-batch](images/Boney_toolbox.png "Shown is the bone-processing batch that can be used to extract processed bone measures into a CSV table.")
 
 and select the structural images that should be processed. Adapt relevant parameters (see paragraph Parameters and SPM batch help) and start the processing. Voilà! 
@@ -45,3 +46,4 @@ Furthermore, you can specify which output files to write, e.g., the short bone-r
 You can find out more about the bone and skin-fold thickness measures in the paper ...
 
 
+![](images/AdobeStock_375705917_Preview.jpg "Just a bone pile - Did you know that ...")
