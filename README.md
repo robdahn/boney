@@ -24,7 +24,7 @@ Run SPM and open the toolbox:
 <code>spm fmri; spm_boney;</code>
 
 Open the bone processing batch: 
-![Image of the Boney menu and the bone-processing-batch](/images/Boney_toolbox.png "Shown is the bone-processing batch that can be used to extract processed bone measures into a CSV table.")
+![Image of the Boney menu and the bone-processing-batch](images/Boney_toolbox.png "Shown is the bone-processing batch that can be used to extract processed bone measures into a CSV table.")
 
 and select the structural images that should be processed. Adapt relevant parameters (see paragraph Parameters and SPM batch help) and start the processing. Voilà! 
 
