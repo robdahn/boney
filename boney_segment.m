@@ -191,7 +191,7 @@ function out = boney_segment(job)
         %% == refine SPM segmentation or just prepare some maps == 
         if job.opts.refine && ~out(i).CTseg
           stime = cat_io_cmd('  Refine SPM','g5','',job.opts.verb>1,stime); 
-          [Yc,Ye,clsmod] = boney_segment_refineSPM(Yo,Ym,Yc,Ybraindist0,tis,tismri);
+          [Yc,Ye,Ya,clsmod] = boney_segment_refineSPM(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri);
         else
           Ye = cell(0); 
         end

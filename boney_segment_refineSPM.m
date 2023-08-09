@@ -1,4 +1,4 @@
-function [Yc,Ye,clscor] = boney_segment_refineSPM(Yo,Ym,Yc,Ybraindist0,tis,tismri)
+function [Yc,Ye,Ya,clscor] = boney_segment_refineSPM(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri)
 % == REFINE SPM DATA ==
 % * Create meninges class? 
 %   - This is not realy working cause the intensity are changing too much.
@@ -32,7 +32,7 @@ function [Yc,Ye,clscor] = boney_segment_refineSPM(Yo,Ym,Yc,Ybraindist0,tis,tismr
 % >>>  
 % * use FAT peak for general scaling 
 
-Yco = Yc; 
+Yco    = Yc; 
 vx_vol = tis.res_vx_vol; 
 vxmm3  = prod(vx_vol) * 1000; 
 Ybraindist0s = cat_vol_smooth3X(Ybraindist0,6);  
@@ -150,7 +150,23 @@ Ybraindist0s = cat_vol_smooth3X(Ybraindist0,6);
       Ym .* (1- smooth3(Yn*4 .* Yn2*4 .* (Yc{4}+Yc{3}).*Ym * 3)) % ... this is quite nice to remove mengs and BVs (but also affects the GM/WM boudnary !
   end
 
- 
+
+  %% refinement of atlas map
+  if 0 
+    Ymg = cat_vol_div( Ym .* cat_vol_smooth3X(Yc{4}>.5,1));
+    Ymg = cat_vol_smooth3X( Ymg ./ mean(Ymg(Ymg(:)<-0.1)) , 4) ;
+    Yag = cat_vol_grad(Ya);
+    Ya2 = Ya .* (cat_vbdist(Yag,Yhead<1,vx_vol)>20 & Yc{4}>.5); 
+    Ya2(Ya2==0 & Yc{4}<.1) = nan; 
+    %
+    Yx = cat_vol_smooth3X(Yc{4},2) .* Ymg; 
+    Ya3 = cat_vol_downcut(Ya2,Yx,-.05);
+    Ya3(Ya3==0 & Yc{4}<.1) = nan; 
+    Ya3 = cat_vol_downcut(Ya3,Yx,.2);
+    [Yd,Yi] = cat_vbdist(Ya3); Ya3f = Ya3(Yi);
+    Ya3g = cat_vol_grad(Ya3f);
+  end
+
   % ########
   % Problem is to get all bone marrow also the missaligned things that are
   % now part of the head or the brain (aligned as menignes like thing to
