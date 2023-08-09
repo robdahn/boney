@@ -319,6 +319,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
 
 
   % histogram 
+  % - not working for Octave so far as I used the newer matlab histogram function that is not available 
   if job.output.report > 1 && job.opts.bmethod > 0 && ~strcmpi(spm_check_version,'octave') 
     %%
     ax2 = axes('Position',[0.61 0.855-table1offset/3 0.40 0.13],'Parent',fg,'Color',[1 1 1]); hold on;
@@ -331,17 +332,29 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
     if seg8t.isCTseg && ~job.opts.normCT 
       for ci = numel(Yc)-1:-1:1
         % (tismri.Tth(2) ./ tis.WMth) correction to print the SPM 
-        hhst(ci) = histogram(ax2,Ym( Yc{ci}(:)>.5 & Ym(:)>-1000 & Ym(:)<2000) ,-1000:10:2000, ...
-          'LineStyle','none','FaceColor',clscol(ci,:));
+        if ~strcmpi(spm_check_version,'octave') 
+          hhst(ci) = histogram(ax2,Ym( Yc{ci}(:)>.5 & Ym(:)>-1000 & Ym(:)<2000) ,-1000:10:2000, ...
+            'LineStyle','none','FaceColor',clscol(ci,:));
+        else
+          hhst(ci) = hist(ax2,Ym( Yc{ci}(:)>.5 & Ym(:)>-1000 & Ym(:)<2000) ,-1000:10:2000, ...
+            'LineStyle','none','FaceColor',clscol(ci,:));
+        end
         hstmax(ci) = max( hhst(ci).Values )  / 3;
       end
       xlim([-300 1800]); %title('normalized intensities');
     elseif job.opts.bmethod > 0 
       for ci = numel(Yc)-1:-1:1
         % (tismri.Tth(2) ./ tis.WMth) correction to print the SPM 
-        hhst(ci) = histogram(ax2,Ym( Yc{ci}(:)>.5 & Ym(:)>0 & Ym(:)<2) ,0:0.01:2, ...
-          'LineStyle','none','FaceColor',clscol(ci,:));
-        hstmax(ci) = max( hhst(ci).Values ) ;
+        if ~strcmpi(spm_check_version,'octave') 
+          hhst(ci) = histogram(ax2,Ym( Yc{ci}(:)>.5 & Ym(:)>0 & Ym(:)<2) ,0:0.01:2, ...
+            'LineStyle','none','FaceColor',clscol(ci,:));
+          hstmax(ci) = max( hhst(ci).Values ) ;
+        else
+          %hhst(ci) = 
+          hist(ax2,Ym( Yc{ci}(:)>.5 & Ym(:)>-1000 & Ym(:)<2000) ,-1000:10:2000); 
+          %, ...
+          %  'LineStyle','none','FaceColor',clscol(ci,:));
+        end
       end
       xlim([0 2]); set(ax2,'XTick',0:1/6:2); % ax2.XTick = 0:1/6:2; % grid on;  %title('normalized intensities');
     else
@@ -562,19 +575,23 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
     imat = spm_imatrix(seg8t.Affine); Rigid = spm_matrix([imat(1:6) ones(1,3)*mean(imat(7:9)) 0 0 0]); clear imat;
     V = (Rigid * ([Stm.vertices, ones(size(Stm.vertices,1),1)])' )'; V(:,4) = []; Stm.vertices = V;
 
-    if ~strcmpi(spm_check_version,'octave') 
+    if strcmpi(spm_check_version,'octave') 
       Si.vertices  = [Si.vertices(:,2)  Si.vertices(:,1)  Si.vertices(:,3)];
       Stm.vertices = [Stm.vertices(:,2) Stm.vertices(:,1) Stm.vertices(:,3)];
     end
     for ci = 1:4
-      h{ci} = cat_surf_render2(Stm,'parent',hCS{ci}); 
-      cat_surf_render2('Clim',h{ci},[0 20]); 
-      switch lower(sview{ci})
-        case {'r'},  cat_surf_render('view',h{ci},[  90   0]); 
-        case {'l'},  cat_surf_render('view',h{ci},[ -90   0]);  
-        case {'t'},  cat_surf_render('view',h{ci},[   0  90]); 
-        case {'p'},  cat_surf_render('view',h{ci},[   0   0]); 
-      end
+      %if ~strcmpi(spm_check_version,'octave') 
+        h{ci} = cat_surf_render2(Stm,'parent',hCS{ci}); 
+        cat_surf_render2('Clim',h{ci},[0 20]); 
+        switch lower(sview{ci})
+          case {'r'},  cat_surf_render('view',h{ci},[  90   0]); 
+          case {'l'},  cat_surf_render('view',h{ci},[ -90   0]);  
+          case {'t'},  cat_surf_render('view',h{ci},[   0  90]); 
+          case {'p'},  cat_surf_render('view',h{ci},[   0   0]); 
+        end
+      %else
+      %  cat_surf_renderv(Stm,[],struct('view',sview{ci},'mat',spm_imatrix(eye(4)),'h',hCS{2},'interp',interp*0.9));
+      %end
     end
     
     cb = cat_surf_render2('Colorbar',h{4});

@@ -62,7 +62,9 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
 % #####################
 
     % run SPM batch
-    spm_jobman('run',matlabbatch); 
+    warning off; 
+    spm_jobman('run',matlabbatch);
+    warning on; 
   end
 
 
