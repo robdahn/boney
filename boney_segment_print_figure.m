@@ -204,6 +204,10 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tis
   FNn{1} = {'Tw'        , 'RES'     , 'BGtype'  , 'fatint',       'fatbone'     };
   FNt{1} = {'%s'        , '%0.2f'   , '%s'      , '%s',           '%s'          }; 
 
+
+  % - the SPM measures minbone and maxBone are not good but medbone is ok > (1) medBoneS 
+  % - the classic > (2) medBoneC ( correction option only internal test ) and (3) fst_vol4 (masked?)  
+  % - the new     > (3) OccBone
   if seg8t.isCTseg
     tis.minBone = tismri.iBonemn3(1);
     tis.medBone = tismri.iBonemn3(2);

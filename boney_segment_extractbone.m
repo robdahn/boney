@@ -1,5 +1,5 @@
-function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, val] = ...
-  boney_segment_extractbone(Vo,Yo,Ym,Yc,Ye,Ya,Ymsk,seg8t,tis,out,job,vx_vol,RES,BB)
+function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
+  boney_segment_extractbone(Vo,Ym,Yc,Ye,Ya,Ymsk,seg8t,tis,out,job,vx_vol,RES,BB)
 %% * Report: 
 %   - better an upper slice?
 %   - optimize print font size
@@ -75,7 +75,8 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, val] = ...
     %% bone layers
     Ybraindist   = cat_vbdist( single(Ybrain>0.5) , Ybone1>0, vx_vol);
     Yheaddist    = cat_vbdist( single(Yhead>0.5)  , Ybone1>0, vx_vol);
-    Ybonethick   = Ybraindist  + Yheaddist;  % correct for voxel-size
+    Ybonethick   = (Ybraindist + Yheaddist) .* (Ybone1>0);  % correct for voxel-size
+    Ybonethick(Ybonethick > 100) = 0; 
     Ybonepp      = min(1,Yheaddist  ./ max(eps,Ybonethick)); Ybonepp(Ybrain>.5) = 1; % percentage map to
     if 0
       % head values
@@ -116,69 +117,40 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, val] = ...
 
 
   %% measures as column elements
+  %  - first tested showed that mean/median works best for BMD and that SD/IQR are much worse 
+  %  - we finally decidet to keep only the mean as (i) it is more expected 
+  %    and (ii) we already did some outlier correction by masking  
   rii = 1;
-  val.help = 'ROI=0 is defined masked global values excluding the lower parts of the skull, whereas all other ROIs are without masking';
+  if ~isempty(job.opts.Pmask{1}), mskd = ' excluding the lower parts of the skull (masked)'; else, mskd = ' (unmasked)'; end 
+  vROI.help = sprintf('ROI=0 is defined global values%s, whereas all other ROIs are without masking',mskd);
   for ri = 0:max(Ya(Ya(:)<intmax('uint16')))
     if ri == 0 || isnan(ri)
-      ri = 0; %#ok<FXSET> % case of failed atlas mapping 
-      val.boneatlas_id(1,rii)       = inf;
-      val.nonnanvol(1,rii)          = sum(Ya(:)>intmax('uint16')) ./ numel(Ya(:));
-      if ~isempty(job.opts.Pmask{1}), val.boneatlas_name{1,rii} = 'full-masked'; 
-      else,                           val.boneatlas_name{1,rii} = 'full-unmasked'; 
+      % global values
+      ri = 0; %#ok<FXSET> % case of failed atlas mapping given by NAN
+      vROI.boneatlas_id(1,rii)      = inf;
+      if ~isempty( job.opts.Pmask{1} ), vROI.boneatlas_name{1,rii} = 'full-masked'; 
+      else,                             vROI.boneatlas_name{1,rii} = 'full-unmasked'; 
       end
-      % bone (marrow) intensity >> rename later to skull (skull = bone + bone-marrow)  
-      val.bonemarrow_mean(1,rii)    = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)>1 & Ybonemarrow(:)~=0 ) ); 
-      val.bonemarrow_std(1,rii)     = cat_stat_nanstd(    Ybonemarrow( Ymsk(:)>1 & Ybonemarrow(:)~=0 ) ); 
-      val.bonemarrow_med(1,rii)     = cat_stat_nanmedian( Ybonemarrow( Ymsk(:)>1 & Ybonemarrow(:)~=0 ) ); 
-      val.bonemarrow_iqr(1,rii)     = iqr(                Ybonemarrow( Ymsk(:)>1 & Ybonemarrow(:)~=0 ) ); 
-      % bone thickness
-      val.bonethickness_mean(1,rii) = cat_stat_nanmean(   Ybonethick( Ymsk(:)>1  & Ybonethick(:)~=0 ) ); 
-      val.bonethickness_std(1,rii)  = cat_stat_nanstd(    Ybonethick( Ymsk(:)>1  & Ybonethick(:)~=0 ) ); 
-      val.bonethickness_med(1,rii)  = cat_stat_nanmedian( Ybonethick( Ymsk(:)>1  & Ybonethick(:)~=0 ) ); 
-      val.bonethickness_iqr(1,rii)  = iqr(                Ybonethick( Ymsk(:)>1  & Ybonethick(:)~=0 ) ); 
-      % head thickness
-      val.head_mean(1,rii)          = cat_stat_nanmean(   Yskull( Ymsk(:)>1  & Yskull(:)~=0 ) ); 
-      val.head_std(1,rii)           = cat_stat_nanstd(    Yskull( Ymsk(:)>1  & Yskull(:)~=0 ) ); 
-      val.head_med(1,rii)           = cat_stat_nanmedian( Yskull( Ymsk(:)>1  & Yskull(:)~=0 ) ); 
-      val.head_iqr(1,rii)           = iqr(                Yskull( Ymsk(:)>1  & Yskull(:)~=0 ) ); 
-      % head thickness
-      val.headthickness_mean(1,rii) = cat_stat_nanmean(   Yheadthick( Ymsk(:)>1  & Yheadthick(:)~=0 ) ); 
-      val.headthickness_std(1,rii)  = cat_stat_nanstd(    Yheadthick( Ymsk(:)>1  & Yheadthick(:)~=0 ) ); 
-      val.headthickness_med(1,rii)  = cat_stat_nanmedian( Yheadthick( Ymsk(:)>1  & Yheadthick(:)~=0 ) ); 
-      val.headthickness_iqr(1,rii)  = iqr(                Yheadthick( Ymsk(:)>1  & Yheadthick(:)~=0 ) ); 
+      vROI.nonnanvol(1,rii)         = sum(Ya(:)>intmax('uint16')) ./ numel(Ya(:));
+      vROI.bonemarrow(1,rii)        = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)>1  & Ybonemarrow(:)~=0 ) ); 
+      vROI.bonethickness(1,rii)     = cat_stat_nanmean(   Ybonethick(  Ymsk(:)>1  & Ybonethick(:)~=0  ) ); 
+      vROI.head(1,rii)              = cat_stat_nanmean(   Yskull(      Ymsk(:)>1  & Yskull(:)~=0      ) ); 
+      vROI.headthickness(1,rii)     = cat_stat_nanmean(   Yheadthick(  Ymsk(:)>1  & Yheadthick(:)~=0  ) ); 
       rii = rii + 1;
     else
+      % regional values
       if sum(Ya(:)==ri)~=0
-        val.boneatlas_id(1,rii)       = ri;  
-        val.boneatlas_name{1,rii}     = sprintf('ROI%d',ri); 
-        val.nonnanvol(1,rii)          = sum(Ya(:)==ri) ./ numel(Ya(:));
-        % bone marrow intensity 
-        val.bonemarrow_mean(1,rii)    = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)>1 & Ybonemarrow(:)~=0 & Ya(:)==ri) ); 
-        val.bonemarrow_std(1,rii)     = cat_stat_nanstd(    Ybonemarrow( Ymsk(:)>1 & Ybonemarrow(:)~=0 & Ya(:)==ri) );
-        val.bonemarrow_med(1,rii)     = cat_stat_nanmedian( Ybonemarrow( Ymsk(:)>1 & Ybonemarrow(:)~=0 & Ya(:)==ri) );
-        val.bonemarrow_iqr(1,rii)     = iqr(                Ybonemarrow( Ymsk(:)>1 & Ybonemarrow(:)~=0 & Ya(:)==ri) );
-        % thickness
-        val.bonethickness_mean(1,rii) = cat_stat_nanmean(   Ybonethick( Ymsk(:)>1  & Ybonethick(:)~=0  & Ya(:)==ri) );
-        val.bonethickness_std(1,rii)  = cat_stat_nanstd(    Ybonethick( Ymsk(:)>1  & Ybonethick(:)~=0  & Ya(:)==ri) );
-        val.bonethickness_med(1,rii)  = cat_stat_nanmedian( Ybonethick( Ymsk(:)>1  & Ybonethick(:)~=0  & Ya(:)==ri) );
-        val.bonethickness_iqr(1,rii)  = iqr(                Ybonethick( Ymsk(:)>1  & Ybonethick(:)~=0  & Ya(:)==ri) );
-        % head intensity
-        val.head_mean(1,rii)          = cat_stat_nanmean(   Yskull( Ymsk(:)>1  & Yskull(:)~=0  & Ya(:)==ri) ); 
-        val.head_std(1,rii)           = cat_stat_nanstd(    Yskull( Ymsk(:)>1  & Yskull(:)~=0  & Ya(:)==ri) ); 
-        val.head_med(1,rii)           = cat_stat_nanmedian( Yskull( Ymsk(:)>1  & Yskull(:)~=0  & Ya(:)==ri) );
-        val.head_iqr(1,rii)           = iqr(                Yskull( Ymsk(:)>1  & Yskull(:)~=0  & Ya(:)==ri) );
-        % head thickness
-        val.headthickness_mean(1,rii) = cat_stat_nanmean(   Yheadthick( Ymsk(:)>1  & Yheadthick(:)~=0  & Ya(:)==ri) ); 
-        val.headthickness_std(1,rii)  = cat_stat_nanstd(    Yheadthick( Ymsk(:)>1  & Yheadthick(:)~=0  & Ya(:)==ri) ); 
-        val.headthickness_med(1,rii)  = cat_stat_nanmedian( Yheadthick( Ymsk(:)>1  & Yheadthick(:)~=0  & Ya(:)==ri) );
-        val.headthickness_iqr(1,rii)  = iqr(                Yheadthick( Ymsk(:)>1  & Yheadthick(:)~=0  & Ya(:)==ri) );
-        % addroi
+        vROI.boneatlas_id(1,rii)    = ri;  
+        vROI.boneatlas_name{1,rii}  = sprintf('ROI%d',ri); 
+        vROI.nonnanvol(1,rii)       = sum(Ya(:)==ri) ./ numel(Ya(:));
+        vROI.bonemarrow(1,rii)      = cat_stat_nanmean(  Ybonemarrow( Ymsk(:)>1  & Ybonemarrow(:)~=0 & Ya(:)==ri) ); 
+        vROI.bonethickness(1,rii)   = cat_stat_nanmean(  Ybonethick(  Ymsk(:)>1  & Ybonethick(:)~=0  & Ya(:)==ri) );
+        vROI.head(1,rii)            = cat_stat_nanmean(  Yskull(      Ymsk(:)>1  & Yskull(:)~=0      & Ya(:)==ri) ); 
+        vROI.headthickness(1,rii)   = cat_stat_nanmean(  Yheadthick(  Ymsk(:)>1  & Yheadthick(:)~=0  & Ya(:)==ri) ); 
         rii = rii + 1;
       end
     end
   end
-
-
 
 
 

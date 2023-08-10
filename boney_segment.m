@@ -27,14 +27,14 @@ function out = boney_segment(job)
 %    .writevol  .. write volume output (default=0) 
 %    .writesurf .. write surface data (default=0)
 %    
-%   .out
+%   out         .. output structure
 %    .raw       .. original results (e.g. min,max,median,std, ...) for the 
 %                  different regions etc. 
-%    .spm8     .. SPM data from the Unified Segmentation  
-%    .tis      .. global estimated 
-%    .vol      .. volume-based global/regional evaluation of the bone/head
-%    .surf     .. surface-based global/regional evaluation of the bone/head
-%   .main      .. most relevant values (see ...)
+%    .spm8      .. SPM data from the Unified Segmentation  
+%    .tis       .. global estimated 
+%    .vol       .. volume-based global/regional evaluation of the bone/head
+%    .surf      .. surface-based global/regional evaluation of the bone/head
+%    .main      .. most relevant values (see ...)
 % 
 % _________________________________________________________________________
 %
@@ -49,6 +49,9 @@ function out = boney_segment(job)
 %  * bone / bone marrow TPM concept
 %  * children case concept
 %  * skull-stripping / deface defintions 
+%  * handle image boundaries eg. IBSR 18
+%  * handle defaced areas 
+%  * catch skull-stripping case
 
   global cat_err_res; %#ok<GVMIS> % for CAT error report
   
@@ -68,9 +71,9 @@ function out = boney_segment(job)
   def.opts.bmethod      = 2;        % method: 0 - SPM seg8t eval only, 1 - volume-based, 2 - surface based
   def.opts.ctpm         = 1;        % TPM selector: 1 - default TPM for adults; 2 - children TPM; 
   def.opts.prerun       = 0;        % avoid preprocessing in matching files of SPM/CAT are available
-  def.opts.bias         = 1;        % strong bias correction
   def.opts.rerun        = 0;        % rerun processing (0 - no load previous result if available, 1 - yes) 
   def.opts.affreg       = 0;        % do affine registration based on new skull-stripping  
+  def.opts.bias         = 1;        % strong bias correction
   def.opts.reduce       = 4;        % voxel binning for surface creation (higher values create surfaces with less vertices, i.e., details)
                                     %  - reducion factor vs. vertices in humans:   1~120k, 2~30k, 3~13k, 4~7k, 6~3k, 8~2k
                                     %  - robust results for 1-4
@@ -135,7 +138,7 @@ function out = boney_segment(job)
   % * list of used CAT functions ?
   % 
   % * further postprocessing in case of children (use children TPM as 
-  %   indicator) to correct the head-scull missalignment.
+  %   indicator) to correct the head-scull missalignment
   %
   % =======================================================================
 
@@ -202,7 +205,7 @@ function out = boney_segment(job)
         % Y*   .. bone/head maps for surface mapping 
         % vROI .. extracted global/regional bone/head values 
         stime = cat_io_cmd('  Extract bone measures','g5','',job.opts.verb>1,stime);
-        [Ybonepp,Ybonethick,Ybonemarrow,Yhdthick,vROI] = boney_segment_extractbone(Vo,Yo,Ym,Yc,Ye,Ya,Ymsk,seg8t,tis,out(i),job,vx_vol,RES,BB);
+        [Ybonepp,Ybonethick,Ybonemarrow,Yhdthick,vROI] = boney_segment_extractbone(Vo,Ym,Yc,Ye,Ya,Ymsk,seg8t,tis,out(i),job,vx_vol,RES,BB);
         spm_progress_bar('Set',i - 0.4);
  
 
@@ -216,123 +219,22 @@ function out = boney_segment(job)
         end
 
   
-if job.opts.bmethod>1
-        %% == surface-bases processing ==
-        % S*   .. bone surface with bone/head measures
-        % sROI .. extracted global/regional bone/head surface values
-        stime = cat_io_cmd('  Extract bone surfaces','g5','',job.opts.verb>1,stime); 
-        [Si,St,Stm,Sth,sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Ybonepp,Ybonethick,Ybonemarrow,Yhdthick,Ya,Ymsk,out(i),job);
-
-
-        mn = cat_stat_kmeans(Si.facevertexcdata(St.facevertexcdata>5 & Si.facevertexcdata>0 ),3); % maximum value 
-        tismri.iBone = mn(2); %cat_stat_nanmean(Si.facevertexcdata);
-        tismri.iBonemn = mn;
-        [tismri.iBonemn3,tismri.iBonesd3,tismri.iBonevx3] = ...
-          cat_stat_kmeans(Si.facevertexcdata(St.facevertexcdata>5 & Si.facevertexcdata>0 ),3); % maximum value 
-        [tismri.iBonemn2,tismri.iBonesd2,tismri.iBonevx2] = ...
-          cat_stat_kmeans(Si.facevertexcdata(St.facevertexcdata>5 & Si.facevertexcdata>0 ),2); % maximum value 
-
-% same as ROI
-tismri.surfmd  = cat_stat_nanmedian( Si.facevertexcdata(St.facevertexcdata>5 & Si.facevertexcdata>0 ) );
-tismri.surfmn  = cat_stat_nanmean(   Si.facevertexcdata(St.facevertexcdata>5 & Si.facevertexcdata>0 ) );
-tismri.surfsd  = cat_stat_nanstd(    Si.facevertexcdata(St.facevertexcdata>5 & Si.facevertexcdata>0 ) );
-tismri.surfiqr = iqr(                Si.facevertexcdata(St.facevertexcdata>5 & Si.facevertexcdata>0 ) );
-        % thickness
-        mn = cat_stat_kmeans(        St.facevertexcdata(St.facevertexcdata>5 & Si.facevertexcdata>0 ),3); % median thickness to avoid low and high outliers
-        tismri.tBone   = mn(2); %cat_stat_nanmean(St.facevertexcdata);
-        tismri.tBonemn = mn; 
-
-        [tismri.volmn3, tismri.volsd3, tismri.volvx3]  = cat_stat_kmeans( Ybonemarrow(Yc{4}(:)>.5) ,3); % median thickness to avoid low and high outliers
-        [tismri.volmn2, tismri.volsd2, tismri.volvx2]  = cat_stat_kmeans( Ybonemarrow(Yc{4}(:)>.5) ,2); % median thickness to avoid low and high outliers
-tismri.volmd   = cat_stat_nanmedian( Ybonemarrow(Yc{4}(:)>.5) );
-tismri.volmn   = cat_stat_nanmean(   Ybonemarrow(Yc{4}(:)>.5) );
-tismri.volsd   = cat_stat_nanstd(    Ybonemarrow(Yc{4}(:)>.5) );
-tismri.voliqr  = iqr(                Ybonemarrow(Yc{4}(:)>.5) );
-% head thickness
-%Stm.facevertexcdata = Stm.facevertexcdata ./ sum(tismri.vol(1:3))^(1/3);
-tismri.headthickkm2 = cat_stat_kmeans(    Stm.facevertexcdata(Stm.facevertexcdata>1 & Stm.facevertexcdata<30 ),2); 
-tismri.headthickkm3 = cat_stat_kmeans(    Stm.facevertexcdata(Stm.facevertexcdata>1 & Stm.facevertexcdata<30 ),3); 
-tismri.headthickmd  = cat_stat_nanmedian( Stm.facevertexcdata(St.facevertexcdata>5 & Stm.facevertexcdata>0 ) );
-tismri.headthickmn  = cat_stat_nanmean(   Stm.facevertexcdata(St.facevertexcdata>5 & Stm.facevertexcdata>0 ) );
-tismri.headthicksd  = cat_stat_nanstd(    Stm.facevertexcdata(St.facevertexcdata>5 & Stm.facevertexcdata>0 ) );
-tismri.headthickiqr = iqr(                Stm.facevertexcdata(St.facevertexcdata>5 & Stm.facevertexcdata>0 ) );
-else
-  St = ''; Si = ''; Stm = '';
-end
+        if job.opts.bmethod>1
+          %% == surface-bases processing ==
+          % Si/St   .. bone-surface with bone-intensity/bone-thickness/head-thickness 
+          % sROI .. extracted global/regional bone/head surface values
+          stime = cat_io_cmd('  Extract bone surfaces','g5','',job.opts.verb>1,stime); 
+          [Si,St,Sti,Sth,sROI] = boney_segment_create_bone_surface(Vo,Ym,Yc,Ybonepp,Ybonethick,Ybonemarrow,Yhdthick,Ya,Ymsk,out(i),job);
+        else
+          St = ''; Si = ''; Sti = '';
+        end
 
       else
-        %[pp,ff] = spm_fileparts(P{i}); ff = ff(2:end);
-        Affine = seg8t.Affine; 
-        %Vo = seg8t.image;
-        Ym = []; Yc = {}; %Ybonemarrow = []; 
-        tismri = struct();
-      
-        %% get bias corrected original image
-        if 1
-          Vo = spm_vol(P{i});
-          Yo = single(spm_read_vols(Vo));
-      
-          Pc4  = out(i).P.cls{4}; %fullfile(out(i).P.orgpp,sprintf('c%d%s%s',4,out(i).P.orgff,out(i).P.ee));
-          Vc4  = spm_vol(Pc4); 
-          Yc4  = single(spm_read_vols(Vc4));
-          [Ytiv,redR] = cat_vol_resize(Yc4,'reduceV',vx_vol,4,8,'max');
-          Ytiv = cat_vol_morph(Ytiv>.5,'ldc',4) & Ytiv<.5; 
-          Ytiv = cat_vol_morph(Ytiv>.5,'o',1); 
-          Ytiv = cat_vol_resize(Ytiv,'dereduceV',redR);
-  
-          Ybonemarrow = single(Yo/tis.seg8o(3)) .* (Yc4>.5) / tis.seg8o(3);
-          
-          % get measures
-          tismri.TIV     = cat_stat_nansum(Ytiv(:)>0.5) .* prod(vx_vol) / 1000;
-          tismri.den     = [nan nan nan cat_stat_nansum(Yc4(:))     .* prod(vx_vol) / 1000 nan nan]; 
-          tismri.vol     = [nan nan nan cat_stat_nansum(Yc4(:)>0.5) .* prod(vx_vol) / 1000 nan nan]; 
-          tismri.volr    = tismri.vol ./ tismri.TIV;
-          tismri.Tth     = [nan nan nan cat_stat_nansum(Yo(Yc4(:)>0.5)) / tis.seg8o(2) nan nan]; 
-          tismri.Tsd     = [nan nan nan cat_stat_nanstd(Yo(Yc4(:)>0.5)) / tis.seg8o(2) nan nan]; 
-          mn             = cat_stat_kmeans(Ybonemarrow(Yc4(:)>.5),3); % maximum value 
-          tismri.iBone   = mn(2); %cat_stat_nanmean(Si.facevertexcdata);
-          tismri.iBonemn = mn;
-          [tismri.volmn3,tismri.volsd3,tismri.volvx3]  = cat_stat_kmeans( Ybonemarrow(Yc4(:)>.5) ,3); % median thickness to avoid low and high outliers
-          [tismri.volmn2,tismri.volsd2,tismri.volvx2]  = cat_stat_kmeans( Ybonemarrow(Yc4(:)>.5) ,2); % median thickness to avoid low and high outliers
-          tismri.volmd  = cat_stat_nanmedian( Ybonemarrow(Yc4(:)>.5));
-          tismri.volmn  = cat_stat_nanmean( Ybonemarrow(Yc4(:)>.5) );
-          tismri.volsd  = cat_stat_nanstd( Ybonemarrow(Yc4(:)>.5) );
-          tismri.voliqr = iqr( Ybonemarrow(Yc4(:)>.5) );
-%          nout(si).tis.seg8conr; 
-         
-
-          %% write output maps
-          if job.output.writevol
-            %%
-            tdim = seg8t.tpm(1).dim; 
-            M0   = seg8t.image.mat;          
-            M1   = seg8t.tpm(1).mat;
-        
-            % affine and rigid parameters for registration 
-            % if the rigid output is incorrect but affine is good than the Yy caused the problem (and probably another call of this function) 
-            R               = spm_imatrix(seg8t.Affine); R(7:9)=1; R(10:12)=0; R=spm_matrix(R);  
-            Mrigid          = M0\inv(R)*M1;                                                          % transformation from subject to registration space (rigid)
-            Maffine         = M0\inv(seg8t.Affine)*M1;                                                 % individual to registration space (affine)
-            mat0a           = seg8t.Affine\M1;                                                         % mat0 for affine output
-            mat0r           = R\M1;                                                                  % mat0 for rigid ouput
-   
-            % settings for new boundary box of the output images 
-            trans.native.Vo = seg8t.image(1); 
-            trans.native.Vi = seg8t.image(1);
-            trans.affine    = struct('odim',tdim,'mat',M1,'mat0',mat0a,'M',Maffine,'A',seg8t.Affine);  % structure for cat_io_writenii
-            trans.rigid     = struct('odim',tdim,'mat',M1,'mat0',mat0r,'M',Mrigid ,'R',R);           % structure for cat_io_writenii
-          
-            job.output.bonemarrow  = struct('native',1,'warped',0,'dartel',3);
-            % midline map also for masking masking
-            cat_io_writenii(Vo,Ybonemarrow,'',sprintf('bonemarrow%d_',job.opts.bmethod), ...
-              'bone percentage position map','uint16',[0,0.001], ... 
-              min([1 0 2],[job.output.bonemarrow.native job.output.bonemarrow.warped job.output.bonemarrow.dartel]),trans);
-          end
-        end
-    
-        % no surfaces
-        St = ''; Si = ''; Stm = '';
+        % fast version 
+        [Vo, Yo, Ym, Yc, Yc4, Ybonemarrow, tismri, Si, St, Sti, Affine] = ...
+          boney_segment_fst(P,job,seg8t,tis,out,i,vx_vol); 
       end
+      %% update measurements
       spm_progress_bar('Set',i - 0.2);
       if out(i).CTseg
         mn = cat_stat_kmeans(Yo(Yc{4}>.3),3); % maximum value 
@@ -354,7 +256,7 @@ end
       %% == create report ==
       if job.output.report
         stime = cat_io_cmd('  Create report','g5','',job.opts.verb>1,stime); 
-        boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Stm,seg8t,tis,tismri,out(i).P,job,Affine);
+        boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow,Si,St,Sti,seg8t,tis,tismri,out(i).P,job,Affine);
       end
       if job.opts.verb>1, fprintf('% 5.0fs\n',etime(clock,stime)); end
       spm_progress_bar('Set',i - 0.1);
@@ -369,10 +271,11 @@ end
       if isfield(seg8t, 'sett'), seg8t  = rmfield(seg8t ,'sett'); end
       out(i).spm8    = seg8t; 
       out(i).tis     = tis; 
-      out(i).repstr  = struct('mmatm',mmatm(i,:), 'matm', {matm(i,:)}, 'Theader', {MAfn}); 
-      if ~isempty('tismri'), out(i).tismri  = tismri; end
-      if exist('sROI','var'), out(i).sROI     = sROI;    end
-      if exist('vROI','var'), out(i).vROI     = vROI;    end
+      out(i).repstr  = struct('help', 'Cellstring for command window output.', ...
+        'mmatm',mmatm(i,:), 'matm', {matm(i,:)}, 'Theader', {MAfn}); 
+      if ~isempty('tismri'),  out(i).tismri  = tismri; end
+      if exist('sROI','var'), out(i).sROI    = sROI;   end
+      if exist('vROI','var'), out(i).vROI    = vROI;   end
 
       % export to XML 
       outxml = out(i);

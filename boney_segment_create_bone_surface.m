@@ -87,27 +87,27 @@ function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo, ...
   %% map values
   % write bone marrow map 
   Vpp  = cat_io_writenii(Vo, Ybonemarrow , '', 'skull.marrow' ,'bone marrow', 'single', [0,1],[1 0 0],struct());
-  estminmax = 1; 
-  if estminmax
-    %% estimate the minimum value > real bone
-    Ybonemarrow3 = Ybonemarrow; Ybonemarrow3(Ybonepp==0 | Ybonepp==1) = cat_stat_nanmean(Ybonemarrow3(Ybonepp>0 & Ybonepp<1)); 
-    Vppmin  = cat_io_writenii(Vo, Ybonemarrow3 , '', 'skull.bone' ,'bone', 'single', [0,1],[1 0 0],struct());
-    mappingstr = sprintf('-linear -min -steps "10" -start "-.5" -end ".5" -thickness "%s" ', out.P.thick); % weighted_avg
-    cmd = sprintf('CAT_3dVol2Surf %s "%s" "%s" "%s" ',mappingstr, out.P.central,  Vppmin.fname , out.P.marrowmin );
-    cat_system(cmd,0); delete(Vppmin.fname);
-    %% estimate the maximum value > bone marrow
-    mappingstr = sprintf('-linear -max -steps "10" -start "-0.25" -end "0.25" -thickness "%s" ', out.P.thick); % weighted_avg
-    cmd = sprintf('CAT_3dVol2Surf %s "%s" "%s" "%s" ',mappingstr, out.P.central,  Vpp.fname , out.P.marrowmax );
-    cat_system(cmd,0);
-    marrowmin = cat_io_FreeSurfer('read_surf_data',out.P.marrowmin);
-    marrowmax = cat_io_FreeSurfer('read_surf_data',out.P.marrowmax);
-  end
-  %%
-  mappingstr = sprintf('-linear -weighted_avg -steps "10" -start "-.25" -end ".25" -thickness "%s" ', out.P.thick); % weighted_avg
+  
+  %% estimate the local minimum/maxium value > real bone
+  Ybonemarrow3 = Ybonemarrow; Ybonemarrow3(Ybonepp==0 | Ybonepp==1) = cat_stat_nanmean(Ybonemarrow3(Ybonepp>0 & Ybonepp<1)); 
+  Vppmin  = cat_io_writenii(Vo, Ybonemarrow3 , '', 'skull.bone' ,'bone', 'single', [0,1],[1 0 0],struct());
+  % min
+  mappingstr = sprintf('-linear -min -steps "5" -start "-.5" -end ".5" -thickness "%s" ', out.P.thick); % min
+  cmd = sprintf('CAT_3dVol2Surf %s "%s" "%s" "%s" ',mappingstr, out.P.central,  Vppmin.fname , out.P.marrowmin );
+  cat_system(cmd,0); delete(Vppmin.fname);
+  % max
+  mappingstr = sprintf('-linear -max -steps "5" -start "-0.25" -end "0.25" -thickness "%s" ', out.P.thick); % max
+  cmd = sprintf('CAT_3dVol2Surf %s "%s" "%s" "%s" ',mappingstr, out.P.central,  Vpp.fname , out.P.marrowmax );
+  cat_system(cmd,0);
+  % avg
+  mappingstr = sprintf('-linear -weighted_avg -steps "5" -start "-.25" -end ".25" -thickness "%s" ', out.P.thick); % weighted_avg
   cmd = sprintf('CAT_3dVol2Surf %s "%s" "%s" "%s" ',mappingstr, out.P.central,  Vpp.fname , out.P.marrow );
   cat_system(cmd,0);
-  %%
+  % get values
+  marrowmin = cat_io_FreeSurfer('read_surf_data',out.P.marrowmin);
+  marrowmax = cat_io_FreeSurfer('read_surf_data',out.P.marrowmax);
   Si.facevertexcdata = cat_io_FreeSurfer('read_surf_data',out.P.marrow);
+
   % get atlas information
   Satlas = cat_surf_fun('isocolors',Ya, CBS, matlab_mm,'nearest');
   Si.facevertexcdata = Si.facevertexcdata .* (Satlas>0);
@@ -124,7 +124,7 @@ function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo, ...
   end
   %%
   if 0
-    %% fat
+    %% fat just take the maximum at the head (only without fat supression?
     Yppi = max(0,min(1, smooth3(cat_vol_morph(Ybone<.5,'e') + min(0,-Ydiv*4)) + smooth3(Ybonepp))); %#ok<UNRCH> 
     Vpp  = cat_io_writenii(Vo, Yppi , '', sprintf('%s.pp','skull') ,...
         'percentage position map - V2 - pial=1/3, central=1/2, white=2/3, 0 and 1 to stablize white/pial values', 'uint8', [0,1/255],...
@@ -181,75 +181,40 @@ function [Si, St, Stm, Sth, sROI] = boney_segment_create_bone_surface(Vo, ...
     cat_surf_render2('Clim',Sht,[0 4]); cat_surf_render2('Colorbar',Sht);
   end
 
+
+
+  
   
   %% global + regional measures as column elements
   %  ----------------------------------------------------------------------
+  %  - similar to the volume measures we also focus here on the global/
+  %    regional mean values and ignore median, std, and iqr
   rii = 1;
   sROI.help = 'ROI=0 is defined masked global values excluding the lower parts of the skull, whereas all other ROIs are without masking';
   for ri = 0:max(Ya(Ya(:)<intmax('uint16'))) % region ri==0 is the global value
     if ri == 0 || isnan(ri)
       ri = 0; %#ok<FXSET> % case of failed atlas mapping 
-      sROI.boneatlas_id(1,rii)              = inf;
-      sROI.nonnanvol(1,rii)                 = sum(S.atlas>intmax('uint16')) ./ numel(S.atlas);
+      sROI.boneatlas_id(1,rii)            = inf;
+      sROI.nonnanvol(1,rii)               = sum(S.atlas>intmax('uint16')) ./ numel(S.atlas);
       if ~isempty( job.opts.Pmask{1} ), sROI.boneatlas_name{1,rii} = 'full-masked'; 
       else,                             sROI.boneatlas_name{1,rii} = 'full-unmasked'; 
       end
-      % bone marrow intensity 
-      sROI.bonemarrow_mean(1,rii)           = cat_stat_nanmean(Si.facevertexcdata .* Smsk.facevertexcdata); 
-      sROI.bonemarrow_std(1,rii)            = cat_stat_nanstd(Si.facevertexcdata .* Smsk.facevertexcdata); 
-      sROI.bonemarrow_med(1,rii)            = cat_stat_nanmedian(Si.facevertexcdata .* Smsk.facevertexcdata); 
-      sROI.bonemarrow_iqr(1,rii)            = iqr(Si.facevertexcdata .* Smsk.facevertexcdata); 
-      % bone thickness
-      sROI.bonethickness_mean(1,rii)        = cat_stat_nanmean(S.thick); 
-      sROI.bonethickness_std(1,rii)         = cat_stat_nanstd(S.thick); 
-      sROI.bonethickness_med(1,rii)         = cat_stat_nanmedian(S.thick); 
-      sROI.bonethickness_iqr(1,rii)         = iqr(S.thick); 
-      % head thickness
-      sROI.headthickness_mean(1,rii)        = cat_stat_nanmean(S.hdthick); 
-      sROI.headthickness_std(1,rii)         = cat_stat_nanstd(S.hdthick); 
-      sROI.headthickness_med(1,rii)         = cat_stat_nanmedian(S.hdthick); 
-      sROI.headthickness_iqr(1,rii)         = iqr(S.thick); 
-      if estminmax
-        sROI.bonemarrowmin_mean(1,rii)      = cat_stat_nanmean(marrowmin); 
-        sROI.bonemarrowmin_std(1,rii)       = cat_stat_nanstd(marrowmin); 
-        sROI.bonemarrowmin_med(1,rii)       = cat_stat_nanmedian(marrowmin); 
-        sROI.bonemarrowmin_iqr(1,rii)       = iqr(marrowmin); 
-        sROI.bonemarrowmax_mean(1,rii)      = cat_stat_nanmean(marrowmax); 
-        sROI.bonemarrowmax_std(1,rii)       = cat_stat_nanstd(marrowmax); 
-        sROI.bonemarrowmax_med(1,rii)       = cat_stat_nanmedian(marrowmax); 
-        sROI.bonemarrowmax_iqr(1,rii)       = iqr(marrowmax); 
-      end
+      sROI.bonemarrowavg(1,rii)      = cat_stat_nanmean(Si.facevertexcdata .* Smsk.facevertexcdata); 
+      sROI.bonemarrowmin(1,rii)      = cat_stat_nanmean(marrowmin); 
+      sROI.bonemarrowmax(1,rii)      = cat_stat_nanmean(marrowmax); 
+      sROI.bonethickness(1,rii)      = cat_stat_nanmean(S.thick); 
+      sROI.headthickness(1,rii)      = cat_stat_nanmean(S.hdthick); 
       rii = rii + 1;
     else
       if sum(S.atlas==ri)>0
-        sROI.boneatlas_id(1,rii)            = ri;  
-        sROI.boneatlas_name{1,rii}          = sprintf('ROI%d',ri); 
-        sROI.nonnanvol(1,rii)               = sum(S.atlas==ri) ./ numel(S.atlas);
-        % bone marrow intensity 
-        sROI.bonemarrow_mean(1,rii)         = cat_stat_nanmean(Si.facevertexcdata(S.atlas==ri)); 
-        sROI.bonemarrow_std(1,rii)          = cat_stat_nanstd(Si.facevertexcdata(S.atlas==ri)); 
-        sROI.bonemarrow_med(1,rii)          = cat_stat_nanmedian(Si.facevertexcdata(S.atlas==ri)); 
-        sROI.bonemarrow_iqr(1,rii)          = iqr(Si.facevertexcdata(S.atlas==ri)); 
-        % thickness
-        sROI.bonethickness_mean(1,rii)      = cat_stat_nanmean(S.thick(S.atlas==ri)); 
-        sROI.bonethickness_std(1,rii)       = cat_stat_nanstd(S.thick(S.atlas==ri)); 
-        sROI.bonethickness_med(1,rii)       = cat_stat_nanmedian(S.thick(S.atlas==ri)); 
-        sROI.bonethickness_iqr(1,rii)       = iqr(S.thick(S.atlas==ri)); 
-        % head thickness
-        sROI.headthickness_mean(1,rii)      = cat_stat_nanmean(S.hdthick(S.atlas==ri)); 
-        sROI.headthickness_std(1,rii)       = cat_stat_nanstd(S.hdthick(S.atlas==ri)); 
-        sROI.headthickness_med(1,rii)       = cat_stat_nanmedian(S.hdthick(S.atlas==ri)); 
-        sROI.headthickness_iqr(1,rii)       = iqr(S.thick(S.atlas==ri)); 
-        if estminmax
-          sROI.bonemarrowmin_mean(1,rii)    = cat_stat_nanmean(marrowmin(S.atlas==ri)); 
-          sROI.bonemarrowmin_std(1,rii)     = cat_stat_nanstd(marrowmin(S.atlas==ri)); 
-          sROI.bonemarrowmin_med(1,rii)     = cat_stat_nanmedian(marrowmin(S.atlas==ri)); 
-          sROI.bonemarrowmin_iqr(1,rii)     = iqr(marrowmin(S.atlas==ri)); 
-          sROI.bonemarrowmax_mean(1,rii)    = cat_stat_nanmean(marrowmax(S.atlas==ri)); 
-          sROI.bonemarrowmax_std(1,rii)     = cat_stat_nanstd(marrowmax(S.atlas==ri)); 
-          sROI.bonemarrowmax_med(1,rii)     = cat_stat_nanmedian(marrowmax(S.atlas==ri)); 
-          sROI.bonemarrowmax_iqr(1,rii)     = iqr(marrowmax(S.atlas==ri)); 
-        end
+        sROI.boneatlas_id(1,rii)     = ri;  
+        sROI.boneatlas_name{1,rii}   = sprintf('ROI%d',ri); 
+        sROI.nonnanvol(1,rii)        = sum(S.atlas==ri) ./ numel(S.atlas);
+        sROI.bonemarrowavg(1,rii)    = cat_stat_nanmean(Si.facevertexcdata(S.atlas==ri)); 
+        sROI.bonemarrowmin(1,rii)    = cat_stat_nanmean(marrowmin(S.atlas==ri)); 
+        sROI.bonemarrowmax(1,rii)    = cat_stat_nanmean(marrowmax(S.atlas==ri)); 
+        sROI.bonethickness(1,rii)    = cat_stat_nanmean(S.thick(S.atlas==ri)); 
+        sROI.headthickness(1,rii)    = cat_stat_nanmean(S.hdthick(S.atlas==ri)); 
         rii = rii + 1;
       end
     end
