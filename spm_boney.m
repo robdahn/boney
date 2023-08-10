@@ -52,7 +52,9 @@ function spm_boney(expertgui)
   addpath(fullfile(spm('dir'),'toolbox','boney'));
   rev = '0.1';
   
+  % skull: Human skull drawing, medical vintage illustration psd. Free public domain CC0 image.
   Pposter = fullfile( spm('Dir'), 'toolbox', 'boney', 'docs', 'Kalc-HBM2023-Scull.jpg'); 
+  Pinter  = fullfile( spm('Dir'), 'toolbox', 'boney', 'images', 'SPM_progress_skullsm.png'); 
   Phelp   = fullfile( spm('Dir'), 'toolbox', 'boney', 'README.html'); 
   mode = {' ',' Expert mode',' Developer mode'}; 
   SPMid = spm('FnBanner',mfilename,rev);
@@ -65,8 +67,27 @@ function spm_boney(expertgui)
   h = imshow(imread(Pposter)); 
   set(get(h,'Parent'),'Position',[0 0 1 1]);
   set(F,'Position',Fpos);
+
   
-  % main menu
+  %% Progress Window figure
+  Finter = spm_figure('GetWin','Interactive');
+  spm_figure('clear',Finter); 
+  [img, ~, alphachannel] = imread(Pinter);
+  h = image(img, 'AlphaData', alphachannel); axis equal off
+  set(get(h,'Parent'),'Position',[0 0.05 1 0.7]);
+  % SPM watermark
+  spm_figure('WaterMark',Finter,'Boney','WaterMark',1);
+  WM = findobj('Tag','WaterMark'); 
+  WM2 = copyobj(WM,get(WM,'Parent'));
+  set(WM,'Position',[0.45 0.795 .1 .1 ]);
+  set(WM2,'Position',[0.45 0.80 .1 .1 ]);
+  WMF = get(WM,'Children'); 
+  set(WMF,'Color',ones(1,3)*.5,'FontSize', 80.5); %,'FontName','Arial'); 
+  WMF2 = get(WM2,'Children'); 
+  set(WMF2,'Color',ones(1,3)*.95,'FontSize', 80); %,'FontName','Arial'); 
+
+
+  %% main menu
   % -------------------------------------------------------------------------
   fig = spm_figure('GetWin','Interactive');
   h0  = uimenu(fig,...
