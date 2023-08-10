@@ -41,7 +41,7 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
   if ~isempty(PC)
     switch ctpm
       case 1, Ptpm = fullfile(spm('dir'),'tpm',sprintf('TPM.nii')); 
-      case 2, Ptpm = fullfile(spm('dir'),'toolbox','boney',sprintf('TPM_Age11.5.nii'));
+      case 2, Ptpm = fullfile(spm('dir'),'toolbox','cat12','templates_MNI152NLin2009cAsym',sprintf('TPM_Age11.5.nii'));
     end
     switch pmethod
       case {1,'spm'}
