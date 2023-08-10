@@ -64,22 +64,22 @@ function boney = tbx_cfg_boney
    
   verb                = cfg_menu;
   verb.tag            = 'verb';
-  verb.name           = 'Verbose processing';
+  verb.name           = 'Verbose processing (expert)';
   verb.labels         = {'No','Yes'};
   verb.values         = {0,1};
   if expertgui 
     verb.labels       = [ verb.labels, {'Yes - Details'} ];
     verb.values       = [ verb.values, {2} ];
-    verb.help         = {'Currently with details to support more information in testing. '};
+    verb.help         = {'Verbose processing. Currently with details to support more information in testing. '};
   end
-  verb.val            = {2}; 
+  verb.val            = {max(1,expertgui)}; 
   verb.hidden         = expertgui<1; 
   
   
   %  batches
   %  ------------------------------------------------------------------------
   segment = boney_cfg_segment(files,nproc,expertgui,verb);
-  xml2csv = conf_io_xml2csv; 
+  xml2csv = conf_io_xml2csv(expertgui); 
   
   %  main
   %  ------------------------------------------------------------------------
@@ -349,7 +349,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   segment.help          = {
    '' ''};
 return
-function xml2csv = conf_io_xml2csv
+function xml2csv = conf_io_xml2csv(expertgui)
 % -------------------------------------------------------------------------
 % Read structures/XML-files and export and transform it to a table/CSV-file
 % 
@@ -393,6 +393,7 @@ function xml2csv = conf_io_xml2csv
   fieldnames.strtype    = 's+';
   fieldnames.val        = {{' '}};
   fieldnames.num        = [0 inf];
+  fieldnames.hidden     = expertgui<1; 
   fieldnames.help       = {
      'Define keywords or complete fields to limit the extraction (empty = include all), i.e. only fields that inlclude these strings are used. '
      'In case of catROI-files you can limit the extraction to specific atlas, regions, or tissues. '
@@ -407,6 +408,7 @@ function xml2csv = conf_io_xml2csv
   avoidfields.strtype    = 's+';
   avoidfields.val        = {{''}};
   avoidfields.num        = [0 inf];
+  avoidfields.hidden     = expertgui<1; 
   avoidfields.help       = {
      'Define keywords or complete fields that should be avoided/excluded (empty = exclude none), i.e. fields that inlclude such strings even they were included before. '
      'In case of catROI-files you can limit the extraction to specific atlas, regions, or tissues. '
@@ -418,8 +420,8 @@ function xml2csv = conf_io_xml2csv
   report           = cfg_menu;
   report.tag       = 'report';
   report.name      = 'Boney XML export field sets';
-  report.labels    = {'boney default','boney expert','only processing parameters','no processing parameters'};
-  report.values    = {'boney_default','boney_expert','paraonly'  ,'nopara'       };
+  report.labels    = {'Boney default','Boney details','Boney expert','Only processing parameters','No processing parameters'};
+  report.values    = {'boney_default','boney details','boney_expert','paraonly'  ,'nopara'       };
   report.val       = {'boney_default'}; 
   report.help      = {'Predefined sets of boney XML values in case of "boney_" processing XML files (no effect in other XMLs). '};
 
@@ -427,8 +429,8 @@ function xml2csv = conf_io_xml2csv
   xml2csv           = cfg_exbranch;
   xml2csv.tag       = 'xml2csv';
   xml2csv.name      = 'XML2CSV';
-  xml2csv.val       = {files fname outdir fieldnames avoidfields report};
-  xml2csv.prog      = @cat_io_xml2csv;
+  xml2csv.val       = {files outdir fname fieldnames avoidfields report};
+  xml2csv.prog      = @boney_xml2csv;
   %xml2csv.vout      = @vout_long_report; 
   xml2csv.help      = {
     'Export XML files (e.g. the boney preprocessing results) as a CSV table. '
@@ -447,6 +449,13 @@ function dep = vout_boney_cfg_segment(job)
     dep(end+1)          = cfg_dep;
     dep(end).sname      = 'Volumes';
     dep(end).src_output = substruct('.','volumes');
+    dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+  end
+  
+  if job.output.writeseg
+    dep(end+1)          = cfg_dep;
+    dep(end).sname      = 'Segments';
+    dep(end).src_output = substruct('.','segments');
     dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
   end
   
