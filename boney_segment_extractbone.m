@@ -1,5 +1,5 @@
 function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
-  boney_segment_extractbone(Vo,Ym,Yc,Ye,Ya,Ymsk,seg8t,tis,out,job,vx_vol,RES,BB)
+  boney_segment_extractbone(Vo,Ym,Yc,Ye,Ya,Ymsk,seg8t,tis,out,job,vx_vol,YaROIname,RES,BB)
 %% * Report: 
 %   - better an upper slice?
 %   - optimize print font size
@@ -132,7 +132,8 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
       else,                             vROI.boneatlas_name{1,rii} = 'full-unmasked'; 
       end
       vROI.nonnanvol(1,rii)         = sum(Ya(:)>intmax('uint16')) ./ numel(Ya(:));
-      vROI.bonemarrow(1,rii)        = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)>1  & Ybonemarrow(:)~=0 ) ); 
+      vROI.bonemarrow(1,rii)        = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)>1  & Ybonemarrow(:)~=0 & Ybonepp(:)>.8 ) ); 
+      vROI.bonecortex(1,rii)        = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)>1  & Ybonemarrow(:)~=0 ) ); 
       vROI.bonethickness(1,rii)     = cat_stat_nanmean(   Ybonethick(  Ymsk(:)>1  & Ybonethick(:)~=0  ) ); 
       vROI.head(1,rii)              = cat_stat_nanmean(   Yskull(      Ymsk(:)>1  & Yskull(:)~=0      ) ); 
       vROI.headthickness(1,rii)     = cat_stat_nanmean(   Yheadthick(  Ymsk(:)>1  & Yheadthick(:)~=0  ) ); 
@@ -141,12 +142,17 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
       % regional values
       if sum(Ya(:)==ri)~=0
         vROI.boneatlas_id(1,rii)    = ri;  
-        vROI.boneatlas_name{1,rii}  = sprintf('ROI%d',ri); 
+        if isempty(YaROIname) %|| numel(YaROIname)>max(Ya(Ya(:)<intmax('uint16')))
+          vROI.boneatlas_name{1,rii}  = sprintf('ROI%d',ri); 
+        else
+          vROI.boneatlas_name{1,rii}  = YaROIname{rii};
+        end
         vROI.nonnanvol(1,rii)       = sum(Ya(:)==ri) ./ numel(Ya(:));
-        vROI.bonemarrow(1,rii)      = cat_stat_nanmean(  Ybonemarrow( Ymsk(:)>1  & Ybonemarrow(:)~=0 & Ya(:)==ri) ); 
-        vROI.bonethickness(1,rii)   = cat_stat_nanmean(  Ybonethick(  Ymsk(:)>1  & Ybonethick(:)~=0  & Ya(:)==ri) );
-        vROI.head(1,rii)            = cat_stat_nanmean(  Yskull(      Ymsk(:)>1  & Yskull(:)~=0      & Ya(:)==ri) ); 
-        vROI.headthickness(1,rii)   = cat_stat_nanmean(  Yheadthick(  Ymsk(:)>1  & Yheadthick(:)~=0  & Ya(:)==ri) ); 
+        vROI.bonemarrow(1,rii)      = cat_stat_nanmean(  Ybonemarrow( Ybonemarrow(:)~=0 & Ya(:)==ri & Ybonepp(:)>.8 ) ); 
+        vROI.bonecortex(1,rii)      = cat_stat_nanmean(  Ybonemarrow( Ybonemarrow(:)~=0 & Ya(:)==ri) ); 
+        vROI.bonethickness(1,rii)   = cat_stat_nanmean(  Ybonethick(  Ybonethick(:)~=0  & Ya(:)==ri) );
+        vROI.head(1,rii)            = cat_stat_nanmean(  Yskull(      Yskull(:)~=0      & Ya(:)==ri) ); 
+        vROI.headthickness(1,rii)   = cat_stat_nanmean(  Yheadthick(  Yheadthick(:)~=0  & Ya(:)==ri) ); 
         rii = rii + 1;
       end
     end
@@ -158,7 +164,7 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
   [Ybonepp, Ybonethick, Ybonemarrow,Yheadthick] = cat_vol_resize({Ybonepp, Ybonethick, Ybonemarrow,Yheadthick} ,'dereduceV' ,RES); % ############### INTERPOLATION ???
   [Ybonepp, Ybonethick, Ybonemarrow,Yheadthick] = cat_vol_resize({Ybonepp, Ybonethick, Ybonemarrow,Yheadthick} ,'dereduceBrain',BB); 
 
-  if tis.boneIntType == 0 && tis.weighting > 0
+  if tis.headBoneType == 0 && tis.weighting > 0
     Ybonemarrow = Ybonemarrow * 3;
   end
   if tis.weighting == -1
