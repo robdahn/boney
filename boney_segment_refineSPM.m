@@ -36,6 +36,7 @@ Yco    = Yc;
 vx_vol = tis.res_vx_vol; 
 vxmm3  = prod(vx_vol) * 1000; 
 Ybraindist0s = cat_vol_smooth3X(Ybraindist0,6);  
+clscor.help = 'Boney refinement of SPM tissue classes described by the tranfered tissue volume transfer between classes.';
 
   %%
   Yc = Yco; 
@@ -70,7 +71,7 @@ Ybraindist0s = cat_vol_smooth3X(Ybraindist0,6);
 
 
   %% head (+ background) ~ bonemarrow>> bone
-  if tis.boneIntType
+  if tis.headBoneType
     Yhead  = min(1,single(Yc{5} + Yc{6} + 0.1 * max(0,Ybraindist0s-15))); % no smoothing here!
     Yhead  = smooth3(cat_vol_morph(cat_vol_morph(smooth3(Yhead)>.7,'lo',4),'d')) .* Yhead .* (Ybraindist0s>0);
     cn = 0; for ci = 5:6, Ycn = Yc{ci} .* Yhead; cn = cn + sum(Ycn(:)); Yc{4} = Yc{4} + (Yc{ci} - Ycn); Yc{ci} = Ycn; end
