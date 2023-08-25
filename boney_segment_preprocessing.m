@@ -11,7 +11,7 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
 %  rerun    .. run preprocessing even if all files exist
 % _________________________________________________________________________
 %
-% Robert Dahnke
+% Robert Dahnke & Polona Kalc
 % Structural Brain Mapping Group (https://neuro-jena.github.io)
 % Departments of Neurology and Psychiatry
 % Jena University Hospital
@@ -65,6 +65,7 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
     warning off; 
     spm_jobman('run',matlabbatch);
     warning on; 
+
   end
 
 
