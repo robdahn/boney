@@ -127,7 +127,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
     'and harmonization (e.g. via external tools such as COMBAT) is recommendet. ']; ''};
 
   classic               = cfg_menu;
-  classic.tag           = 'fst';
+  classic.tag           = 'classic';
   classic.name          = 'Estimate also fast classic/prototype measures (developer)';
   classic.labels        = {'No','Yes'};
   classic.values        = {0,1};
@@ -312,8 +312,8 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   % - settings for native/affine - affine could be use for ML/DL 
   writevol              = cfg_menu;
   writevol.tag          = 'writevol';
-  writevol.name         = 'Write volumes (expert)';
-  writevol.labels       = {'No','Yes'};
+  writevol.name         = 'Write bone (expert)';
+  writevol.labels       = {'No','Native','Affine','Native + Affine'};
   writevol.values       = {0,1};
   writevol.val          = {0};
   writevol.hidden       = expertgui<1;
@@ -421,7 +421,7 @@ function xml2csv = conf_io_xml2csv(expertgui)
   report.tag       = 'report';
   report.name      = 'Boney XML export field sets';
   report.labels    = {'Boney default','Boney details','Boney expert','Only processing parameters','No processing parameters'};
-  report.values    = {'boney_default','boney details','boney_expert','paraonly'  ,'nopara'       };
+  report.values    = {'boney_default','boney_details','boney_expert','paraonly'  ,'nopara'       };
   report.val       = {'boney_default'}; 
   report.help      = {'Predefined sets of boney XML values in case of "boney_" processing XML files (no effect in other XMLs). '};
 
@@ -431,49 +431,92 @@ function xml2csv = conf_io_xml2csv(expertgui)
   xml2csv.name      = 'XML2CSV';
   xml2csv.val       = {files outdir fname fieldnames avoidfields report};
   xml2csv.prog      = @boney_xml2csv;
-  %xml2csv.vout      = @vout_long_report; 
+  xml2csv.vout      = @vout_boney_cfg_xml2csv; 
   xml2csv.help      = {
     'Export XML files (e.g. the boney preprocessing results) as a CSV table. '
     };
 
 return
 function dep = vout_boney_cfg_segment(job)
-%vout_segment. SPM dependency structure for boney_segment. 
+%vout_boney_cfg_segment. SPM dependency structure for boney_segment. 
 
+  % the XML is the most relevant one
   dep            = cfg_dep;
   dep.sname      = 'XML';
-  dep.src_output = substruct('.','xml');
-  dep.tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
+  dep.src_output = substruct('.','xml','()',{':'});
+  dep.tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}}); % any cfg_files
 
-  if job.output.writevol
-    dep(end+1)          = cfg_dep;
-    dep(end).sname      = 'Volumes';
-    dep(end).src_output = substruct('.','volumes');
-    dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
-  end
-  
-  if job.output.writeseg
-    dep(end+1)          = cfg_dep;
-    dep(end).sname      = 'Segments';
-    dep(end).src_output = substruct('.','segments');
-    dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
-  end
-  
-  if job.output.writesurf
-    dep(end+1)          = cfg_dep;
-    dep(end).sname      = 'Surfaces';
-    dep(end).src_output = substruct('.','surfaces');
-    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
-  end
-  
+
+  % also the report is generally available 
   if job.output.report
     dep(end+1)          = cfg_dep;
     dep(end).sname      = 'Reports';
     dep(end).src_output = substruct('.','reports');
     dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
   end
-return
 
+  if job.output.writeseg % only native 
+    for ci = 1:5
+      dep(end+1)          = cfg_dep;
+      dep(end).sname      = sprintf('cls %d',ci);
+      dep(end).src_output = substruct('.','cls','{}',{'1'},'{}',{':'});
+      dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+    end
+  end
+  
+  % bone voluem that include both cortex and marrow
+  if job.output.writevol == 1 || job.output.writevol == 3
+    dep(end+1)          = cfg_dep;
+    dep(end).sname      = 'Bone(native)';
+    dep(end).src_output = substruct('.','bonemarrow',{':'});
+    dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+  end
+  if job.output.writevol == 2 || job.output.writevol == 3
+    dep(end+1)          = cfg_dep;
+    dep(end).sname      = 'Bbone(affine)';
+    dep(end).src_output = substruct('.','rbonemarrow_affine',{':'});
+    dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
+  end
+  
+
+  % there are multiple surfaces but as no registration was done they cannot
+  % be used so far (eg. to create an average etc.)
+  if job.output.writesurf
+    dep(end+1)          = cfg_dep;
+    dep(end).sname      = 'Surfaces';
+    dep(end).src_output = substruct('.','bcentral');
+    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
+
+    dep(end+1)          = cfg_dep;
+    dep(end).sname      = 'Surfaces';
+    dep(end).src_output = substruct('.','bcentral');
+    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
+
+    dep(end+1)          = cfg_dep;
+    dep(end).sname      = 'Surfaces';
+    dep(end).src_output = substruct('.','bmarrow');
+    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
+
+    dep(end+1)          = cfg_dep;
+    dep(end).sname      = 'Surfaces';
+    dep(end).src_output = substruct('.','bthickness');
+    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
+
+    dep(end+1)          = cfg_dep;
+    dep(end).sname      = 'Surfaces';
+    dep(end).src_output = substruct('.','hthickness');
+    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
+  end
+  
+return
+function dep = vout_boney_cfg_xml2csv(job)
+%vout_boney_cfg_xml2csv. SPM dependency structure for boney_xml2csv. 
+
+  dep            = cfg_dep;
+  dep.sname      = 'CSV';
+  dep.src_output = substruct('.','csv','()',{':'});
+  dep.tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}}); % any cfg_files
+return
 
 
 
