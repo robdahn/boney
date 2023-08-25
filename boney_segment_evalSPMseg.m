@@ -1,5 +1,36 @@
-function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, fast, opt, seg8t, tis) 
-%evalSPMseg. Evaluation of the SPM segmentation.  
+function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, fast, job, seg8t, tis) 
+%evalSPMseg. Evaluation of the SPM segmentation. 
+% This function extract tissue intensities by the segmentation Yc from the
+% intensity scaled image Ym. 
+%
+% [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk, ...
+%   vx_vol,fast, opt, seg8t, tis)
+%
+%  Yo           .. original image
+%  Ym           .. intensity normalized image
+%  Yc           .. segment class images (cell)
+%  Ymsk         .. head mask (to avoid face bones in global estimation)
+%  vx_vol       .. voxel-size
+%  fast         .. use further tissue specific refinement or just extract  
+%                  the median (default=0)
+%  job          .. main SPM job structure (for affreg options) 
+%   .opts.verb  .. be verbose
+%  seg8t        .. spm8 structure without larger fields 
+%   .isCTseg    .. special case in case of CT data
+%  tis          .. measures based on SPM tissue thresholds and 
+%                  basic information based on image and tissue properties
+%   .seg8n      .. intensity peaks in Ym 
+%
+%  tismri       .. structure with MRI based measures
+%  Ybraindist0  .. mask to limite the distance to the brain
+% _________________________________________________________________________
+%
+% Robert Dahnke & Polona Kalc
+% Structural Brain Mapping Group (https://neuro-jena.github.io)
+% Departments of Neurology and Psychiatry
+% Jena University Hospital
+% _________________________________________________________________________
+
 
 % TODO: (1) test for WMHs; (2) 
 
@@ -19,7 +50,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
       % create a (silent) warning
       cat_io_addwarning( [mfilename ':needSegUpdate'], ...
         sprintf('Bad SPM tissue class 5 - probably overestimated (%0.2f)', ...
-        ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) , 1, [1 1], [], 0, opt.opts.verb>1);
+        ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) , 1, [1 1], [], 0, job.opts.verb>1);
     end
   end
 % ################### 
@@ -32,8 +63,8 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
 % * detect defacing 
 % * detect WMHs? (as a second peak in WM class)
 % * detect high intesity blood vessels
-
 % ###################
+
 
   % separate fat and muscles
   if seg8t.isCTseg % CT images
@@ -53,22 +84,20 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
   tismri.help.TIV     = 'Total intracranial volume (GM + WM + CSF).';
   tismri.help.vol     = 'Volume of the SPM tissues classes in mm (probability >.5).';
   tismri.help.volr    = 'Relative volume of the SPM tissues classes (probability >.5) normalized by TIV.';
-  tismri.help.den     = 'Density of the SPM tissues classes (ie. sum of probability; similar to volume i.e. ~mm).';
-  tismri.help.int     = 'Intensity values of the (sub) tissue classes.'; 
   tismri.help.volfat  = 'Volume of fat tissue in the masked upper head (simple threshold to separate the head tissues, in mm).'; 
   tismri.help.volfatr = 'relative volume of fat tissue in the masked upper head (simple threshold to separate the head tissues).'; 
   tismri.help.volmus  = 'Volume of muscle-like tissue in the masked upper head (simple threshold to separate the head tissues, in mm).'; 
   tismri.help.volmusr = 'relative volume of muscle-like tissue in the masked upper head (simple threshold to separate the head tissues).'; 
-  tismri.help.denQC   = 'Relation of voxel with high vs. low density within 30 mm distnace. ';
-  tismri.help.Tth     = 'Median intensity of the (optimized) tissue class (~peak intensity).'; 
-  tismri.help.Tiqr    = 'IQR of the intensity of the (optimized) tissue class (~peak intensity).'; 
-  tismri.help.int     = ['Detailed evaluated tissue classes: ' ...
-    '(1) GM: median (=tismri.Tth(1)); ' ...
-    '(2) WM: median (=tismir.Tth(2)); ' ...
-    '(3) CSF: median (=tismri.Th(3)); ' ...
-    '(4) bone: kmeans with 2 classes for bone and bone marrow; ' ...
-    '(5) head: kmeans with 3 classes head, muscle, fat; ' ...
-    '(6) bg: median (=tismri.Th(6)). ' ...
+  tismri.help.clsQC   = 'Relation of voxel with high vs. low density within 30 mm distance. ';
+  %tismri.help.Tth     = 'Median intensity of the (optimized) tissue class (~peak intensity).'; 
+  %tismri.help.Tiqr    = 'IQR of the intensity of the (optimized) tissue class (~peak intensity).'; 
+  tismri.help.int     = ['Intensity based evaluated tissue classes: ' ...
+    '(1) GM:   median (=tismri.Tth(1)); ' ...
+    '(2) WM:   median (=tismir.Tth(2)); ' ...
+    '(3) CSF:  median (=tismri.Th(3)); ' ...
+    '(4) bone: kmeans with 3 classes for bone (1) and bone marrow (3); ' ...
+    '(5) head: kmeans with 3 classes head (1), muscle (2), and fat (3); ' ...
+    '(6) bg:   median (=tismri.Th(6)). ' ...
     ];
 
 
@@ -78,23 +107,22 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
   tismri.volmus  = cat_stat_nansum( Ymus(:) ) .* prod(vx_vol) / 1000; % tissue volume 
   tismri.volfatr = tismri.volfat ./ tismri.TIV;
   tismri.volmusr = tismri.volmus ./ tismri.TIV;
-  tismri.vol     = nan(1,6); tismri.volr = nan(1,6); tismri.den = nan(1,6); tismri.Tth = nan(1,6);  
+  tismri.vol     = nan(1,6); tismri.volr = nan(1,6); 
   for ci = 1:6
     % estimate tissue volumes and density values
     tismri.vol(ci)  = cat_stat_nansum(Yc{ci}(:)>0.5) .* prod(vx_vol) / 1000; % tissue volume 
-    tismri.den(ci)  = cat_stat_nansum(Yc{ci}(:))     .* prod(vx_vol) / 1000; % tissue density
     tismri.volr(ci) = tismri.vol(ci) ./ tismri.TIV;
   
     % test if any class has more low probability values as high
-    tismri.cQC(ci) = sum(Yc{ci}(:)>.5) ./ sum(Yc{ci}(:)>eps & Yc{ci}(:)<.5 & Ybraindist0(:)<30); 
-    if tismri.cQC(ci)<.5
+    tismri.clsQC(ci) = sum(Yc{ci}(:)>.5) ./ sum(Yc{ci}(:)>eps & Yc{ci}(:)<.5 & Ybraindist0(:)<30); 
+    if tismri.clsQC(ci)<.5
       cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
-        sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.cQC(ci)),1,[1 1],0,0,0);
+        sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)),1,[1 1],0,0,0);
     end
  
     % refined evaluation with class optimization 
     % otherwise just the median
-% ###################    
+% ###################   
     switch ci .* (1-fast)
       case 1
         tismri.int.GM   = cat_stat_nanmedian(Yo(Yc{ci}>0.5));
@@ -122,34 +150,30 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
       case 4
         % ################### need refinement depending on number ###########
         if seg8t.isCTseg 
-          tismri.int.bone   = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),2); 
-          tismri.Tth(ci)    = mean(tismri.int.bone);
+          tismri.int.bone = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),2); 
+          tismri.Tth(ci)  = mean(tismri.int.bone);
         else
-          tismri.int.bone   = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
-          tismri.Tth(ci)    = tismri.int.bone(3);
+          tismri.int.bone = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
+          tismri.Tth(ci)  = tismri.int.bone(3);
         end
        
       case 5
         % ################### need refinement depending on number ###########
-        if seg8t.isCTseg 
-          tismri.int.head   = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
-          tismri.int.muscle = tismri.int.head(2);
-          tismri.int.fat    = tismri.int.head(1); 
-        else
-          tismri.int.head   = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
-        end
+        tismri.int.head   = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
         tismri.Tth(ci)    = tismri.int.head(3);
       otherwise
         [Yir,Ymr]         = cat_vol_resize( {Yo .* (Yc{ci}>.5),(Yc{ci}>.9)} ,'reduceV' ,1,2,32,'meanm'); 
         tismri.Tth(ci)    = cat_stat_nanmedian(Yir(Ymr>.5));
     end
     % SD in tissue class
-    if ~exist('Yir','var')
-      [Yir,Ymr]           = cat_vol_resize( {Yo .* (Yc{ci}>.5),(Yc{ci}>.9)} ,'reduceV' ,1,2,32,'meanm'); 
-    end
-    tismri.Tsd(ci)        = cat_stat_nanstd(Yir(Ymr>.5));
-    tismri.Tiqr(ci)       = iqr(Yir(Ymr(:)>.5 & ~isnan(Yir(:))));
-    clear Yir; 
+    %{
+      if ~exist('Yir','var')
+        [Yir,Ymr]           = cat_vol_resize( {Yo .* (Yc{ci}>.5),(Yc{ci}>.9)} ,'reduceV' ,1,2,32,'meanm'); 
+      end
+      tismri.Tsd(ci)        = cat_stat_nanstd(Yir(Ymr>.5));
+      tismri.Tiqr(ci)       = iqr(Yir(Ymr(:)>.5 & ~isnan(Yir(:))));
+      clear Yir Ymr;
+    %}
   end
   
   
