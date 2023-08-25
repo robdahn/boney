@@ -1,42 +1,90 @@
-function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,job,seg8t,tis,cls,bd) % TODO: (1) tissue-base intensity scaling; (2) use/eval affreg?
-% loadMRI. Load MRI and segmentation.
+function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
+  boney_segment_loadMRI(P, job, seg8t, tis, cls, bd)
+% loadMRI. Load MRI and segmentation maps with general size limit.
 %
-%  [Vo,Yo,Yc,Ya,Ym, Affine] = loadMRI(P,Pa)
+%  [Vo,Yo,Yc,Ya,Ym, Affine, YaROIname, RES, BB] = ...
+%    boney_segment_loadMRI(P, job, seg8t, tis, cls, bd)
 %
-%  Po,Vo,Yo .. original image
-%  Pc,Vc,Yo .. segment class images (cell)
-%  Pa,Va,Ya .. atlas image
+%  P             .. structure with prepared filenames of this subject
+%  job           .. main SPM job structure (for affreg options)
+%   .opts.normCT .. how normalize CT data
+%   .opts.affreg .. do affine registration 
+%   .opts.Patlas .. atlas map path
+%   .opts.Pmask  .. mask map path
+%   .opts.reslim .. general resolution limit
+%  seg8t         .. SPM mat structure (with Affine matrix and intensities) 
+%   .isCTseg     .. use of CTseg for segmentation 
+%   .tpm         .. for affine registration
+%   .Affine      .. Affine registration matrix
+%   .image       .. main image header 
+%  tis           .. our tissue intensity structure for intensity normalization 
+%   .res_vx_vol  .. voxel properties
+%   .seg8o       .. tissue intensitie values
+%  cls           .. used classes (fast approch only load class 4; default=1:5)
+%  bd            .. brain distance (need to limit the extraction of values  
+%                   in general; default=25) 
 %
+%  Vo            .. original image header
+%  Yo            .. original image
+%  Yc            .. segment class images (cell)
+%  Ya            .. atlas image
+%  Ymsk          .. head mask (to avoid face bones in global estimation)
+%  Ym            .. intensity normalized image
+%  Affine        .. (reprocessed) affine transformation to MNI
+%  YaROIname     .. names of ROIs of the atlas
+%  RES           .. resolution structure to avoid ultra-high resolutions
+%  BB            .. boundary box to temporary remove the background
+%  
+% _________________________________________________________________________
+%
+% Robert Dahnke & Polona Kalc
+% Structural Brain Mapping Group (https://neuro-jena.github.io)
+% Departments of Neurology and Psychiatry
+% Jena University Hospital
+% _________________________________________________________________________
 
-%job.opts.affreg, 1:5, job.opts.reslim, 25 ,opt); 
-  
+
+% TODO: 
+%  (1) tissue-base intensity scaling (currently only BG-WM based)  
+%  (2) use/eval affreg? (current affreg focus on all tissues, ie. its ok) 
+
+ 
   if ~exist('cls'   ,'var'), cls    = 1:5; end 
   if ~exist('bd'    ,'var'), bd     = 25;  end 
 
   % get bias corrected original image
   Vo = spm_vol(P.bc);
   Yo = single(spm_read_vols(Vo));
-  
+
   % load segmentation 
   Pc = cell(1,6); Yc = cell(1,6); Yc{6} = ones(Vo.dim,'single');
-  for ci = cls % 1:5
+  for ci = cls
     if seg8t.isCTseg % CTseg 
       Pc{ci}  = fullfile(P.orgpp,sprintf('c%02d%s%s',ci,P.ppff(4:end),P.ee));
     else
       Pc{ci}  = P.cls{ci}; %fullfile(P.orgpp,sprintf('c%d%s%s',ci,P.orgff,P.ee));
     end
-    Vc(ci)  = spm_vol(Pc{ci}); 
+    Vc(ci)  = spm_vol(Pc{ci}); %#ok<AGROW> 
     Yc{ci}  = single(spm_read_vols(Vc(ci)));
     Yc{6}   = Yc{6} - Yc{ci}; 
   end
+  
+  % SPM/CAT segmentation
+  if job.output.writeseg == 2 
+    save(boneyPPmat,'Yc','Yo')
+  end
+
+
 
   % create a linear intensity normalized image
   % .. unclear side effects ... and the histogram is not looking nice ?
+  % .. maybe use some log scaling based approach later
+% ###############################  
   if 0 %~isempty(Pa)
     minimg = min( Yo(:) ); 
     maximg = max( Yo(:) );
-    mintis = min( tis.seg8o );
-    maxtis = max( tis.seg8o(2)*1.5 , tis.maxHead*tis.seg8o(2) ); 
+    mintis = min( tis.seg8o ); 
+    maxtis = max( tis.seg8o(2)*1.5 , max( seg8t.mn (seg8t.lkp==5 & seg8t.mg'>0.01)) ); % fat=maxhead
     switch tis.weighting 
       case 1 % T1
         isc   = 1; 
@@ -54,6 +102,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,j
         Ym = (Yo - min([ 0 tis.seg8o(3),tis.seg8o(end)])) / (tis.seg8o(2) - min([ 0 tis.seg8o(3),tis.seg8o(end)]));
     end
   else
+  % just a simple BG/WM based normalization 
     if tis.weighting == 2 % MT
       Ym = (Yo - min([-.5 tis.seg8o ])) / (tis.seg8o(2) - min([-.5 tis.seg8o ]));
     elseif tis.weighting == -1 % CT
@@ -71,7 +120,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,j
 
   % == do affine registration ==
   % ##################### & job.opts.refine ????
-  if job.opts.affreg>0  
+  if job.opts.affreg > 0  
     VG            = seg8t.tpm(1);
     if ~exist('Ytpmbrain','var')
       Ytpmbrain = spm_read_vols(seg8t.tpm(1)) +  spm_read_vols(seg8t.tpm(2)) +  spm_read_vols(seg8t.tpm(3)); 
@@ -142,8 +191,16 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, RES, BB] = boney_segment_loadMRI(P,j
     end
     clear Va;
     [~,YD] = cat_vbdist(single(Ya>0),smooth3(Yc{6})<.5); Ya = Ya(YD);
+    Pacsv = spm_file(job.opts.Patlas{1},'ext','.csv');
+    if exist(Pacsv,'file')
+      csv = cat_io_csv(Pacsv);
+      YaROIname = ['background';csv(2:end,2)];
+    else
+      YaROIname = unique(Ya(:)); 
+    end
   else
-    Ya   = zeros(size(Ym),'single'); 
+    Ya        = zeros(size(Ym),'single'); 
+    YaROIname = 0; 
   end
   
   % load mask in individual space by appling the affine transformation
