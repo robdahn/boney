@@ -10,15 +10,15 @@ function [out,fmethod] = boney_segment_filenames(P,job)
 % pmethod .. update preprocessing method 
 % _________________________________________________________________________
 %
-% Robert Dahnke
+% Robert Dahnke & Polona Kalc
 % Structural Brain Mapping Group (https://neuro-jena.github.io)
 % Departments of Neurology and Psychiatry
 % Jena University Hospital
 % _________________________________________________________________________
 
 % TODO: 
-% * add CAT preprocessing case
-% * creation of surface names allways required?
+% * add CAT preprocessing case (not really relevant as the bone classes are
+%   generally not exported) 
 
   %#ok<*AGROW>
 
@@ -219,13 +219,15 @@ function [out,fmethod] = boney_segment_filenames(P,job)
 
     % xml/mat output
     out(i).P.report = fullfile(out(i).P.reportpath, sprintf('bonereport%d_%s.jpg', job.opts.bmethod, ff(2:end)));              
-    out(i).P.xml    = fullfile(out(i).P.reportpath, sprintf('catbones%d_%s.xml'  , job.opts.bmethod, ff(2:end)));
-    out(i).P.mat    = fullfile(out(i).P.reportpath, sprintf('catbones%d_%s.mat'  , job.opts.bmethod, ff(2:end)));
+    out(i).P.xml    = fullfile(out(i).P.reportpath, sprintf('boney%d_%s.xml'  , job.opts.bmethod, ff(2:end)));
+    out(i).P.mat    = fullfile(out(i).P.reportpath, sprintf('boney%d_%s.mat'  , job.opts.bmethod, ff(2:end)));
     
+    out(i).P.boneySPM = fullfile(out(i).P.reportpath, sprintf('boneySPM_%s.mat'  , job.opts.bmethod, ff(2:end)));
+    out(i).P.boneyCAT = fullfile(out(i).P.reportpath, sprintf('boneyCAT_%s.mat'  , job.opts.bmethod, ff(2:end)));
 
     % vols
     if job.output.writevol
-      vols = {'pp','bonemarrow','headthick'};
+      vols = {'pp','bone','bonethick','headthick'};
       for vi = 1:numel(vols)
         % ... subject affine warped ... 
         prefix = {'','r'}; postfix = {'','_affine'};
@@ -238,14 +240,12 @@ function [out,fmethod] = boney_segment_filenames(P,job)
 
     
     % surfs - Are these to be writen anyway?
-% #################    
-    if 1 %job.output.writesurf
+    if job.opts.bmethod>1 || job.output.writesurf
       out(i).P.central   = fullfile(out(i).P.surfpath, sprintf('%s%d.central.%s.gii', 'bone', job.opts.bmethod, ff));        % central
       out(i).P.marrow    = fullfile(out(i).P.surfpath, sprintf('%s%d.marrow.%s'     , 'bone', job.opts.bmethod, ff));        % marrow
-      out(i).P.thick     = fullfile(out(i).P.surfpath, sprintf('%s%d.thickness.%s'  , 'bone', job.opts.bmethod, ff));        % thickness
-      out(i).P.headthick = fullfile(out(i).P.surfpath, sprintf('%s%d.thickness.%s'  , 'head', job.opts.bmethod, ff));        % thickness
-      out(i).P.marrowmin = fullfile(out(i).P.surfpath, sprintf('%s%d.marrowmin.%s'  , 'bone', job.opts.bmethod, ff));        % minimal bone values
-      out(i).P.marrowmax = fullfile(out(i).P.surfpath, sprintf('%s%d.marrowmax.%s'  , 'bone', job.opts.bmethod, ff));        % maximum bone values
+      out(i).P.cortex    = fullfile(out(i).P.surfpath, sprintf('%s%d.cortex.%s'     , 'bone', job.opts.bmethod, ff));        % hard bone - minimal bone values
+      out(i).P.thick     = fullfile(out(i).P.surfpath, sprintf('%s%d.thickness.%s'  , 'bone', job.opts.bmethod, ff));        % thickness bone 
+      out(i).P.headthick = fullfile(out(i).P.surfpath, sprintf('%s%d.thickness.%s'  , 'head', job.opts.bmethod, ff));        % thickness head
     end
   end
 end
