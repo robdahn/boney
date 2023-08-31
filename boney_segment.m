@@ -1,4 +1,4 @@
-function Pout = boney_segment(job)
+function [Pout,out] = boney_segment(job)
 %boney_segment. Extract bone measures based on SPM segmentation.
 % ... DETAILED DESCRIPTION ...
 % 
@@ -89,17 +89,19 @@ function Pout = boney_segment(job)
   def.opts.refine       = 1;        % refine segmenation 
   def.opts.subdirs      = 1;        % use subdirectories 
   def.opts.normCT       = 0;        % use hard defined CT tissue thresholds for CTseg (used flag?) 
-  def.opts.Patlas       = fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-regions.nii');
-  def.opts.Pmask        = fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-mask.nii');
+  def.opts.Patlas       = {fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-regions.nii')};
+  def.opts.Pmask        = {fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-mask.nii')};
   def.opts.snspace      = [80,7,2];                      % cmd print format - only internal
   def.opts.MarkColor    = cat_io_colormaps('marks+',40); % colormap for ratings - only internal
   def.opts.reslim       = 1.5;      % general resolution limit 
   def.opts.expert       = 2;        % user level (0 - default, 1 - expert, 2 - developer)
   def.opts.classic      = 1;        % estimate also first prototype version 
-  def.output.report     = 1;        % write report
+  def.output.report     = 2;        % write report
   def.output.writevol   = 1;        % write volume output 
+  def.output.writeseg   = 1;        % write volume output 
   def.output.writesurf  = 1;        % write surface data 
   def.output.writeCSV   = 1; 
+  def.output.prefix     = 'boney_';
   job                   = cat_io_checkinopt(job,def);
   Pout = struct();
 
@@ -107,7 +109,7 @@ function Pout = boney_segment(job)
   job.output.report     = min(job.output.report,max(2,job.opts.bmethod + 1)); 
 
   % filenames for dependencies 
-  [out,job.opts.fmethod] = boney_segment_filenames(P,job);
+  [out,job.opts.fmethod,job.opts.pmethod] = boney_segment_filenames(P,job);
 
 
 % ######################  
@@ -258,7 +260,7 @@ end
 
 
     if ... %cat_io_rerun(which(mfilename),out(i).P.xml) || ...
-        cat_io_rerun(out(i).P.org,out(i).P.xml,0,1) || job.opts.rerun
+        cat_io_rerun(out(i).P.org,out(i).P.xml,0,-1) || job.opts.rerun
   
   
       % == GET SPM DATA ==
@@ -359,6 +361,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
       end
       spm_progress_bar('Set',i - 0.2);
   
+     
 
       % == create output structure
 % ############## can some these fields be removed before?      
@@ -371,8 +374,25 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
       out(i).spm8    = seg8t; 
       out(i).tis     = tis; 
       out(i).tismri  = tismri; 
-      if exist('sROI','var'), out(i).sROI = sROI;   end
+      out(i).opts    = job.opts; 
+      out(i).date    = datestr(stime3,'YYYYmmDD-HHMMSS');
       if exist('vROI','var'), out(i).vROI = vROI;   end
+      if exist('sROI','var'), out(i).sROI = sROI;   end
+      
+      
+      % == additional combined measures for the bone 
+      if exist('vROI','var')
+        out(i).main.vBMDH{gi}(si,1)  = -out(si).vROI.bonecortex(3) + out(si).vROI.bonethickness(1) ...
+                                       -out(si).classic.bone_med   + out(si).vROI.bonethickness(3); % best for BMDH
+      end 
+      if exist('sROI','var')
+        out(i).main.sBMDH{gi}(si,1)  = -out(si).sROI.bonecortex(3) + out(si).sROI.bonethickness(1) ...
+                                       -out(si).classic.bone_med   + out(si).sROI.bonethickness(3);
+        out(i).main.sBMDH2{gi}(si,1) = -out(si).sROI.bonecortex(3) + out(si).sROI.bonethickness(3) ...
+                                       -out(si).classic.bone_med   + out(si).sROI.bonemarrow(3);
+      end       
+          
+
 
       % export to XML 
       cat_io_xml(out(i).P.xml, out(i)); % export to XML 
@@ -415,19 +435,19 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
 
 % ############ final csv-export depending on processing level?
 % - use/add flag?
-  if job.output.writeCSV
+  if job.output.writeCSV && numel(Pout.xml)>1
     %%
     stime = cat_io_cmd('Create CSV with all subjects','g9','',job.opts.verb>0); 
     rlevel = {'boney_default','boney_expert'}; 
     matlabbatch{1}.spm.tools.boney.xml2csv.files        = Pout.xml'; 
     matlabbatch{1}.spm.tools.boney.xml2csv.outdir       = {out(1).P.orgpp};
-    matlabbatch{1}.spm.tools.boney.xml2csv.fname        = 'Boney_xml.csv';
+    matlabbatch{1}.spm.tools.boney.xml2csv.fname        = sprintf('Boney_xml_%s.csv',datestr(stime,'YYYYmmDD-HHMMSS'));
     matlabbatch{1}.spm.tools.boney.xml2csv.fieldnames   = {' '};
     matlabbatch{1}.spm.tools.boney.xml2csv.avoidfields  = {''};
     matlabbatch{1}.spm.tools.boney.xml2csv.report       = rlevel{ ( boned.expertgui > 0) + 1 };
 
     % run silently 
-    evalc('spm_jobman(''run'',matlabbatch);');
+    txt = evalc('spm_jobman(''run'',matlabbatch);');
     if job.opts.verb>0, fprintf('% 5.0fs\n',etime(clock,stime)); end
   end
 
