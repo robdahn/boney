@@ -1,7 +1,7 @@
-function [out,fmethod] = boney_segment_filenames(P,job)
+function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
 %bonefilenames(P). Prepare output filesnames and directories. 
 %  
-% [out,pmethod] = boney_segment_filenames(P,job)
+% [out,fmethod,pmethod] = boney_segment_filenames(P,job)
 % 
 % P   .. list of m-files
 % job .. main job structure to include some parameters in the filename etc.
@@ -32,6 +32,24 @@ function [out,fmethod] = boney_segment_filenames(P,job)
     % test for other files
   else
     [~,PC]  = spm_str_manip(P,'tC'); 
+    if numel(PC.s)>1 && PC.s(1)=='m'
+      for mi=1:numel(PC.m)
+        PC.m{mi} = [PC.s(2:end) PC.m{mi}];
+      end
+      PC.s = PC.s(1);
+    end
+    if contains(PC.e,'CTseg')
+      for mi=1:numel(PC.m)
+        PC.m{mi} = [PC.s(4:end) PC.m{mi}];
+      end
+      PC.s = PC.s(1:3);
+    end
+    if numel(PC.e)>4 
+      for mi=1:numel(PC.m)
+        PC.m{mi} = [PC.m{mi} PC.e(1:end-4)];
+      end
+      PC.e = PC.e(end-3:end);
+    end
   end
 
   if job.opts.subdirs
@@ -84,29 +102,43 @@ function [out,fmethod] = boney_segment_filenames(P,job)
           end
         end
       end
+    elseif strcmp(PC.s(1:2),'c0')  % CTseg
+      prefix1 = 3; 
+      fmethod = 3;
+      job.opts.pmethod = 3; 
+      if job.opts.pmethod == 1 
+        cat_io_cprintf('warn','CTseg-preprocessing results are selected although SPM is choosen for processing > Use CTseg!\n')
+      elseif job.opts.pmethod == 2 
+        cat_io_cprintf('warn','CTseg-preprocessing results are selected although CAT is choosen for processing > Use CTseg!\n')
+      end
+      job.opts.pmethod = 3; 
     else
       prefix1 = 3; 
       % if SPM or CAT segments are selected then just update the setting
       fmethod = 1 + PC.s(1)=='p'; 
       if all([ fmethod job.opts.pmethod ] == [ 1 2 ])
-        cat_io_cprintf('warn','SPM-preprocessing results are selected alhtough CAT is choosen for processing > Use SPM!\n')
+        cat_io_cprintf('warn','SPM-preprocessing results are selected although CAT is choosen for processing > Use SPM!\n')
         job.opts.pmethod = 1; 
       elseif all([ fmethod job.opts.pmethod ] == [ 2 1 ])
-        cat_io_cprintf('warn','CAT-preprocessing results are selected alhtough SPM is choosen for processing > Use CAT!\n')
+        cat_io_cprintf('warn','CAT-preprocessing results are selected although SPM is choosen for processing > Use CAT!\n')
         job.opts.pmethod = 2; 
       end
     end
 
-    % test for preprocessed data
-    deleteP = false(size(P)); 
-    if job.opts.pmethod == 1, sprefix = 'c'; pmethod = 'SPM'; else, sprefix = 'p'; pmethod = 'CAT'; end
+    %% test for preprocessed data
+    deleteP = false(size(P));
+    switch job.opts.pmethod 
+      case 1, pmethod = 'SPM';   sprefix = 'c';  
+      case 2, pmethod = 'CAT';   sprefix = 'p';  
+      case 3, pmethod = 'CTseg'; sprefix = 'c0'; 
+    end
     for si = 1:numel(P)
-      if ~exist( fullfile(fileparts(P{si}), sprintf('m%s.nii',PC.m{1})),'file')
+      if job.opts.pmethod~=3 && ~exist( fullfile(fileparts(P{si}), sprintf('m%s.nii',PC.m{si})),'file')
         cat_io_cprintf('err',sprintf('  Ups, miss SPM/CAT m-file of subject %d.\n',si))
         deleteP(si) = true; 
       end
       for ci = 1:5
-        if ~exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii',sprefix,  ci, PC.m{1})),'file')
+        if ~exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii',sprefix,  ci, PC.m{si})),'file')
           cat_io_cprintf('err',sprintf('  Ups, miss %s-%s%d segmentation file of subject %d.\n', ...
             pmethod,sprefix,ci,si))
           deleteP(si) = true; 
@@ -118,7 +150,9 @@ function [out,fmethod] = boney_segment_filenames(P,job)
     fmethod = job.opts.pmethod; 
     prefix1 = 1; 
   end 
+  pmethod = job.opts.pmethod; 
 
+  %%
   if isempty(P)
     error(sprintf('  Upsi, no files for processing!\n')); 
   end
@@ -140,7 +174,7 @@ function [out,fmethod] = boney_segment_filenames(P,job)
   
     
     % get original file name based on the type of intput segmentation
-    if fmethod == 0 
+    if fmethod == 0 || fmethod == 3
       % selection by processed file
       [pp,ff,ee]      = spm_fileparts(P{i}); 
       out(i).CTseg    = contains(ff,'_CTseg');
@@ -162,9 +196,15 @@ function [out,fmethod] = boney_segment_filenames(P,job)
       if out(i).CTseg
         out(i).P.bc   = out(i).P.org;
         out(i).P.seg8 = fullfile(pp,sprintf('mb_fit_CTseg.mat'));
+        for ci = 1:5
+          out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s','c0',ci,ff(4:end),ee) ); 
+        end
       else % SPM12 case
         out(i).P.bc   = P{i};
         out(i).P.seg8 = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
+        for ci = 1:5
+          out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s','c',ci,out(i).P.orgff,ee) ); 
+        end
       end
       if ~exist(out(i).P.seg8,'file')
         cat_io_cprintf('err','Cannot process "%s" because the seg8.mat is missing. \n',P{i});
@@ -218,9 +258,9 @@ function [out,fmethod] = boney_segment_filenames(P,job)
 
 
     % xml/mat output
-    out(i).P.report = fullfile(out(i).P.reportpath, sprintf('bonereport%d_%s.jpg', job.opts.bmethod, ff(2:end)));              
-    out(i).P.xml    = fullfile(out(i).P.reportpath, sprintf('boney%d_%s.xml'  , job.opts.bmethod, ff(2:end)));
-    out(i).P.mat    = fullfile(out(i).P.reportpath, sprintf('boney%d_%s.mat'  , job.opts.bmethod, ff(2:end)));
+    out(i).P.report = fullfile(out(i).P.reportpath, sprintf('%sbonereport%d_%s.jpg', job.output.prefix, job.opts.bmethod, ff(2:end)));              
+    out(i).P.xml    = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.xml'  , job.output.prefix, job.opts.bmethod, ff(2:end)));
+    out(i).P.mat    = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.mat'  , job.output.prefix, job.opts.bmethod, ff(2:end)));
     
     out(i).P.boneySPM = fullfile(out(i).P.reportpath, sprintf('boneySPM_%s.mat'  , job.opts.bmethod, ff(2:end)));
     out(i).P.boneyCAT = fullfile(out(i).P.reportpath, sprintf('boneyCAT_%s.mat'  , job.opts.bmethod, ff(2:end)));

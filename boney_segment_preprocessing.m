@@ -50,6 +50,13 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
         expertgui = cat_get_defaults('extopts.expertgui');
         if expertgui < 2, cat12('expert'); end % need expert/developer batch to write class 4 to 6
         matlabbatch = CAT_preprocessing(PC, Ptpm, bias, expertgui); 
+      case {3,'CT_seg'}
+        if exist(fullfile(spm('dir'),'toolbox','CTseg'),'dir')
+          fprintf('CTseg is not working')
+          return
+        else
+          error('CTseg is not available')
+        end
       otherwise
         error('unkown preprocessing method')
     end

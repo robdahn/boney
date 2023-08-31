@@ -265,7 +265,7 @@ function printMainTable(job,out,popts,Si,St)
   % - the SPM measures minbone and maxBone are not good but medbone is ok > (1) medBoneS 
   % - the classic > (2) medBoneC ( correction option only internal test ) and (3) fst_vol4 (masked?)  
   % - the new     > (3) OccBone
-  if out.spm8.isCTseg
+  if 0 %out.spm8.isCTseg 
     out.tis.minBone = out.tismri.iBonemn3(1);
     out.tis.medBone = out.tismri.iBonemn3(2);
     out.tis.maxBone = out.tismri.iBonemn3(3);
@@ -275,6 +275,7 @@ function printMainTable(job,out,popts,Si,St)
     FNt{2} = {'%0.0f'     , '%0.0f'   , '%0.0f'   , '%0.1f mm', '%0.1f mm'};
     FNi{2} = {1           , 1         , 1         , 1         , 1         };
   else
+    %%
     if job.opts.bmethod==1, xr = 'v'; else, xr = 's'; end
     if job.opts.bmethod==1, bmf = 'classic'; else; bmf = 'tismri'; end
     FN{2}  = {'bone_med' , 'bonecortex' , 'bonemarrow' , 'bonethickness' , 'headthickness' , 'head'      };
@@ -283,6 +284,7 @@ function printMainTable(job,out,popts,Si,St)
     FNt{2} = {'%0.3f'    , '%0.3f'      , '%0.3f'      , '%0.3f'         , '%0.3f'         , '%0.3f'     };
     FNi{2} = {1          , 3            , 4            , 1               , 1               , 1           };
   end
+  %%
   for fnj = 1:2
     text(0.01,0.64 - (fnj-1)*0.12 - popts.table1offset,repmat(' ',1,1000 + 120),... 
       'BackgroundColor',[0.94 0.94 .94],'Parent',popts.ax,'FontSize',popts.fontsize*.6); 
@@ -321,7 +323,7 @@ function printMainTable(job,out,popts,Si,St)
             end
           end
         else
-          if out.spm8.isCTseg
+          if 0 %out.spm8.isCTseg
             if fni > 0 && fni<4
               set(segtext(fni,lkpi+1),'Color',popts.jetcol( max(1,min(100,round(0.07 * out.(FNf{fnj}{fni}).(FN{fnj}{fni})))),:));  
             end
@@ -399,7 +401,7 @@ function printHistogram(Ym,Yc,Ybonemarrow,job,out,popts)
 
     % add tissue peaks to the histogram
     lstyle = {':','-'};
-    if out.spm8.isCTseg && ~job.opts.normCT 
+    if 0 % out.spm8.isCTseg && ~job.opts.normCT 
 % #####################      
       for ci = 1:3
         pl = plot([out.tismri.Tth(ci) out.tismri.Tth(ci)],[0 max(ylim)]); 
@@ -516,7 +518,7 @@ function printVolumes(Po,Vo,Ym,Yc,Ybonemarrow,St,job,out,popts)
 
         % print figure with reduced fontsizes
         for fsi = 1:numel(figfs10), try figfs10(fsi).FontSize = figfs10(fsi).FontSize * .8; end; end 
-        saveas(popts.fig,Po.report,'png')
+        saveas(popts.fig,out.P.report,'png')
         for fsi = 1:numel(figfs10), try figfs10(fsi).FontSize = figfs10(fsi).FontSize / .8; end; end  
       catch
         cprintf('err','Cannot print report.')
@@ -574,7 +576,7 @@ function printVolumes(Po,Vo,Ym,Yc,Ybonemarrow,St,job,out,popts)
     spm_orthviews('redraw');
     orthviewlegend = get(findobj(get(get(st.vols{1}.ax{1}.ax,'parent'),'children'), ...
       'Type','Image','Tag',''),'parent');
-    if exist('orthviewlegend','var') 
+    if exist('orthviewlegend','var') && numel(orthviewlegend)>0 % no CTseg so far
       if numel(orthviewlegend)>1, orthviewlegend = orthviewlegend{1}; end
       if job.opts.bmethod > 0
         set(orthviewlegend(1),'YTick',[0 1 2 3 4], ...
@@ -593,7 +595,7 @@ function printVolumes(Po,Vo,Ym,Yc,Ybonemarrow,St,job,out,popts)
     if isfield(Po,'central') && ~isempty(St)
       for idi = 2:3 
         spm_orthviews('AddContext',idi);  
-        spm_ov_mesh('display',idi,Po.central );
+        spm_ov_mesh('display',idi,out.P.central );
         % apply affine transformation
         V = (out.spm8.Affine * ([st.vols{idi}.mesh.meshes(end).vertices,...
              ones(size(st.vols{idi}.mesh.meshes(end).vertices,1),1)])' )';
@@ -741,7 +743,7 @@ function printSurfaces(St,Si,job,out,popts)
   
     % final print with try to avoid crashing for unknown reasons
     try 
-      % does not work in headless mode without java
+      %% does not work in headless mode without java
       figfs10 = [ 
         findobj(popts.fig, 'FontSize', popts.fontsize + 1    ); 
         findobj(popts.fig, 'FontSize', popts.fontsize        );
@@ -752,7 +754,7 @@ function printSurfaces(St,Si,job,out,popts)
   
       % print with reduced fontsize
       for fsi = 1:numel(figfs10), try figfs10(fsi).FontSize = figfs10(fsi).FontSize * .75; end; end 
-      saveas(popts.fig,Po.report,'png')
+      saveas(popts.fig,out.P.report,'png')
       for fsi = 1:numel(figfs10), try figfs10(fsi).FontSize = figfs10(fsi).FontSize / .75; end; end 
     end
   end

@@ -93,9 +93,9 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
 
   %% get peak bone threshold
   % -use of nan for unwanted rois ?
-  Si.vertices = CBS.vertices; Si.faces = single(CBS.faces); St = Si; Stm = Si; Sth = Si; Smsk = Si; 
+  Si.vertices = CBS.vertices; Si.faces = single(CBS.faces); St = Si; Stm = Si; Sth = Si; 
   S.atlas     = cat_surf_fun('isocolors',Ya         , CBS, matlab_mm, 'nearest');
-  S.mask      = cat_surf_fun('isocolors',Ymsk       , CBS, matlab_mm, 'nearest') > 0;
+  S.mask      = cat_surf_fun('isocolors',Ymsk       , CBS, matlab_mm, 'nearest') == 1;
   S.thick     = cat_surf_fun('isocolors',Ybonethick , CBS, matlab_mm);
   S.hdthick   = cat_surf_fun('isocolors',Yheadthick , CBS, matlab_mm);
   St.facevertexcdata  = S.thick;
@@ -109,18 +109,10 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   end
   %}
 
-  Stm.facevertexcdata = S.thick .* cat_surf_fun('isocolors',max(.1,1 - (cat_vol_grad(Ya*1000)>0.1) * .9 ),CBS, matlab_mm); % thickess mit atlas borders
+  % thickess with atlas borders
+  Stm.facevertexcdata = S.thick .* cat_surf_fun('isocolors',max(.1,1 - (cat_vol_grad(Ya*1000)>0.1) * .9 ),CBS, matlab_mm);
   
-  if ~isempty( job.opts.Pmask{1} )
-    Smsk.facevertexcdata( cat_surf_fun('isocolors', single( Ymsk ) ,CBS, matlab_mm) > 1.5) = nan; 
-    Sth.facevertexcdata(  S.mask ) = nan; 
-    mskROIs = 0; % define unwanted ROIs
-    for mski = mskROIs, Si.facevertexcdata(S.atlas==mski) = nan; end
-  else
-    Smsk.facevertexcdata = ones(size(Si.facevertexcdata));
-  end
 
-  
   
   %% global + regional measures as column elements
   %  ----------------------------------------------------------------------
@@ -136,10 +128,10 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
       if ~isempty( job.opts.Pmask{1} ), sROI.boneatlas_name{1,rii} = 'full-masked'; 
       else,                             sROI.boneatlas_name{1,rii} = 'full-unmasked'; 
       end
-      sROI.bonemarrow(1,rii)         = cat_stat_nanmean(Si.facevertexcdata .* Smsk.facevertexcdata); 
-      sROI.bonecortex(1,rii)         = cat_stat_nanmean(cortex             .* Smsk.facevertexcdata); 
-      sROI.bonethickness(1,rii)      = cat_stat_nanmean(S.thick            .* Smsk.facevertexcdata); 
-      sROI.headthickness(1,rii)      = cat_stat_nanmean(S.hdthick          .* Smsk.facevertexcdata); 
+      sROI.bonemarrow(1,rii)         = cat_stat_nanmean(Si.facevertexcdata(S.mask)); 
+      sROI.bonecortex(1,rii)         = cat_stat_nanmean(cortex(S.mask)); 
+      sROI.bonethickness(1,rii)      = cat_stat_nanmean(S.thick(S.mask)); 
+      sROI.headthickness(1,rii)      = cat_stat_nanmean(S.hdthick(S.mask)); 
       rii = rii + 1;
     else
       if sum(S.atlas==ri)>0

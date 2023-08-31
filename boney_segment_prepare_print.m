@@ -46,7 +46,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
     'Tw'      'tis'     'weightingn'    1    's'  0   1
     'Tbg'     'tis'     'highBGn'       1    's'  0   1
     'Tfat'    'tis'     'headFatTypen'  1    's'  0   1
-    'Tbone'   'tis'     'headBoneTypen' 1    's'  0   1
+    'Tbone'   'tis'     'headBoneTypen' 1    's'  0   0
     'Tres'    'tis'     'res_RES'       1    'f'  0   1   
     'Tcnr'    'tis'     'seg8CNR'       1    'f'  0   1
     'Tbg'     'tis'     'background'    1    'f'  1   ex>1
@@ -105,7 +105,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
     fprintf('\nBone Preprocessing:\n');
     if job.opts.verb 
       verbosestr = {'No','Yes','Yes - Details'};
-      pmethodstr = {'previous','SPM','CAT'};
+      pmethodstr = {'previous','SPM','CAT','CTseg'};
       tmpstr     = {'Adult TPM','Children TPM'};
       bmethodstr = {'SPMmat8','Volume-based','Surface-based', ...
         'Volume-based (old version without refinement)','Volume-based (old version with refinement)'};
