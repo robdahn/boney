@@ -37,10 +37,30 @@ After the processing has finished, you can use the XML2CSV batch to extract the 
 You can select different predefined SPM and CAT segmentation routines with various predefined settings. 
 SPM's routine is faster but may fail in some cases, often because of the inital affine registration problems. 
 
-In addition, you can select between different advanced processing routines for the bone measures (e.g., SPMmat, volume, surface).  
-We would advise the use of the refined measure, which is robust to the exclusion of the parts within the diploë.
+In addition, you can select between different advanced processing routines for the bone measures (e.g., *SPMmat*, *volume*, *surface*).  
+SPMmat focuses on the tissue values estimated within the unified segmenation process and is therefore pretty fast (+5 seconds). 
+The *volume* option further refines the bone tissue (high bone marrow intensities were often miss-classified as head tissue) and estimates (regional) intensity and thickness of the bone class (+50 seconds). 
+The *surface* pipeline also create a central bone surface that is used to extract intensity and thickness values for (i) the bone cortex by mapping the *minimum* intensity along the surface normalss, and (ii) the bone marrow by using the weighted average intensity (+10 seconds).   
+(We would advise the use of the refined measure, which is robust to the exclusion of the parts within the diploë.)
+
 
 Furthermore, you can specify which output files to write, e.g., the short bone-report (as a JPG), or the processed NIFTI volumes or GIFTI surfaces that are also shown in the bone-report.
+
+![Image of the bone atlas and mask](images/KADA_regions_mask.png "Shown is the bone atlas and the bone mask.")
+
+
+## Results
+*RD: Show only the main measures for BMD and FAT linked with the processing routines* 
+The figure shows basic results of selected bone measures for selected UKB and brain parameters created by the evaluation scripts.
+The most relevant regional bone measures are (i) the occipital surface-based bone cortex *sROI_bonecortex3* (high, (ii) the occitital volume-based bone marrow * vROI_boenmarrow3*, and the *bone mineral density* (BMD) that show a high correlation to the UKB BMD measures. 
+In addition, the evaluation of the head tissue class support "fat" measures highly related to VAT, ASAT, fat percentage, BMI, and waist measurements of the UKB. 
+
+![Basic evaluation on UKB data](images/mt12_BoneyS_site8_n360.png "Shown are the result of selected bone measures on a small subsample of the UKB with 360 subjects.")
+
+![MRI bone measure](images/mt12_BoneyS_site8_n360_vROI_BMDH.png "MRI bone measure on a very small subsample of the UKB with 360 subjects.")
+
+![MRI fat measure](images/mt12_BoneyS_site8_n360_vhdt1.png "MRI fat measure on a very small subsample of the UKB with 360 subjects.")
+
 
 ## References
 You can find out more about the bone and skin-fold thickness measures in the paper ...
