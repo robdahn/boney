@@ -156,7 +156,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
     tis.seg8nv        = [40 30 20 1024 0 -1024];
     tis.seg8con       = nan; 
     tis.seg8conr      = nan; 
-    tis.seg8CNR       = nan; 
+    tis.seg8CNR       = min( seg8t.vr( seg8t.lkp(:)==2 | seg8t.lkp(:)==3  | seg8t.lkp(:)==6) ) * 10e7; 
   else
     tis.WMth          = tis.seg8o(2);
     tis.seg8n         = tis.seg8o  ./ tis.WMth; % normalized by WM

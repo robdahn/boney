@@ -1,5 +1,12 @@
 function Pout = boney_segment_cleanup(Pout,out,job,i)
 %boney_segment_cleanup. Update Pout structure and clean up files  
+% _________________________________________________________________________
+%
+% Robert Dahnke & Polona Kalc
+% Structural Brain Mapping Group (https://neuro-jena.github.io)
+% Departments of Neurology and Psychiatry
+% Jena University Hospital
+% _________________________________________________________________________
 
 
   % xml file and report
@@ -22,8 +29,8 @@ function Pout = boney_segment_cleanup(Pout,out,job,i)
 
   % boney volume files
   if job.output.writevol
-    Pout.rbone_affine{i} = out(i).P.bonemarrow_affine; 
-    Pout.rbone{i}        = out(i).P.bonemarrow;
+    Pout.rbone_affine{i} = out(i).P.bone_affine; 
+    Pout.rbone{i}        = out(i).P.bone;
   else
     % delete files
   end

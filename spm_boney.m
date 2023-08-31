@@ -1,5 +1,11 @@
 function spm_boney(expertgui)
-% Toolbox wrapper to call boney functions
+%spm_boney. Toolbox wrapper to call boney functions.
+%
+%  spm_boney(expertgui)
+% 
+%
+% Creation of a global variable "boned" for default settings. 
+% Setting of GUI level (0-default, 1-expert, 2-developer)
 % _________________________________________________________________________
 %
 % Robert Dahnke
@@ -9,7 +15,6 @@ function spm_boney(expertgui)
 % _________________________________________________________________________
 
 % TODO: 
-% * feature:  add soft skull-crossed-bones image in the progress window 
 % * feature:  add default parameter file? eg. to highligh changes from default?
 %   - not realy required - keep it simple
 
@@ -68,7 +73,7 @@ function spm_boney(expertgui)
   set(get(h,'Parent'),'Position',[0 0 1 1]);
   set(F,'Position',Fpos);
 
-  
+
   %% Progress Window figure
   Finter = spm_figure('GetWin','Interactive');
   spm_figure('clear',Finter); 
