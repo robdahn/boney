@@ -14,8 +14,8 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
 %   - default is [1 1 2 3 4 2]: 
 %     . in T1 the lower CSF peak is the right one whereas the other one is 
 %       PVE to GM or in the best case meninges?  
-%       > would need a seperate class?
-%     . the lower CSF threshold trend to overestimation in younger subjects - PVE?
+%       > would need a separate class?
+%     . the lower CSF threshold leads to overestimation in younger subjects - PVE?
 %       > the CSF value is less robust for normalization 
 %     . in mixed tissues, higher mg result often in higher vr that bias the mn  
 % _________________________________________________________________________
@@ -38,7 +38,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
     seg8t          = load(out.P.seg8); 
     if out.CTseg
       seg8t.dat.model.gmm = rmfield(seg8t.dat.model.gmm,{'T','Sig'});
-      % #### this is not fully working and the classe values are strange ...
+      % #### this is not fully working and the classes values are strange ...
       seg8t.lkp     = seg8t.sett.gmm.mg_ix;
       seg8t.mn      = seg8t.dat.model.gmm.m; 
       seg8t.mg      = seg8t.dat.model.gmm.gam'; 
@@ -99,20 +99,20 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
 
 
 
-  %% check for problems and skip in worst case
+  %% check for problems and skip in the worst case
   if max(seg8t.lkp) ~= 6 
-    cat_io_cprintf('err','ERROR: Only 6 class models are supported yet!\n');
+    cat_io_cprintf('err','ERROR: Only 6 class models are supported!\n');
     return
   end
   % #####################
-  % check number of Gaussian peak per class ? 
+  % check number of Gaussian peaks per class ? 
   
   
 
  
   % == evaluate SPM mat entries to name some basic images properties ==
   % SPM main tissue thresholds
-  tis.help.main       = ['The main "tis" structure inlcude SPM-based measures (seg8*,WMth), ' ...
+  tis.help.main       = ['The main "tis" structure inlcudes SPM-based measures (seg8*,WMth), ' ...
                          'image resolution (res_*) and major image class values (WM,GM,CSF,bone[cortex|marrow],head,background).'];
   tis.help.seg8o      = 'SPM seg8 main tissue intensity (mn of max mg in lkp)';
   tis.help.seg8ov     = 'SPM seg8 main tissue variance (vr of max mg in lkp)';
@@ -122,7 +122,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   tis.help.seg8conn   = 'mimimum brain tissue contrast in SPM seg8t normalized by the WM'; 
   tis.help.seg8CNR    = 'Noise estimate as minimum of the WM and CSF variance in percent (similar to BWP).';
   % ---
-  tis.help.WMth       = 'SPM WM tisse intensity.'; 
+  tis.help.WMth       = 'SPM WM tissue intensity.'; 
   tis.help.res_vx_vol = 'Image voxel resolution in mm.'; 
   tis.help.res_RES    = 'RMS voxel resolution.'; 
   
@@ -130,7 +130,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   tis.seg8o           = nan(1,6);
   tis.seg8ov          = nan(1,6);
   for ci = 1:max(seg8t.lkp) 
-    % The SPM Gaussian's seams to be unsortet and sorting based on the mean
+    % The SPM Gaussians seem to be unsorted and sorting based on the mean
     % value or the variance would be useful 
     sortvar = 'vr';
     [~,sorti] = sort( seg8t.(sortvar)(seg8t.lkp==ci) ); 
@@ -139,8 +139,8 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
     var = seg8t.vr( seg8t.lkp==ci ); tis.seg8vrs( seg8t.lkp==ci ) = var(sorti); 
     
     % How to average values ... well, when we are interested in changes of
-    % intensities in bone(marrow) and the propostion of fat then (weighted)  
-    % averaging should be fine (will depend on subject and protocol).
+    % intensities in bone(marrow) and the proportion of fat then (weighted)  
+    % averaging should be fine (will depend on a subject and protocol).
     % To only use the strongest value is less stable (eg. for the 2-class CSF)
     tis.seg8o(ci)     = mean(seg8t.mg(seg8t.lkp==ci)' .* seg8t.mn(seg8t.lkp==ci),2);
     tis.seg8ov(ci)    = mean(seg8t.mg(seg8t.lkp==ci)' .* shiftdim(seg8t.vr(seg8t.lkp==ci),4),2);
@@ -173,7 +173,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   
  
   % image weighting 
-  tis.help.weighting = 'Image weigthing based on SPM seg8t intensities (0=PDw; 1=T1w; 2=T2w; 3=MTw; 4=IRw, -1=CT).'; 
+  tis.help.weighting = 'Image weighting based on SPM seg8t intensities (0=PDw; 1=T1w; 2=T2w; 3=MTw; 4=IRw, -1=CT).'; 
   if out.CTseg
       tis.weighting  = -1;
       tis.weightingn = 'CT';
@@ -184,7 +184,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
     elseif tis.seg8n(3) > tis.seg8n(1)  &&  tis.seg8n(1) > tis.seg8n(2)      % T2: CSF > GM > WM
       tis.weighting  = 2;
       tis.weightingn = 'T2w';
-    elseif tis.seg8o(3) < 0  && is.seg8o(2) < 2                              % MT: negative CSF values and not to high WM values
+    elseif tis.seg8o(3) < 0  && is.seg8o(2) < 2                              % MT: negative CSF values and not too high WM values
       tis.weighting  = 3;
       tis.weightingn = 'MTw';
     elseif tis.seg8o(6) > tis.seg8o(2) && tis.seg8nv(6) < .3                 % high int - low var
@@ -199,19 +199,19 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
 
   % background types 
   tis.help.highBG = ['Intensity of the background based on the SPM seg8t intensities ' ...
-    '(0=low,classical MRI; 1=high int low var, eg. MP2Rage; 2=high int low var, eg. IR; 3=mid int high var, eg. MT)'];
+    '(0=low,classical MRI; 1=high int low var, e.g. MP2Rage; 2=high int low var, e.g. IR; 3=mid int high var, e.g. MT)'];
   if     tis.seg8o(6) > tis.seg8o(2) && tis.seg8nv(6) > .3 % high int - high var
     tis.highBG     = 1;
-    tis.highBGn    = 'high'; % intensity, high variance background (eg. uncorrected MP2Rage)';
+    tis.highBGn    = 'high'; % intensity, high variance background (e.g. uncorrected MP2Rage)';
   elseif tis.seg8o(6) > tis.seg8o(2) && tis.seg8nv(6) < .3 % high int - low var
     tis.highBG     = 2;
-    tis.highBGn    = 'high2'; % intensity, low variance background (eg. inverse recovery)';
+    tis.highBGn    = 'high2'; % intensity, low variance background (e.g. inverse recovery)';
   elseif tis.seg8o(6) < tis.seg8o(3) 
     tis.highBG     = 0;
-    tis.highBGn    = 'low'; % intensity, low variance background (eg. classical MRI)';
+    tis.highBGn    = 'low'; % intensity, low variance background (e.g. classical MRI)';
   else
     tis.highBG     = 3;
-    tis.highBGn    = 'mid'; % intensity, high variance background (eg. MT)';
+    tis.highBGn    = 'mid'; % intensity, high variance background (e.g. MT)';
     tis.weighting  = 3;
     tis.weightingn = 'MTw';
   end
@@ -228,7 +228,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
     tis.headFatTypen  = '-';
     tis.headBoneType  = 0; 
     tis.headBoneTypen = '-'; 
-    % bone and head values of CTseg are not realy useful :/ 
+    % bone and head values of CTseg are not really useful :/ 
   else
     if maxHead > 1.2
       tis.headFatType  = 2; 
@@ -261,14 +261,14 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   % defacing ?
   % deearing ?
   % >> affected area ? 
-  %    surface percentage betwee cutted (0-values) and uncutted / full 
+  %    surface percentage between cut (0-values) and uncut / full 
   %    background area
   % #######################################################
     
   
   % TIV estimate ? 
   % ############################
-  % evaluate Affine value? > maybe with some fix TPM TIV value?
+  % evaluate Affine value? > maybe with some fixed TPM TIV value?
   % evaluate log-likelihood?
 
 
@@ -276,9 +276,9 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   tis.help.WM         = 'averaged SPM WM intensity';  % refined ( max in T1w, otherwise min )
   tis.help.GM         = 'averaged SPM GM intensity';  % no refinement possible
   tis.help.CSF        = 'averaged SPM CSF intensity'; % refined ( min in T1w, otherwise max )  
-  tis.help.bonecortex = 'hard bone intensity, i.e. min( seg8.mn( seg8t.lkp==4) )';  
-  tis.help.bonemarrow = 'soft bone intensity, i.e. max( seg8.mn( seg8t.lkp==4) )'; 
-  tis.help.bonestruct = 'relation between hard and soft bone';
+  tis.help.bonecortex = 'cortical bone intensity, i.e. min( seg8.mn( seg8t.lkp==4) )';  
+  tis.help.bonemarrow = 'spongy bone intensity, i.e. max( seg8.mn( seg8t.lkp==4) )'; 
+  tis.help.bonestruct = 'relation between cortical and spongy bone';
   tis.help.bone       = 'average bone intensity, i.e. mn( seg8.mn( seg8t.lkp==4 ) )';
   tis.help.head       = 'average head intensity, i.e. mn( seg8.mn( seg8t.lkp==5 ) )';
   tis.help.background = 'averaged SPM background intensity';
