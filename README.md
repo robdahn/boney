@@ -52,6 +52,7 @@ Furthermore, you can specify which output files to write, e.g., the short bone-r
 ## Validation
 *RD: Show only the main measures for BMD and FAT linked with the processing routines*
 
+
 The figure shows the results for the selected bone measures estimated on a UKB subsample created by the evaluation scripts.
 The most relevant regional bone measures are (i) the occipital surface-based bone cortex estimate *sROI_bonecortex3*, (ii) the occipital volume-based bone marrow estimate * vROI_boenmarrow3*, and the *bone mineral density estimate* (BMD) that show a high correlation to the UKB BMD measures.
 
