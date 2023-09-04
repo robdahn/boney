@@ -6,7 +6,7 @@ If you find any bugs, please report them to <polona.kalc@med.uni-jena.de> or <ro
 
 ## Introduction 
 As Ingmar Bergman posited in The Seventh Seal: *'A skull is more interesting than a naked woman.'* Yet the neuroimaging community has continued to strip the skull and discard the relevant information hidden in the layers of the head tissues. 
-The increasing interest in the bone-brain crosstalk suggests the implication of the bone metabolism in mood, cognition, energy homeostasis, etc. ([Khrimian et al. 2017](10.1084/jem.20171320); [Nakamura, Imaoka, and Takeda 2021](https://doi.org/10.1080/00207454.2020.1770247) ; [Obri et al. 2018](10.1038/nrendo.2017.181); [Rousseaud et al. 2016](https://doi.org/10.1515/hmbci-2016-0030)). Furthermore, low bone mineral density (BMD)/osteoporosis has been associated to an increased risk of Alzheimer's disease ([Kostev, Hadji, and Jacob 2018](https://doi.org/10.3233/JAD-180569); [Zhang et al. 2022](https://doi.org/10.1016/j.jamda.2022.07.012); [Xiao et al. 2023](10.1212/WNL.0000000000207220)).
+The increasing interest in the bone-brain crosstalk suggests the implication of bone metabolism in mood, cognition, energy homeostasis, etc. ([Khrimian et al. 2017](10.1084/jem.20171320); [Nakamura, Imaoka, and Takeda 2021](https://doi.org/10.1080/00207454.2020.1770247) ; [Obri et al. 2018](10.1038/nrendo.2017.181); [Rousseaud et al. 2016](https://doi.org/10.1515/hmbci-2016-0030)). Furthermore, low bone mineral density (BMD)/osteoporosis has been associated to an increased risk of Alzheimer's disease ([Kostev, Hadji, and Jacob 2018](https://doi.org/10.3233/JAD-180569); [Zhang et al. 2022](https://doi.org/10.1016/j.jamda.2022.07.012); [Xiao et al. 2023](10.1212/WNL.0000000000207220)).
 However, the bone mineral density measures are typically not available in open-access brain-imaging databases, such as IXI, ADNI, AIBL, OASIS, etc. We therefore decided to extract a proxy measure for head BMD from the skull. 
 
 
@@ -39,8 +39,8 @@ SPM's routine is faster but may fail in some cases, often because of the inital 
 
 In addition, you can select between different advanced processing routines for the bone measures (e.g., *SPMmat*, *volume*, *surface*).  
 SPMmat focuses on the tissue values estimated within the unified segmenation process and is therefore pretty fast (+5 seconds). 
-The *volume* option further refines the bone tissue (high bone marrow intensities were often miss-classified as head tissue) and estimates (regional) intensity and thickness of the bone class (+50 seconds). 
-The *surface* pipeline also create a central bone surface that is used to extract intensity and thickness values for (i) the bone cortex by mapping the *minimum* intensity along the surface normalss, and (ii) the bone marrow by using the weighted average intensity (+10 seconds).   
+The *volume* option further refines the bone tissue segment (high bone marrow intensities within the diploë were often misclassified as head tissue) and estimates (regional) intensity and thickness of the bone class (+50 seconds). 
+The *surface* pipeline creates a central bone surface that is used to extract intensity- and thickness values for (i) the bone cortex by mapping the *minimum* intensity along the surface normals, and (ii) the bone marrow by using the weighted average intensity (+10 seconds).   
 (We would advise the use of the refined measure, which is robust to the exclusion of the parts within the diploë.)
 
 
@@ -51,15 +51,15 @@ Furthermore, you can specify which output files to write, e.g., the short bone-r
 
 ## Results
 *RD: Show only the main measures for BMD and FAT linked with the processing routines* 
-The figure shows basic results of selected bone measures for selected UKB and brain parameters created by the evaluation scripts.
-The most relevant regional bone measures are (i) the occipital surface-based bone cortex *sROI_bonecortex3* (high, (ii) the occitital volume-based bone marrow * vROI_boenmarrow3*, and the *bone mineral density* (BMD) that show a high correlation to the UKB BMD measures. 
-In addition, the evaluation of the head tissue class support "fat" measures highly related to VAT, ASAT, fat percentage, BMI, and waist measurements of the UKB. 
+The figure shows the basic results for the selected bone measures estimated on a UKB subsample created by the evaluation scripts.
+The most relevant regional bone measures are (i) the occipital surface-based bone cortex estimate *sROI_bonecortex3* (high, (ii) the occipital volume-based bone marrow estimate * vROI_boenmarrow3*, and the *bone mineral density estimate* (BMD) that show a high correlation to the UKB BMD measures. 
+In addition, the estimated head fat measure is supported by high correlations with visceral adipose tissue (VAT), abdominal subcutaneous adipose tissue (ASAT), body fat percentage, BMI, and waist measurements of the UKB. 
 
 ![Basic evaluation on UKB data](images/mt12_BoneyS_site8_n360.png "Shown are the result of selected bone measures on a small subsample of the UKB with 360 subjects.")
 
-![MRI bone measure](images/mt12_BoneyS_site8_n360_vROI_BMDH.png "MRI bone measure on a very small subsample of the UKB with 360 subjects.")
+![MRI bone measure](images/mt12_BoneyS_site8_n360_vROI_BMDH.png "MRI bone measure on a small subsample of the UKB with 360 subjects.")
 
-![MRI fat measure](images/mt12_BoneyS_site8_n360_vhdt1.png "MRI fat measure on a very small subsample of the UKB with 360 subjects.")
+![MRI fat measure](images/mt12_BoneyS_site8_n360_vhdt1.png "MRI fat measure on a small subsample of the UKB with 360 subjects.")
 
 
 ## References
