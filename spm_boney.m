@@ -15,7 +15,7 @@ function spm_boney(expertgui)
 % _________________________________________________________________________
 
 % TODO: 
-% * feature:  add default parameter file? eg. to highligh changes from default?
+% * feature:  add default parameter file? e.g. to highligh changes from default?
 %   - not realy required - keep it simple
 
 %#ok<*NASGU>
@@ -64,7 +64,7 @@ function spm_boney(expertgui)
   mode = {' ',' Expert mode',' Developer mode'}; 
   SPMid = spm('FnBanner',mfilename,rev);
   spm('FnUIsetup',['BONEY' mode{boned.expertgui + 1}]); 
-  % just add some image for the SPM figure that is not suporting the html 
+  % just add some image for the SPM figure that is not supporting the html 
   % help in new Matlab version - assure the figure size!
   F = spm_figure('GetWin'); 
   spm_figure('clear',F); 
@@ -153,7 +153,7 @@ function spm_boney(expertgui)
   % in Ocatve the menu is not working  
     spm_jobman('interactive','','spm.tools.boney.segment');
     fprintf(...
-      ['The GUI may not working under Octave yet. To create a result table call: \n\n '...
+      ['The GUI may not be working under Octave yet. To create a result table call: \n\n '...
        '   spm_jobman(''interactive'','''',''spm.tools.boney.xml2csv''); \n\n']); 
   end
 
