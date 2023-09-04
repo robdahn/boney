@@ -19,7 +19,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
 %   .image       .. main image header 
 %  tis           .. our tissue intensity structure for intensity normalization 
 %   .res_vx_vol  .. voxel properties
-%   .seg8o       .. tissue intensitie values
+%   .seg8o       .. tissue intensity values
 %  cls           .. used classes (fast approch only load class 4; default=1:5)
 %  bd            .. brain distance (need to limit the extraction of values  
 %                   in general; default=25) 
@@ -28,7 +28,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
 %  Yo            .. original image
 %  Yc            .. segment class images (cell)
 %  Ya            .. atlas image
-%  Ymsk          .. head mask (to avoid face bones in global estimation)
+%  Ymsk          .. head mask (to avoid facial bones in global estimation)
 %  Ym            .. intensity normalized image
 %  Affine        .. (reprocessed) affine transformation to MNI
 %  YaROIname     .. names of ROIs of the atlas
@@ -45,8 +45,8 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
 
 
 % TODO: 
-%  (1) tissue-base intensity scaling (currently only BG-WM based)  
-%  (2) use/eval affreg? (current affreg focus on all tissues, ie. its ok) 
+%  (1) tissue-based intensity scaling (currently only BG-WM based)  
+%  (2) use/eval affreg? (current affreg focus on all tissues, i.e. it's ok) 
 
  
   if ~exist('cls'   ,'var'), cls    = 1:5; end 
@@ -145,7 +145,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
       Affine_com = seg8t.Affine; 
     end
   
-    % prepare affine parameter 
+    % prepare affine parameters 
     aflags = struct('sep',12, ... max(6,max(sqrt(sum(VG(1).mat(1:3,1:3).^2)))), ...
       'regtype','subj','WG',[],'WF',[],'globnorm',1); % job.job.opts.opts.affreg
     warning off
@@ -180,13 +180,13 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
 
 
 
-  % load atlas in individual space by appling the affine transformation
+  % load atlas in individual space by applying the affine transformation
   if ~isempty(job.opts.Patlas{1})
     Va = spm_vol(job.opts.Patlas{1});
     Ya = zeros(size(Ym),'single'); 
     for zi = 1:size(Ym,3)
       Ya(:,:,zi) = single(spm_slice_vol( Va , ...
-        (Va.mat \ Affine * Vo.mat) * spm_matrix([0 0 zi]), ... % apply affine tranformation
+        (Va.mat \ Affine * Vo.mat) * spm_matrix([0 0 zi]), ... % apply affine transformation
         [size(Ym,1), size(Ym,2)],[0,NaN])); % nearest neighbor interpolation 
     end
     clear Va;
@@ -203,18 +203,18 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
     YaROIname = 0; 
   end
   
-  % load mask in individual space by appling the affine transformation
+  % load mask in individual space by applying the affine transformation
   if ~isempty(job.opts.Pmask{1})
     Vmsk = spm_vol(job.opts.Pmask{1});
     Ymsk = zeros(size(Ym),'single'); 
     for zi = 1:size(Ym,3)
       Ymsk(:,:,zi) = single(spm_slice_vol( Vmsk , ...
-        (Vmsk.mat \ Affine * Vo.mat) * spm_matrix([0 0 zi]), ... % apply affine tranformation
+        (Vmsk.mat \ Affine * Vo.mat) * spm_matrix([0 0 zi]), ... % apply affine transformation
         [size(Ym,1),size(Ym,2)],[0,NaN])); % nearest neighbor interpolation 
     end
     clear Vmsk; 
     [~,YD] = cat_vbdist(single(Ymsk>0),smooth3(Yc{6})<.5); Ymsk = Ymsk(YD);
-   % Ymsk = Ymsk>1.5; % this mask is limited ... ################## preapare masks ones for faster processing ! #############
+   % Ymsk = Ymsk>1.5; % this mask is limited ... ################## prepare masks ones for faster processing ! #############
   else
     Ymsk = false(size(Ym));
   end
