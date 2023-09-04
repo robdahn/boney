@@ -1,8 +1,8 @@
 function out = boney_segment_simpleBone(seg8t,Ym,Yp)
-%simpleBone. First simple version that worked surprisingly good.
-% There is a basic correction of the SPM bone segmentation to avoid miss-
-% classification of high-intensity bone marrow as head tissue. However, 
-% there is no further masking of critical regions (e.g. face bones) or 
+%simpleBone. First simple version that worked surprisingly well.
+% There is a basic correction of the SPM bone segmentation to avoid 
+% misclassification of high-intensity bone marrow as head tissue. However, 
+% there is no further masking of critical regions (e.g. facial bones) or 
 % evaluation of different regions.
 % 
 %  out = boney_segment_simpleBone(seg8t,Ym,Yp)
@@ -38,8 +38,8 @@ function out = boney_segment_simpleBone(seg8t,Ym,Yp)
 
 
   % create bone mask
-  % As the SPM segmentation often miss-align high values of the bone marrow  
-  % to the head, a correction by morphological options is required. 
+  % As the SPM segmentation often misaligns high values of the bone marrow  
+  % to the head, a correction by morphological operations is required. 
   if max(seg8t.lkp) > 6
     Ymsk = smooth3(Yp{4} + Yp{5})>0.5;          % remove small noise
   else
