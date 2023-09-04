@@ -18,7 +18,7 @@ function [Pout,out] = boney_segment(job)
 %    .affreg    .. do affine registration based (default=1) 
 %    .reduce    .. voxel binning for surface creation (higher values create 
 %                 surfaces with less vertices, i.e., details)
-%                 - reducion factor vs. vertices in humans:   
+%                 - reduction factor vs. vertices in humans:   
 %                     1~120k, 2~30k, 3~13k, 4~7k, 6~3k, 8~2k
 %                 - robust results for 1-4
 %    .mask      .. mask problematic regions (default=1)
@@ -28,7 +28,7 @@ function [Pout,out] = boney_segment(job)
 %    .writesurf .. write surface data (default=0)
 %    
 %  out          .. output structure
-%   .raw        .. original results (e.g. min,max,median,std, ...) for the 
+%   .raw        .. original results (e.g., min, max, median, std ...) for the 
 %                  different regions etc. 
 %   .spm8       .. SPM data from the Unified Segmentation  
 %   .tis        .. global estimated 
@@ -71,7 +71,7 @@ function [Pout,out] = boney_segment(job)
   end
 
 
-  % == defaults paraemter ==
+  % == default parameters ==
   def.files             = {};       % SPM m-files
   def.opts.verb         = 2;        % display progress (0 - be silent, 1 - one line per subject, 2 - details)
   def.opts.pmethod      = 1;        % preprocessing method: 1-SPM12, 2-CAT12 [, 3-CTseg] 
@@ -138,11 +138,11 @@ end
   %   >> warning + report + suggestion (affine, resolution)
   %
   % * add real fat measures 
-  %   - bone vs. head thickness? no you will need fat vs. skin/musles
+  %   - bone vs. head thickness? no, you will need fat vs. skin/muscles
   %   - required for better scaling at some point ...
   %
   % * use intnormed image?
-  %   - our intensity values are going over different classes - intra vs. intersite variability 
+  %   - our intensity values are going over different classes - intra- vs. intersite variability 
   %   - use CSF-WM contrast (but what about HH?) 
   %
   % * use fat segmentation to avoid critical regions
@@ -150,7 +150,7 @@ end
   % * test SPM progress bar
   % * add rerun parameter
   %
-  % * test Brutforce segmentation 1 and 2  
+  % * test Brudfors segmentation 1 and 2  
   % * update Yc map (at least print this one) ... diff muscles/bone?
   % * Ym-scaling in MT incrorrect
   % * colorbar vol from reportfig !!!!!!!!!!
@@ -161,7 +161,7 @@ end
   % * list of used CAT functions ?
   % 
   % * further postprocessing in case of children (use children TPM as 
-  %   indicator) to correct the head-scull missalignment
+  %   indicator) to correct the head-scull misalignment
   %
   %  * bone / bone marrow TPM concept 
   %    > this was not really working and it is probably better to move on
@@ -175,7 +175,7 @@ end
   %  * handle defaced areas 
   %    > detect defacing "boney_segment_loadMRI"
   %  * catch skull-stripping case (skull-stripping / deface defintions) 
-  %    > if the head class contains to much background like values the TPM 
+  %    > if the head class contains too much background like values the TPM 
   %      is not fitting > could be used for detection and maybe correction
   %      (but probably more detection and suggestion of other TPM)
   %      - should be tried in "boney_segment_get_segmat"
@@ -225,7 +225,7 @@ end
   %
   % CASES: ###########################################
   % - superfast
-  %   - only mat Werte 
+  %   - only mat values 
   %   - no img Report
   % - fast global
   %   - fast bone (median intensity, lowres thickness in limited range, kmeans2)
@@ -242,7 +242,7 @@ end
 
   % == create table elements for the in-line report == 
   %  - just give some short overview about the processing request and parameters 
-  %  - Feature (visual):  one line progress >> first name than progress + processing dots/stars ... 
+  %  - Feature (visual):  one line progress >> first name, then progress + processing dots/stars ... 
   %  - Feature (expert):  print additional parameters
   boney_segment_prepare_print(P,job);
   stime3 = clock; i = 1; %#ok<NASGU> 
@@ -272,9 +272,9 @@ end
 
   
       % == major branch for bone method == 
-      %  0 only SPM values (ie. super fast) 
+      %  0 only SPM values (i.e., super fast) 
       %  1 use MRI 
-      %  2 use MRI + create surfaces (ie. bit slower but much cooler although it does not support SBM yet) 
+      %  2 use MRI + create surfaces (i.e., a bit slower but much cooler although it does not support SBM yet) 
       if job.opts.bmethod
         
         
@@ -317,7 +317,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
       
   
         % == get bone measures == 
-        %  - get the different bone maps Y* and the voxume-based regonal values vROI: 
+        %  - get different bone maps Y* and the volume-based regional values vROI: 
         %      Y*   .. bone/head maps for surface mapping 
         %      vROI .. extracted global/regional bone/head values 
         stime = cat_io_cmd('  Extract bone measures','g5','',job.opts.verb>1,stime);
@@ -336,13 +336,13 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         end
 
   
-        % == surface-bases processing ==
-        %  - this function create the bone surface with different measures
+        % == surface-based processing ==
+        %  - this function creates the bone surface with different measures
         %    (two surface S* are used for the report) and the surface-based
         %    regional values sROI:
         %      Si/Stm .. bone-surface with bone-intensity/bone-thickness    
         %      sROI   .. extracted global/regional bone/head surface values
-        %  - although the surfaces can be saved it does not surport surface
+        %  - although the surfaces can be saved it does not suport surface
         %    registration now!
         if job.opts.bmethod>1
           stime = cat_io_cmd('  Extract bone surfaces','g5','',job.opts.verb>1,stime); 
@@ -353,9 +353,9 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
 
       else
         % == fast SPM mat-based pipeline ==
-        %  - fast version that only look for (and export) the bone tissue 
-        %    values and create some report (Yo==Ym?)
-        %  - no other tissues (e.g. GM etc.) are loaded and processed !
+        %  - fast version that looks only for (and exports) the bone tissue 
+        %    values and creates some report (Yo==Ym?)
+        %  - no other tissues (e.g. GM etc.) are loaded and processed!
         [Vo, Ym, Yc, Ybonemarrow, tismri, Si, Stm, Affine] = ...
           boney_segment_fst(P{i}, out(i).P.cls{4}, job, seg8t, tis, vx_vol);
       end
@@ -364,7 +364,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
      
 
       % == create output structure
-% ############## can some these fields be removed before?      
+% ############## can some of these fields be removed before?      
       if isfield(seg8t.image,'private'), seg8t.image = rmfield(seg8t.image,'private'); end
       if isfield(seg8t,'tpm') % SPM but not CAT
         if isfield(seg8t.tpm,  'private'), seg8t.tpm   = rmfield(seg8t.tpm  ,'private'); end
@@ -409,7 +409,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
       
       
     else
-    % == load prevoius result, reprocess in case of error == 
+    % == load previous result, reprocess in case of error == 
       try
         outi     = cat_io_xml(out(i).P.xml);
         rerunstr = 'loaded';
