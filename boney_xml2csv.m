@@ -23,7 +23,7 @@ function varagout = boney_xml2csv(job)
   job.dimlim = 10;
 
 
-  % we maybe need some predefined structures for better named regions etc.  
+  % maybe we need some predefined structures for better named regions etc.  
   job.fieldnames = { ...
     ... filename
     'P.org';
