@@ -25,7 +25,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
 
 % TODO: 
 % * final update of table entries and variable names
-% * add further parameter in overview
+% * add further parameters in overview
 % * T1 values 
 %   + (brain values - expert/developer)
 %   + bone values
@@ -34,8 +34,8 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
 %          ([v/s]BC , ~BM , ~BMN , vBT , v
 
   % Cell structure to define the table header fieldnames and the datatype
-  % of the variable and if a seperator (|) should be used. 
-% ############# RD202308: We have update the entries and naminges with the finally selected most relevant measures.   
+  % of the variable and if a separator (|) should be used. 
+% ############# RD202308: We have updated the entries and namings with the finally selected most relevant measures.   
   
   global boned %#ok<GVMIS> 
   ex  = boned.expertgui>0;  % show expert values
@@ -71,7 +71,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
     };
   MA( [MA{:,7}]<1 , : ) = [];
 
-  % Creat a string that can be used with the sprintf function to format the
+  % Create a string that can be used with the sprintf function to format 
   % different table variables in a nice way.
   Cheader = {'scan'};
   Theader = sprintf(sprintf('%%%ds:',job.opts.snspace(1)-1),'scan');
