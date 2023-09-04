@@ -1,18 +1,18 @@
 function [Yc,Ye,Ya,clscor] = boney_segment_refineSPM(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri)
 % == REFINE SPM DATA ==
 % * Create meninges class? 
-%   - This is not realy working cause the intensity are changing too much.
+%   - This is not realy working cause the intensities are changing too much.
 %     Hence, it is better to evaluate the whole mid structure. 
-%   - Whould thresholding by thickness work? 
-%     Expected but it is better to use the thickness as correction factor.
-% * What is about blood vessels?
-%   - Local filtering ouf outliers might help. 
+%   - Would thresholding by thickness work? 
+%     Expected, but it is better to use the thickness as correction factor.
+% * What about the blood vessels?
+%   - Local filtering of outliers might help. 
 %     Hence, we use a median filter of bone volume.
 % * Split-up skull class by bone and bone marrow?
-%   - This was not really working as the conrast changes to much over aging
-%     but not robust enough for both structures in various protocols, with 
-%     shift artifacts of i.e. fat. 
-% * Analyse head by mussles and fat (and skin or other things?)
+%   - This was not really working as the contrast changes too much over aging
+%     and is not robust enough for both structures in various protocols, with 
+%     shift artifacts of, e.g., fat. 
+% * Analyse head by muscles and fat (and skin or other things?)
 %   - Not yet.
 % * New affine registration for bone only?
 %   - should be similar in adults?
@@ -22,9 +22,9 @@ function [Yc,Ye,Ya,clscor] = boney_segment_refineSPM(Yo,Ym,Yc,Ya,Ybraindist0,tis
 % Test for errors in SPM segmentation and suggest strategies.  
 % * E.g. when the cls4 is also in the real background 
 % Strategies: 
-% * run SPM with higher seperation (sep)
+% * run SPM with higher separation (sep)
 %
-% * create warning in case of to small BB or strong or stange defacing? 
+% * create warning in case of too small BB or strong or strange defacing? 
 
 % #######################
 % * get FAT peak from SPM to quantify if fat suppression was used
@@ -36,7 +36,7 @@ Yco    = Yc;
 vx_vol = tis.res_vx_vol; 
 vxmm3  = prod(vx_vol) * 1000; 
 Ybraindist0s = cat_vol_smooth3X(Ybraindist0,6);  
-clscor.help = 'Boney refinement of SPM tissue classes described by the tranfered tissue volume transfer between classes.';
+clscor.help = 'Boney refinement of SPM tissue classes described by the transferred tissue volume transfer between classes.';
 
   %%
   Yc = Yco; 
@@ -56,16 +56,16 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the tranfered
   Yc{5}  = Yc{5} + Yc6 .* ~(Yo<=tismri.Tth(3) & (Ybraindist0s<10)); 
   Yc{4}  = Yc{4} + Yc6 .*  (Yo<=tismri.Tth(3) & (Ybraindist0s<10));
   % head >> background 
-  % In children the head/bone class is to large and needs correction. 
+  % In children the head/bone class is too large and needs correction. 
   if 1 % seg8t.BGtype == ... % low intensity background
     Yc6a = Yc{5} .* smooth3(cat_vol_morph( ((Yc{6} + Yc{5})>.5 & ~Ydeface & Yo<tismri.Tth(3)), 'lo'));
   else
-    % noisy background of MP2RAGE/MT sequences need some other (gradient-based) defintion 
+    % noisy background of MP2RAGE/MT sequences need some other (gradient-based) definition 
   end
   clscor.HD2BN = sum(Yc6a(:)) / vxmm3  / tismri.TIV; 
   Yc{5}  = Yc{5} - Yc6a;
   Yc{6}  = Yc{6} + Yc6a; 
-  % final background closeing 
+  % final background closing 
   Yc6    = cat_vol_morph(cat_vol_morph(Yc{6}<.5,'lc')<.5,'e'); 
   for ci = 1:5, Ycn = Yc{ci} .* Yc6; Yc{6} = Yc{6} + Ycn; Yc{ci} = Yc{ci} - Ycn; end
 
@@ -83,7 +83,7 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the tranfered
     cn = 0; for ci = [1:3,5:6], Ycn = Yc{ci} .* ~Ybone; cn = cn + sum(Ycn(:)); Yc{4} = Yc{4} + (Yc{ci} - Ycn); Yc{ci} = Ycn; end
     clscor.HD2BN = cn / vxmm3 / tismri.TIV; 
    
-    %% get the venes
+    %% get the veins
     Yhead  = min(1,single(Yc{5} + Yc{6} + 0.1 * max(0,Ybraindist0s-15))); % no smoothing here!
     Yhead2 = smooth3(cat_vol_morph(cat_vol_morph(smooth3(Yhead)>.7,'lo',4),'d')) .* Yhead .* (Ybraindist0s>0);
     Yhead  = 1 - (Yhead - Yhead2); 
@@ -98,8 +98,8 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the tranfered
   %% brain > bone
   Ybrain = single(Yc{1} + Yc{2} + Yc{3}); 
   Ybrain = (cat_vol_morph( Ybrain > .5,'ldo',3)); % & (Ybraindist0>10)) | (Ybrain & (Ybraindist0<10));           % remove skull
-  Ybrain = smooth3(cat_vol_morph( Ybrain > 0.5,'dc',3));  % this closing include meninges!
-  Ybrain = max( Ybrain , cat_vol_smooth3X(Ybrain,2)>.6); % remove vene
+  Ybrain = smooth3(cat_vol_morph( Ybrain > 0.5,'dc',3));  % this closing includes meninges!
+  Ybrain = max( Ybrain , cat_vol_smooth3X(Ybrain,2)>.6); % remove vein
   cn = 0; for ci = 1:3, Ycn = Yc{ci} .* Ybrain; cn = cn + sum(Ycn(:)); Yc{4} = Yc{4} + (Yc{ci} - Ycn); Yc{ci} = Ycn; end
   clscor.BR2BN = cn / vxmm3 / tismri.TIV; 
   
@@ -109,8 +109,8 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the tranfered
   Yc{5}  = Yc{5} + Yc{4} .* Yc4; 
   Yc{4}  = Yc{4} - Yc{4} .* Yc4; 
 
-% These correction are not enough in children with inoptimal TPM overlay (eg the NIH templates). 
-% In the head worst-case (but good brain case) the bone may include the head fully. 
+% These corrections are not enough in children with inoptimal TPM overlay (e.g. the NIH templates). 
+% In the head worst-case (but good brain case) the bone may fully include the head. 
 % Separation maybe by region-growing of (high) head and (low) bone regions. 
 % 
 
@@ -118,8 +118,8 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the tranfered
   %{
   Ybrain = single(Yc{1} + Yc{2} + Yc{3}); 
   Ybrain = (cat_vol_morph( Ybrain > .5,'lo',2) & (Ybraindist0>10)) | (Ybrain & (Ybraindist0<10));           % remove skull
-  Ybrain = smooth3(cat_vol_morph( Ybrain > 0.5,'c',3));  % this closing include meninges!
-  Ybrain = max( Ybrain , cat_vol_smooth3X(Ybrain,2)>.6); % remove vene
+  Ybrain = smooth3(cat_vol_morph( Ybrain > 0.5,'c',3));  % this closing includes meninges!
+  Ybrain = max( Ybrain , cat_vol_smooth3X(Ybrain,2)>.6); % remove vein
   for ci = 1:3, Ycn = Yc{ci} .* Ybrain; Yc{4} = Yc{4} + (Yc{ci} - Ycn); Yc{ci} = Ycn; end
   
 
@@ -148,7 +148,7 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the tranfered
       Yn2 = cat_vol_localstat(single(Ym),(Yc{4}+Yc{3})>.5 & ~cat_vol_morph(Yc{1}>.5,'d'),2,4);
       Ym .* (Yc{4} + Yc{3}),Yn*4 .* Yn2*4 .* (Yc{4}+Yc{3}) .* Ym .* 3; 
       Ym .* (1- smooth3(Yn*4 .* Yn2*4 .* (Yc{4}+Yc{3}).*Ym * 3))
-      Ym .* (1- smooth3(Yn*4 .* Yn2*4 .* (Yc{4}+Yc{3}).*Ym * 3)) % ... this is quite nice to remove mengs and BVs (but also affects the GM/WM boudnary !
+      Ym .* (1- smooth3(Yn*4 .* Yn2*4 .* (Yc{4}+Yc{3}).*Ym * 3)) % ... this is quite nice to remove mengs and BVs (but also affects the GM/WM boundary !
   end
 
 
@@ -169,8 +169,8 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the tranfered
   end
 
   % ########
-  % Problem is to get all bone marrow also the missaligned things that are
-  % now part of the head or the brain (aligned as menignes like thing to
+  % The problem is to get all of the bone marrow, also the misaligned things that are
+  % now part of the head or the brain (aligned as meninges-like thing to
   % CSF/GM/WM). 
   %% magic operation that is now working
   test = 0;
