@@ -1,6 +1,6 @@
 function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, fast, job, seg8t, tis) 
 %evalSPMseg. Evaluation of the SPM segmentation. 
-% This function extract tissue intensities by the segmentation Yc from the
+% This function extracts tissue intensities by the segmentation Yc from the
 % intensity scaled image Ym. 
 %
 % [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk, ...
@@ -9,7 +9,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
 %  Yo           .. original image
 %  Ym           .. intensity normalized image
 %  Yc           .. segment class images (cell)
-%  Ymsk         .. head mask (to avoid face bones in global estimation)
+%  Ymsk         .. head mask (to avoid facial bones in global estimation)
 %  vx_vol       .. voxel-size
 %  fast         .. use further tissue specific refinement or just extract  
 %                  the median (default=0)
@@ -22,7 +22,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
 %   .seg8n      .. intensity peaks in Ym 
 %
 %  tismri       .. structure with MRI based measures
-%  Ybraindist0  .. mask to limite the distance to the brain
+%  Ybraindist0  .. mask to limit the distance to the brain
 % _________________________________________________________________________
 %
 % Robert Dahnke & Polona Kalc
@@ -36,7 +36,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
 
   % == evaluate SPM segmentation ==
   % - estimate a brain distance map to further evaluate head/bone/background classes 
-  Ybrain         = Yc{1} + Yc{2} + Yc{3}.^2; % underweigt low CSF values 
+  Ybrain         = Yc{1} + Yc{2} + Yc{3}.^2; % underweight low CSF values 
   [Ybrainr,resR] = cat_vol_resize(Ybrain ,'reduceV' ,vx_vol,3,32,'meanm');  
   Ybraindist0r   = cat_vbdist( single( Ybrainr>.5 ) , true(size(Ybrainr)), resR.vx_volr); 
   Ybraindist0    = cat_vol_resize(Ybraindist0r ,'dereduceV' ,resR);         
@@ -55,7 +55,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
   end
 % ################### 
 % early correction of fatal errors that are easy to correct for ?
-% >> no this is refined segmentation 
+% >> no, this is refined segmentation 
 % ###################
 
 % ###################
@@ -113,7 +113,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
     tismri.vol(ci)  = cat_stat_nansum(Yc{ci}(:)>0.5) .* prod(vx_vol) / 1000; % tissue volume 
     tismri.volr(ci) = tismri.vol(ci) ./ tismri.TIV;
   
-    % test if any class has more low probability values as high
+    % test if any class has more low probability values than high
     tismri.clsQC(ci) = sum(Yc{ci}(:)>.5) ./ sum(Yc{ci}(:)>eps & Yc{ci}(:)<.5 & Ybraindist0(:)<30); 
     if tismri.clsQC(ci)<.5
       cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
@@ -148,7 +148,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
         tismri.Tth(ci)    = tismri.int.CSF;
         clear Yw;
       case 4
-        % ################### need refinement depending on number ###########
+        % ################### needs refinement depending on number ###########
         if seg8t.isCTseg 
           tismri.int.bone = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),2); 
           tismri.Tth(ci)  = mean(tismri.int.bone);
@@ -158,7 +158,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
         end
        
       case 5
-        % ################### need refinement depending on number ###########
+        % ################### needs refinement depending on number ###########
         tismri.int.head   = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
         tismri.Tth(ci)    = tismri.int.head(3);
       otherwise
