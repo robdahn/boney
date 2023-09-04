@@ -20,7 +20,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
 %  tis           .. our tissue intensity structure for intensity normalization 
 %   .res_vx_vol  .. voxel properties
 %   .seg8o       .. tissue intensity values
-%  cls           .. used classes (fast approch only load class 4; default=1:5)
+%  cls           .. used classes (fast approach only load class 4; default=1:5)
 %  bd            .. brain distance (need to limit the extraction of values  
 %                   in general; default=25) 
 %
