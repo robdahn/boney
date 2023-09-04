@@ -8,10 +8,10 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
 %   - add tissue intensities
 %   - add histograms for tissues
 %   - modify colorbar position and labeling > CAT
-%   - use fat/musle colors (yellow, pink)  
+%   - use fat/muscle colors (yellow, pink)  
 %   - use green/cyan for bone?
 %   - affine registration surf problem
-%   - use final segmenation for overlay but mark outliers 
+%   - use final segmentation for overlay but mark outliers 
 %   - Opimize report line >> table like similar to QC with vols, thick & intensities 
 
   %%
@@ -29,14 +29,14 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
     Ybonemarrow  = Ym;
 
   else
-  % MRI iamges
+  % MRI images
     if 0
       Yheadbone  = cat_vol_morph(cat_vol_morph( smooth3(Yc{4} + Yc{5} + Yc{6}) > 0.5,'c',3),'e');     % create 
       Yheadbone  = cat_vol_smooth3X(Yheadbone,4)>.5;
       Ybrain     = single(Yc{1} + Yc{2} + Yc{3} - Yheadbone);                                 % SPM brain 
       Ybrainc    = (Yc{1} + Yc{2} + Yc{3}) .* (Ybrain<.5 & Yheadbone); 
       Yc{4}      = Yc{4} + Ybrainc; 
-      Ybrain     = max( Ybrain , cat_vol_smooth3X(Ybrain,4)>.5); % remove vene
+      Ybrain     = max( Ybrain , cat_vol_smooth3X(Ybrain,4)>.5); % remove vein
       %%
       Yhead      = min(1,single(Yc{5} + Yc{6}));
       Yhead(~cat_vol_morph(cat_vol_morph(Yhead>.5,'lo',1),'d') & Yhead>.5 & Ybrain<.5) = 0.5; 
@@ -111,14 +111,14 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
 %% ###################
 % edge-measure ! 
 % * this one is not realy working (in low fat cases?)
-% * bone / bone-marrow segmenation: 
+% * bone / bone-marrow segmentation: 
 %   - bone marrow as outstanding maximum structure in the middle/center area
 %   
 
 
   %% measures as column elements
   %  - first tested showed that mean/median works best for BMD and that SD/IQR are much worse 
-  %  - we finally decidet to keep only the mean as (i) it is more expected 
+  %  - we finally decided to keep only the mean as (i) it is more expected 
   %    and (ii) we already did some outlier correction by masking  
   rii = 1;
   if ~isempty(job.opts.Pmask{1}), mskd = ' excluding the lower parts of the skull (masked)'; else, mskd = ' (unmasked)'; end 
@@ -186,7 +186,7 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
     M1   = seg8t.tpm(1).mat;
 
     % affine and rigid parameters for registration 
-    % if the rigid output is incorrect but affine is good than the Yy caused the problem (and probably another call of this function) 
+    % if the rigid output is incorrect but affine is good then the Yy caused the problem (and probably another call of this function) 
     R               = spm_imatrix(seg8t.Affine); R(7:9)=1; R(10:12)=0; R=spm_matrix(R);  
     Mrigid          = M0\inv(R)*M1;                                                          % transformation from subject to registration space (rigid)
     Maffine         = M0\inv(seg8t.Affine)*M1;                                                 % individual to registration space (affine)
