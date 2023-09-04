@@ -7,7 +7,7 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
 %  out(:).P .. other input files 
 %  ctpm     .. TPM selector (1-default SPM TPM for adults, 2-children)
 %  pmethod  .. preprocesing method (1-SPM; 2-CAT; ?-segCT)
-%  bias     .. use strong bias corretion (i.e., 30 mm)
+%  bias     .. use strong bias correction (i.e., 30 mm)
 %  rerun    .. run preprocessing even if all files exist
 % _________________________________________________________________________
 %
@@ -26,7 +26,7 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
   if rerun
     PC = P; 
   else
-    % extract prcoessed filenames
+    % extract processed filenames
     Ppc = P; Ppc{1} = out(1).P.cls{1}; for i=2:numel(P), Ppc{i} = out(i).P.cls{1}; end
     
     % have to use CAT developer GUI for rerun function 
@@ -98,7 +98,7 @@ function matlabbatch = SPM_preprocessing(P,Ptmp,bias)
   % subj was more robust compair to the default (=mri) 
   matlabbatch{1}.spm.spatial.preproc.warp.affreg         = 'subj';
   matlabbatch{1}.spm.spatial.preproc.warp.fwhm           = 0;
-  % surprissingly samp=5 was more robust than 3 that failed in good bone segmenation in many UKB cases
+  % surprisingly samp=5 was more robust than 3 which failed in good bone segmenation in many UKB cases
   matlabbatch{1}.spm.spatial.preproc.warp.samp           = 5; % default is 3 
   matlabbatch{1}.spm.spatial.preproc.warp.write          = [0 0];
   matlabbatch{1}.spm.spatial.preproc.warp.vox            = NaN;
@@ -109,7 +109,7 @@ function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expert)
 %CAT_preprocessing. Create CAT12 segmentation matlabbatch.
   matlabbatch{1}.spm.tools.cat.estwrite.data                              = P;
   matlabbatch{1}.spm.tools.cat.estwrite.data_wmh                          = {''};
-  matlabbatch{1}.spm.tools.cat.estwrite.nproc                             = 0; % if parallel than maybe the whole processing
+  matlabbatch{1}.spm.tools.cat.estwrite.nproc                             = 0; % if parallel, then maybe the whole processing
   matlabbatch{1}.spm.tools.cat.estwrite.useprior                          = '';
   matlabbatch{1}.spm.tools.cat.estwrite.opts.tpm                          = Ptmp;
   matlabbatch{1}.spm.tools.cat.estwrite.opts.affreg                       = 'subj';
@@ -124,7 +124,7 @@ function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expert)
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.setCOM       = 1;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.APP          = 1070;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.affmod       = 0;
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.NCstr        = .5; % faster? - no better robust 
+  matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.NCstr        = .5; % faster? - no, better robust 
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.spm_kamap    = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.LASstr       = 0.5;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.LASmyostr    = 0;
