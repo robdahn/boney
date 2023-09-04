@@ -1,11 +1,11 @@
 function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   (Vo, Ybonepp, Ybonemarrow, Ybonethick, Yheadthick, Ya, Ymsk, YaROIname, out, job)
-%create_bone_surface. Surface-bases processing pipeline.
-% Final bone processing function that create the bone surfaces to extract
-% values from the surrounding bone tissue. It uses the percentage possition
-% map Ybonepp that runs in the middle of the bone and map the thickness
+%create_bone_surface. Surface-based processing pipeline.
+% Final bone processing function that creates the bone surfaces to extract
+% values from the surrounding bone tissue. It uses the percentage position
+% map Ybonepp that runs in the middle of the bone and maps the thickness
 % map Ybonethick on it. 
-% In additon the thickness map of the head is also mapped.
+% In additon, the thickness map of the head is also mapped.
 %
 % 
 %  [Si, Stm, sROI] = boney_segment_create_bone_surface(Vo, ...
@@ -54,7 +54,7 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   cat_system(cmd,0);
   CBS = loadSurf(out.P.central); 
    
-  % create a (smoothed) thickness map for the mapping extract values from the bone
+  % create a (smoothed) thickness map for the mapping extracted values from the bone
   % .. however, the smoothing was not improving the mapping
   Ybonethick2 = cat_vol_approx(Ybonethick .* (Ybonethick>1 & Ybonethick<100),'nh',1,3);
   Si = CBS; Si.facevertexcdata = cat_surf_fun('isocolors',max(3,Ybonethick2), CBS, matlab_mm); 
@@ -63,7 +63,7 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   
 
   % == map values ==
-  % estimate the local minimum to get the hard bone
+  % estimate the local minimum to get the hard bone (cortex)
   bonemed      = cat_stat_nanmedian(Ybonemarrow(Ybonepp>0 & Ybonepp<1)); 
   Ybonemarrow3 = Ybonemarrow; Ybonemarrow3(Ybonepp==0 | Ybonepp==1) = bonemed; % limit by median
   Vppmin       = cat_io_writenii(Vo, Ybonemarrow3 , '', 'skull.bone' ,'bone', 'single', [0,1],[1 0 0],struct());
