@@ -10,11 +10,11 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow, Si,St, out,job,Affine)
 
 % ToDo
 % * V1: nearest interpolation with optimized data ?
-% * V2: low fat issue 
+% * V2: low fat tissue 
 % * V2: pure WM segments but jet for bone?
-% * V2: countours?
+% * V2: contours?
 % 
-% * S: altas rendering (only highres) > option?
+% * S: atlas rendering (only highres) > option?
 % * S: atlas nan filtering 
 %
 
@@ -59,7 +59,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow, Si,St, out,job,Affine)
 
  
   % == histogram ==
-  %  - not working for Octave so far as I used the newer matlab histogram 
+  %  - not working for Octave so far because I used the newer matlab histogram 
   %    function that is not available 
   printHistogram(Ym,Yc,Ybonemarrow,job,out,popts);
 
@@ -113,7 +113,7 @@ function popts = prepareReport(Vo)
 
 end
 function table1offset = printCLStable(job,out,popts,notab1)
-% printCLStable. Values of each SPM cls variable (only useful for develpers)
+% printCLStable. Values of each SPM cls variable (only useful for developers)
 
   if job.opts.expert > 1 && ~notab1
     mgid = find(out.spm8.mg > 2/numel(out.spm8.lkp));
@@ -170,8 +170,8 @@ function printTPMtable(job,out,popts)
 
   out.tis.clsn = {'1-GM','2-WM','3-CSF','4-bone','5-head','6-BG'};
   for ci = 1:min(6,max(out.spm8.lkp))
-    % indicate cases were a Gaussian is used onyl for a small volume, what
-    % is pointing to a to large number of Gaussian
+    % indicate cases where a Gaussian is used only for a small volume, that
+    % is pointing to a too large number of Gaussians
     % ... would have to consider also the difference between Gaussians
     if sum(out.spm8.lkp==ci) > max(1,sum(out.spm8.mg(out.spm8.lkp==ci)'<.2 | ...
         abs(gradient(out.spm8.mn(out.spm8.lkp==ci) ./ out.tis.WMth)) < .2)) 
@@ -188,7 +188,7 @@ function printTPMtable(job,out,popts)
   %     volume plot gives already some overview 
   % #####################
   if out.spm8.isCTseg && ~job.opts.normCT 
-    out.tis.seg8x = out.tismri.Tth;  % ... see coments for further measures but better to keep it simple       
+    out.tis.seg8x = out.tismri.Tth;  % ... see comments for further measures but better to keep it simple       
     FN  = {'clsn','seg8x','vol','volr'};                                  % 'den','clsG','seg8nv',
     FNn = {'TPM class','Med.Int.','Volume mm3','Volume (%TIV)'};          % 'Volume density','n-Class(well)','Main-std',
     FNt = {'%s','%0.0f','%0.0f','%0.1f'};                                 % '%0.0f','%s','%0.3f',
@@ -250,7 +250,7 @@ function printMainTable(job,out,popts,Si,St)
   end
   try out.tis.headthickmn = out.tismri.headthickmn; end 
 % ################## 
-%  * add skull-Stripping and defacing value later 
+%  * add skull-stripping and defacing value later 
 %  * better definition of low fat intensity rating 
 %  * do QC with CNR rating? 
 % ################################# 
@@ -348,7 +348,7 @@ function printHistogram(Ym,Yc,Ybonemarrow,job,out,popts)
 
   if job.output.report > 1  && ~strcmpi(spm_check_version,'octave') % && job.opts.bmethod > 0
     %%
-    % plot a white box over the to long table 
+    % plot a white box over the too long table 
     axes('Position',[0.61 0.855 - popts.table1offset/3 - 0.05 0.40 0.18],'Parent',popts.fig,'Color',[1 1 1]); 
     ax2 = gca; set(ax2,'YColor',[1 1 1],'XColor',[1 1 1],'YTick',[],'XTick',[]); 
     
