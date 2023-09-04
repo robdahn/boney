@@ -1,6 +1,6 @@
 function [Vo, Ym, Yc, Ybonemarrow, tismri, Si, Stm, Affine] = ... 
   boney_segment_fst(Pi, Pc4, job, seg8t, tis, vx_vol) 
-%boney_segment_fst. Fast bone processing, export and report preperation.  
+%boney_segment_fst. Fast bone processing, export and report preparation.  
 % 
 %  [Vo, Yo, Ym, Yc, Yc4, Ybonemarrow, tismri, Si, St, Sti, Affine] = ... 
 %    boney_segment_fst(Pi, Pc4, job, seg8t, tis, vx_vol) 
@@ -87,7 +87,7 @@ function [Vo, Ym, Yc, Ybonemarrow, tismri, Si, Stm, Affine] = ...
     M1   = seg8t.tpm(1).mat;
 
     % affine and rigid parameters for registration 
-    % if the rigid output is incorrect but affine is good than the Yy  
+    % if the rigid output is incorrect but affine is good, then the Yy  
     % caused the problem (and probably another call of this function) 
     R               = spm_imatrix(seg8t.Affine); R(7:9)=1; R(10:12)=0; R=spm_matrix(R);  
     Mrigid          = M0\inv(R)*M1;               % transformation from subject to registration space (rigid)
