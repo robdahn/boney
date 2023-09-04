@@ -18,10 +18,10 @@ function boney = tbx_cfg_boney
   addpath(fileparts(which(mfilename)));
   
   
-  % try to estimate number of processor cores
+  % try to estimate the number of processor cores
   try
     numcores = cat_get_defaults('extopts.nproc');
-    % because of poor memory management use only half of the cores for windows
+    % because of poor memory management, use only half of the cores for windows
     if ispc
       numcores = round(numcores/2);
     end
@@ -96,8 +96,8 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
 %boney_cfg_segment. Bone segmentation and value extraction.
 
   % == opts == 
-  % development option - start with SPM, will add CAT that is maybe more
-  % robust in some cases, maybe use different presettings, eg TPMs for
+  % development option - start with SPM, will add CAT which is maybe more
+  % robust in some cases, maybe use different presettings, e.g. TPMs for
   % children later 
   pmethod               = cfg_menu;
   pmethod.tag           = 'pmethod';
@@ -105,7 +105,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   pmethod.labels        = {'SPM','CAT'}; % ###### add CTseg later in case the toolbox is installed.  
   pmethod.values        = {1,2};
   pmethod.val           = {1};
-  pmethod.help          = {'Preprocessing method to segment the different tissue classes in the given image.';''};
+  pmethod.help          = {'Preprocessing method to segment different tissue classes in the given image.';''};
 
   % main method of this toolbox
   bmethod               = cfg_menu;
@@ -123,8 +123,8 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   bmethod.val           = {2};
   bmethod.help          = {[ ...
     'Bone processing method using volumes or additional surfaces to extract bone intensities. ' ...
-    'Values are normlized for tissue contrast but still depending on image weighting (e.g. T1, T2, PD, EPI) and image protocol parameters (e.g. fat supression) ' ...
-    'and harmonization (e.g. via external tools such as COMBAT) is recommendet. ']; ''};
+    'Values are normalized for tissue contrast but are still depending on image weighting (e.g., T1, T2, PD, EPI) and image protocol parameters (e.g., fat supression) ' ...
+    'and harmonization (e.g., via external tools such as COMBAT) is recommended. ']; ''};
 
   classic               = cfg_menu;
   classic.tag           = 'classic';
@@ -138,12 +138,12 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   % RD202309: not sure if this is useful
   % * SPM/CAT will come with an affine registration that focuses on brain 
   %   tissues rather than the skull but this should not affect the bone 
-  %   measures as much although the normalized output is not optimal  
+  %   measures as much, although the normalized output is not optimal  
   % * registration could be interesting with additional non-linear Shooting
-  %   that would need extra optimized feature classes eg seperate classes 
+  %   that would need extra optimized feature classes, e.g. separate classes 
   %   for lobes or other head features
   % * maybe a surface-based registration would work better here
-  %   >> would need manual segmetation to test this
+  %   >> would need manual segmentation to test this
   % * However, it is still unclear if this would support some better output
   %   Maybe for machine or deep learning. 
   affreg                = cfg_menu;
@@ -163,10 +163,10 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   refine.val            = {1};
   refine.hidden         = expertgui<1;
   refine.help           = {[ ...
-    'Without fat supression, the bone marrow can have high intensities that can be misslabed as head. ' ...
-    'This can be seen als large local underestimations of bone thickness and bone intensity - ' ...
-    'typically good vissible on the skull surface. ' ...
-    'Morphological operations were used to close such wholes and obtain a more complete skull segment. '];''};
+    'Without fat supression, the bone marrow can have high intensities that can be mislabed as head. ' ...
+    'This can be seen as large local underestimations of bone thickness and bone intensity - ' ...
+    'typically well visible on the skull surface. ' ...
+    'Morphological operations were used to close such holes and obtain a more complete skull segment. '];''};
   
   % As this is seen to be stable - reprocessing is generally not required.
   % To support faster reprocessing of the bone measures, it would be nice
@@ -180,7 +180,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   prerun.val            = {0};
   prerun.hidden         = expertgui<1;
   prerun.help           = { ...
-    ['Run SPM/CAT processing even if the output already exist. ' ...
+    ['Run SPM/CAT processing even if the output already exists. ' ...
      'As preprocessing is considered to be stable - reprocessing is generally not required. '];''};
 
   rerun                 = cfg_menu;
@@ -190,10 +190,10 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   rerun.values          = {0,1};
   rerun.val             = {1};
   rerun.hidden          = expertgui<1;
-  rerun.help            = {'Run bone processing even if the output already exist.';''};
+  rerun.help            = {'Run bone processing even if the output already exists.';''};
 
   % General resolution limit:   
-  % Would be good to use this even before SPM/CAT to stabilize and speedup  
+  % Would be good to use this even before SPM/CAT to stabilize and speed up  
   % the whole preprocessing. However, then the output images would have 
   % also a different size. 
   reslim                = cfg_menu;
@@ -204,8 +204,8 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   reslim.val            = {1.5};
   reslim.hidden         = expertgui<1;
   reslim.help           = ... 
-   {['Limit processing resolution for the whole pipelime to stabilize and speed-up the processing. ' ...
-     'The limit gives the required resolution after reduction, i.e. an image of .75 would be reduced ' ...
+   {['Limit processing resolution for the whole pipeline to stabilize and speed-up the processing. ' ...
+     'The limit gives the required resolution after reduction, i.e., an image of .75 would be reduced ' ...
      'to 1.5 mm, whereas 0.8 would not be reduced. '];''};
   
   reduce                = cfg_menu;
@@ -216,24 +216,24 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   reduce.val            = {2};
   reduce.hidden         = expertgui<1;
   reduce.help           = {
-    ['Surface resolution reduction factor as support accurate, robust, and at once fast processing. ' ...
+    ['Surface resolution reduction factor supports accurate, robust, and at once fast processing. ' ...
      'Without reduction, surfaces of volumes with about 1 cm resolution typically have 120k vertices in humans. ' ...
      'But for our purpose the reduction to 2 mm with about 30k surfaces is sufficient. ' ...
-     'However, reductions for 3 or 4 times result still in quite similare measurements. ']; ''};
+     'However, reductions for 3 or 4 times still result in quite similar measurements. ']; ''};
  
   % The idea was to avoid problematic regions in the global case. 
-  % However, this cannot applied to the atlas regions in general.
+  % However, this cannot be applied to the atlas regions in general.
   mask                  = cfg_files;
   mask.tag              = 'Pmask';
   mask.name             = 'Bone mask (expert)';
-  mask.help             = {'Bone mask to avoid critical regions not suited for MRI (e.g. facial bones and thin or error prone inferior areas). '};
+  mask.help             = {'Bone mask to avoid critical regions not suited for MRI (e.g., facial bones and thin or error prone areas). '};
   mask.filter           = {'image'};
   mask.dir              = fullfile(spm('dir'),'toolbox','boney'); 
   mask.val              = {{fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-mask.nii')}}; 
   mask.ufilter          = '.*';
   mask.num              = [0 1];
   mask.hidden           = expertgui<1; 
-  mask.help             = {'Mask problematic regions for global but not regional measuremnts. Deselect file to avoid masking. ';''};
+  mask.help             = {'Mask problematic regions for global but not regional measurements. Deselect a file to avoid masking. ';''};
  
   % Would it be useful to apply cortical atlases here? 
   % - Difficult, as only regions to the skull would be mapped and further
@@ -242,17 +242,17 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   % - Maybe if the regions have some useful definition.
   % - Could be also some regular defined subregions by some kind of parcelation. 
   % - This (especially finer regions) would maybe require some non-linear registration. 
-  % - However, here we would come to VBM, ML or DL what is than also
+  % - However, here we would come to VBM, ML or DL, which is also
   %   connected to the general registration question.
   % Hence, the altas is an expert feature
   atlas                 = cfg_files;
   atlas.tag             = 'Patlas';
   atlas.name            = 'Bone atlas (expert)';
   atlas.help            = { ...
-    ['Bone atlas that describe the major skull bones (frontal, occipital, pariatal-left/right, temporal-left/right). ' ...
-     'The atlas is mapped by the affine registration from the SPM/CAT preprocessing and linearly extend. ' ...
+    ['Bone atlas that describes the major skull bones (frontal, occipital, parietal-left/right, temporal-left/right). ' ...
+     'The atlas is mapped by the affine registration from the SPM/CAT preprocessing and linearly extended. ' ...
      'The overlap of sutures and atlas boundaries is ok but could be improved in future. ' ...
-     'As we have only 6 large major region, regional extraction seems to be sufficient so far. '];''};
+     'As we only have 6 large major regions, regional extraction seems to be sufficient so far. '];''};
   atlas.filter          = {'image'};
   atlas.dir             = fullfile(spm('dir'),'toolbox','boney'); 
   atlas.val             = {{fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-regions.nii')}}; 
@@ -282,7 +282,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
 
   % == output ==  
   % this is probably the only flag that a user can set without risk that
-  % could save relativelly much processing speed 
+  % could result in saving processing speed 
   report                = cfg_menu;
   report.tag            = 'report';
   report.name           = 'Write report';
@@ -296,7 +296,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   % alternative naming: delete temporary segmetation files
   % - not sure if data can be compressed in one image - maybe as shell
   %   model with PVE to have just one volume (should be fine enough)
-  % - but would also work mat file (what should be compressed)
+  % - but would also work mat file (that should be compressed)
   writeseg              = cfg_menu;
   writeseg.tag          = 'writeseg';
   writeseg.name         = 'Keep SPM/CAT segmentation (expert)';
@@ -306,10 +306,10 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   writeseg.hidden       = expertgui<1;
   writeseg.help         = { ...
    ['Do not delete the native SPM/CAT segmentation files c# mri/p# to support faster processing. ' ....
-    'The compressed option saved the optimized volumes a mat file to save disk space and loading speed. '];''};
+    'The compressed option saved the optimized volumes in a mat file to save disk space and loading speed. '];''};
 
   % - bone & skull ?
-  % - settings for native/affine - affine could be use for ML/DL 
+  % - settings for native/affine - affine could be used for ML/DL 
   writevol              = cfg_menu;
   writevol.tag          = 'writevol';
   writevol.name         = 'Write bone (expert)';
@@ -335,7 +335,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   output.tag            = 'output';
   output.name           = 'Output';
   output.val            = { report , writeseg, writevol , writesurf }; 
-  output.help           = {'Specify output parameters. The main results are writen as XML/MAT file into a "report" subdirectory.' ''};
+  output.help           = {'Specify output parameters. The main results are written as XML/MAT file into a "report" subdirectory.' ''};
 
 
 
@@ -395,7 +395,7 @@ function xml2csv = conf_io_xml2csv(expertgui)
   fieldnames.num        = [0 inf];
   fieldnames.hidden     = expertgui<1; 
   fieldnames.help       = {
-     'Define keywords or complete fields to limit the extraction (empty = include all), i.e. only fields that inlclude these strings are used. '
+     'Define keywords or complete fields to limit the extraction (empty = include all), i.e., only fields that include these strings are used. '
      'In case of catROI-files you can limit the extraction to specific atlas, regions, or tissues. '
      'In case of cat-files you can limit the extraction to specific parameters ("opts" or "extopts") or QC ratings ("qualityratings"). '
      ''
@@ -410,7 +410,7 @@ function xml2csv = conf_io_xml2csv(expertgui)
   avoidfields.num        = [0 inf];
   avoidfields.hidden     = expertgui<1; 
   avoidfields.help       = {
-     'Define keywords or complete fields that should be avoided/excluded (empty = exclude none), i.e. fields that inlclude such strings even they were included before. '
+     'Define keywords or complete fields that should be avoided/excluded (empty = exclude none), i.e., fields that include such strings even if they were included before. '
      'In case of catROI-files you can limit the extraction to specific atlas, regions, or tissues. '
      'In case of cat-files you can limit the extraction to specific parameters or measures. '
      ''
@@ -433,7 +433,7 @@ function xml2csv = conf_io_xml2csv(expertgui)
   xml2csv.prog      = @boney_xml2csv;
   xml2csv.vout      = @vout_boney_cfg_xml2csv; 
   xml2csv.help      = {
-    'Export XML files (e.g. the boney preprocessing results) as a CSV table. '
+    'Export XML files (e.g., the boney preprocessing results) as a CSV table. '
     };
 
 return
@@ -464,7 +464,7 @@ function dep = vout_boney_cfg_segment(job)
     end
   end
   
-  % bone voluem that include both cortex and marrow
+  % bone volume that includes both cortex and marrow
   if job.output.writevol == 1 || job.output.writevol == 3
     dep(end+1)          = cfg_dep;
     dep(end).sname      = 'Bone(native)';
@@ -480,7 +480,7 @@ function dep = vout_boney_cfg_segment(job)
   
 
   % there are multiple surfaces but as no registration was done they cannot
-  % be used so far (eg. to create an average etc.)
+  % be used so far (e.g., to create an average etc.)
   if job.output.writesurf
     dep(end+1)          = cfg_dep;
     dep(end).sname      = 'Surfaces';
