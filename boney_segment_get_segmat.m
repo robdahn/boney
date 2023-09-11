@@ -44,7 +44,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
       seg8t.mg      = seg8t.dat.model.gmm.gam'; 
       seg8t.vr      = seg8t.dat.model.gmm.W; 
        
-      tmp           = spm_load_priors8(ps_fullfile(spm('dir'),'TPM','TPM.nii'));
+      tmp           = spm_load_priors8(fullfile(spm('dir'),'TPM','TPM.nii'));
       seg8t.tpmA    = tmp;
       seg8t.tpm     = rmfield(tmp.V,'private');
       seg8t.Affine  = eye(4);
@@ -73,6 +73,9 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
     % read CAT XML rather than the SPM file 
     Sxml  = cat_io_xml(out.P.seg8); 
     seg8t = Sxml.SPMpreprocessing;
+    tmp           = spm_load_priors8(fullfile(spm('dir'),'TPM','TPM.nii'));
+    seg8t.tpmA    = tmp;
+    seg8t.tpm     = rmfield(tmp.V,'private');
     if ~isfield(seg8t,'mg') % older cat versions don't have this field!
       for i = 1:max(seg8t.lkp)
         seg8t.mg(seg8t.lkp == i,1) = 1 / sum(seg8t.lkp == i); 
