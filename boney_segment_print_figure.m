@@ -388,7 +388,7 @@ function printHistogram(Ym,Yc,Ybonemarrow,job,out,popts)
 
     %% setup axes of the histogram box
     if numel(clsi)>1, clsi(1) = []; end
-    ylim([0 max(hstmax(clsi)*1.3 )]); box on; 
+    ylim([0 max([1,hstmax(clsi)*1.3] )]); box on; 
     if ~(out.spm8.isCTseg && ~job.opts.normCT)
       set(ax2,'FontSize',popts.fontsize * 0.85, 'XTickLabelRotation', 0, ... 
         'XTickLabel', {'0','','','0.5','','','1','','','1.5','','','2'});
