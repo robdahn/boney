@@ -232,25 +232,33 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
         out(i).P.seg8   = fullfile(pp, out(i).P.reportdir, sprintf('cat_%s.xml',out(i).P.orgff));   
         % we have to use the filename from the XML to get the original image 
         % as it could be hidden by BIDS 
-        Sxml            = cat_io_xml( out(i).P.seg8 ); 
-        [pp,ff,ee]      = spm_fileparts( Sxml.filedata.fname ); 
-        out(i).P.org    = Sxml.filedata.fname;
+        if exist(out(i).P.seg8,'file')
+          Sxml          = cat_io_xml( out(i).P.seg8 ); 
+          [pp,ff,ee]    = spm_fileparts( Sxml.filedata.fname ); 
+          out(i).P.org  = Sxml.filedata.fname;
+          out(i).P.bc   = Sxml.filedata.Fm; 
+        else
+          [pp,ff,ee]    = spm_fileparts(P{i}); 
+          out(i).P.org  = P{i};
+          out(i).P.bc   = fullfile( pp , sprintf('%s%s%s','m',ff,ee) ); 
+        end
         out(i).P.orgpp  = pp; 
         out(i).P.orgff  = ff;
         out(i).P.ee     = ee;
-        out(i).P.bc     = Sxml.filedata.Fm; 
         for ci = 1:5
           out(i).P.cls{ci} = fullfile( pp , out(i).P.mridir , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
         end
       end
     end
 
-
     % output dirs
     out(i).P.mripath    = fullfile(pp,out(i).P.mridir); 
     out(i).P.surfpath   = fullfile(pp,out(i).P.surfdir); 
     out(i).P.reportpath = fullfile(pp,out(i).P.reportdir); 
 
+    % boney preprocessing mat file for faster reprocessing
+    out(i).P.boneyPPmat  = fullfile(out(i).P.mripath,['boneyPPmat_' ff '.mat']); 
+    
     % create dirs if required
     if ~exist(out(i).P.mripath   ,'dir'), mkdir(out(i).P.mripath); end
     if ~exist(out(i).P.surfpath  ,'dir'), mkdir(out(i).P.surfpath); end
