@@ -29,7 +29,7 @@ function Pout = boney_segment_cleanup(Pout,out,job,i)
 
   % boney volume files
   if job.output.writevol
-    Pout.rbone_affine{i} = out(i).P.bone_affine; 
+    Pout.rbone_affine{i} = out(i).P.rbone_affine; 
     Pout.rbone{i}        = out(i).P.bone;
   else
     % delete files
