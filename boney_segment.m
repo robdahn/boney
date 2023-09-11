@@ -382,14 +382,14 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
       
       % == additional combined measures for the bone 
       if exist('vROI','var')
-        out(i).main.vBMDH{gi}(si,1)  = -out(si).vROI.bonecortex(3) + out(si).vROI.bonethickness(1) ...
-                                       -out(si).classic.bone_med   + out(si).vROI.bonethickness(3); % best for BMDH
+        out(i).main.vBMDH  = -out(i).vROI.bonecortex(3) + out(i).vROI.bonethickness(1) ...
+                             -out(i).classic.bone_med   + out(i).vROI.bonethickness(3); % best for BMDH
       end 
       if exist('sROI','var')
-        out(i).main.sBMDH{gi}(si,1)  = -out(si).sROI.bonecortex(3) + out(si).sROI.bonethickness(1) ...
-                                       -out(si).classic.bone_med   + out(si).sROI.bonethickness(3);
-        out(i).main.sBMDH2{gi}(si,1) = -out(si).sROI.bonecortex(3) + out(si).sROI.bonethickness(3) ...
-                                       -out(si).classic.bone_med   + out(si).sROI.bonemarrow(3);
+        out(i).main.sBMDH  = -out(i).sROI.bonecortex(3) + out(i).sROI.bonethickness(1) ...
+                             -out(i).classic.bone_med   + out(i).sROI.bonethickness(3);
+        out(i).main.sBMDH2 = -out(i).sROI.bonecortex(3) + out(i).sROI.bonethickness(3) ...
+                             -out(i).classic.bone_med   + out(i).sROI.bonemarrow(3);
       end       
           
 
