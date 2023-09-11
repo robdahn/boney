@@ -116,8 +116,13 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
     % test if any class has more low probability values than high
     tismri.clsQC(ci) = sum(Yc{ci}(:)>.5) ./ sum(Yc{ci}(:)>eps & Yc{ci}(:)<.5 & Ybraindist0(:)<30); 
     if tismri.clsQC(ci)<.5
-      cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
-        sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)),1,[1 1],0,0,0);
+      try
+        cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
+          sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)),1,[1 1],0,0,0);
+      catch
+        cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
+          sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)));
+      end
     end
  
     % refined evaluation with class optimization 
