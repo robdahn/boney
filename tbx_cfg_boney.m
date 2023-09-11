@@ -314,7 +314,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   writevol.tag          = 'writevol';
   writevol.name         = 'Write bone (expert)';
   writevol.labels       = {'No','Native','Affine','Native + Affine'};
-  writevol.values       = {0,1};
+  writevol.values       = {0,1,2,3};
   writevol.val          = {0};
   writevol.hidden       = expertgui<1;
   writevol.help         = {'Write refined bone segment volumes used for extraction into a "vol" subdirectory';''};
@@ -468,13 +468,13 @@ function dep = vout_boney_cfg_segment(job)
   if job.output.writevol == 1 || job.output.writevol == 3
     dep(end+1)          = cfg_dep;
     dep(end).sname      = 'Bone(native)';
-    dep(end).src_output = substruct('.','bonemarrow',{':'});
+    dep(end).src_output = substruct('.','bone_native','{}',{':'});
     dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
   end
   if job.output.writevol == 2 || job.output.writevol == 3
     dep(end+1)          = cfg_dep;
-    dep(end).sname      = 'Bbone(affine)';
-    dep(end).src_output = substruct('.','rbonemarrow_affine',{':'});
+    dep(end).sname      = 'Bone(affine)';
+    dep(end).src_output = substruct('.','rbone_affine','{}',{':'});
     dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
   end
   
