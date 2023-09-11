@@ -71,7 +71,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
   
   % SPM/CAT segmentation
   if job.output.writeseg == 2 
-    save(boneyPPmat,'Yc','Yo')
+    save(P.boneyPPmat,'Yc','Yo')
   end
 
 
