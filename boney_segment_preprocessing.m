@@ -34,6 +34,13 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
     cat_get_defaults('extopts.expertgui',2);
     rpc = cat_io_rerun(PC,Ppc,1) > 0; % estimate if reprocessing is required
     cat_get_defaults('extopts.expertgui',oldexpertgui);
+
+% ################
+% * check TPM !!!!
+%   we have to load the seg8 of each T1 and check if it was processed with
+%   the correct TPM :/
+% ################
+    
     PC  = PC(rpc); % only keep cases that need preprocessing
   end
 
@@ -105,7 +112,7 @@ function matlabbatch = SPM_preprocessing(P,Ptmp,bias)
   matlabbatch{1}.spm.spatial.preproc.warp.bb             = [NaN NaN NaN; NaN NaN NaN];
 end
 % subfunction with the main CAT matlabbatch
-function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expert)
+function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expertgui)
 %CAT_preprocessing. Create CAT12 segmentation matlabbatch.
   matlabbatch{1}.spm.tools.cat.estwrite.data                              = P;
   matlabbatch{1}.spm.tools.cat.estwrite.data_wmh                          = {''};
@@ -113,7 +120,7 @@ function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expert)
   matlabbatch{1}.spm.tools.cat.estwrite.useprior                          = '';
   matlabbatch{1}.spm.tools.cat.estwrite.opts.tpm                          = Ptmp;
   matlabbatch{1}.spm.tools.cat.estwrite.opts.affreg                       = 'subj';
-  if expert == 2
+  if expertgui == 2
     matlabbatch{1}.spm.tools.cat.estwrite.opts.ngaus                      = [1 1 2 3 4 2];
     matlabbatch{1}.spm.tools.cat.estwrite.opts.warpreg                    = [0 0.001 0.5 0.05 0.2];
     matlabbatch{1}.spm.tools.cat.estwrite.opts.redspmres                  = 0;
@@ -134,7 +141,7 @@ function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expert)
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.WMHC         = 2;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.SLC          = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.mrf          = 1;
-  if expert == 2
+  if expertgui == 2
     matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.T1           = ...
       {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/T1.nii')};
     matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.brainmask    = ...
@@ -148,7 +155,7 @@ function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expert)
     matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.regstr       = 0.5;
   else
     matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.regmethod.shooting.shootingtpm = ...
-      {'/Users/dahnke/Documents/MATLAB/spm12g/toolbox/cat12/templates_MNI152NLin2009cAsym/Template_0_GS.nii'};
+      {fullfile(spm('dir'), 'toolbox', 'cat12', 'templates_MNI152NLin2009cAsym/Template_0_GS.nii')};
     matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.regmethod.shooting.regstr = 0.5;
   end
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.registration.bb           = 12;
