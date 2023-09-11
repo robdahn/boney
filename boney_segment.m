@@ -7,7 +7,7 @@ function [Pout,out] = boney_segment(job)
 %  job         .. SPM job structure
 %   .files     .. SPM m-files
 %   .opts      .. structure of input values
-%    .bmethod  .. [SPM,CAT]
+%    .pmethod  .. preprocessing method: 1-SPM12, 2-CAT12 [, 3-CTseg] 
 %    .bmethod  .. method used for evaluation (default=2): 
 %                  0 - SPM seg8t mat values evaluation (fast)
 %                  1 - SPM volumes with problems for high intensity bone 
@@ -109,6 +109,7 @@ function [Pout,out] = boney_segment(job)
   job.output.report     = min(job.output.report,max(2,job.opts.bmethod + 1)); 
 
   % filenames for dependencies 
+  % job.opts.fmethod .. method defined by the selected file 
   [out,job.opts.fmethod,job.opts.pmethod] = boney_segment_filenames(P,job);
 
 

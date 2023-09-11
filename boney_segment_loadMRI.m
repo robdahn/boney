@@ -101,6 +101,9 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
       otherwise
         Ym = (Yo - min([ 0 tis.seg8o(3),tis.seg8o(end)])) / (tis.seg8o(2) - min([ 0 tis.seg8o(3),tis.seg8o(end)]));
     end
+  elseif job.opts.fmethod==2
+  % Not required in case of CAT preprocessing
+    Ym = Yo; 
   else
   % just a simple BG/WM based normalization 
     if tis.weighting == 2 % MT
