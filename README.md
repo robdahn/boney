@@ -54,7 +54,7 @@ Furthermore, you can specify which output files to write, e.g., the short bone-r
 
 
 The figure shows the results for the selected bone measures estimated on a UKB subsample created by the evaluation scripts.
-The most relevant regional bone measures are (i) the occipital surface-based bone cortex estimate *sROI_bonecortex3*, (ii) the occipital volume-based bone marrow estimate *vROI_boenmarrow3*, and the *bone mineral density estimate* (BMD) that show a high correlation to the UKB BMD measures.
+The most relevant regional bone measures are (i) the occipital surface-based bone cortex estimate *sROI_bonecortex3*, (ii) the occipital volume-based bone marrow estimate *vROI_bonemarrow3*, and the *bone mineral density estimate* (BMD) that show a high correlation to the UKB BMD measures.
 
 In addition, the estimated head fat measure is supported by high correlations with visceral adipose tissue (VAT), abdominal subcutaneous adipose tissue (ASAT), body fat percentage, BMI, and waist measurements of the UKB. 
 
