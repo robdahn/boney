@@ -240,13 +240,21 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
         else
           [pp,ff,ee]    = spm_fileparts(P{i}); 
           out(i).P.org  = P{i};
-          out(i).P.bc   = fullfile( pp , sprintf('%s%s%s','m',ff,ee) ); 
+          if cat_get_defaults('extopts.subfolders')
+            out(i).P.bc = fullfile( pp , 'mri' , sprintf('%s%s%s','m',ff,ee) ); 
+          else
+            out(i).P.bc = fullfile( pp , sprintf('%s%s%s','m',ff,ee) ); 
+          end
         end
         out(i).P.orgpp  = pp; 
         out(i).P.orgff  = ff;
         out(i).P.ee     = ee;
         for ci = 1:5
-          out(i).P.cls{ci} = fullfile( pp , out(i).P.mridir , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
+          if cat_get_defaults('extopts.subfolders')
+            out(i).P.cls{ci} = fullfile( pp , 'mri' , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
+          else
+            out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
+          end
         end
       end
     end
