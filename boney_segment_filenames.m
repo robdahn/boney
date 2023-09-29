@@ -266,13 +266,13 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
 
 
     % xml/mat output
-    out(i).P.report = fullfile(out(i).P.reportpath, sprintf('%sbonereport%d_%s.jpg', job.output.prefix, job.opts.bmethod, ff(2:end)));              
-    out(i).P.xml    = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.xml'  , job.output.prefix, job.opts.bmethod, ff(2:end)));
-    out(i).P.mat    = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.mat'  , job.output.prefix, job.opts.bmethod, ff(2:end)));
+    out(i).P.report = fullfile(out(i).P.reportpath, sprintf('%sbonereport%d_%s.jpg', job.output.prefix, job.opts.bmethod, ff));              
+    out(i).P.xml    = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.xml'  , job.output.prefix, job.opts.bmethod, ff));
+    out(i).P.mat    = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.mat'  , job.output.prefix, job.opts.bmethod, ff));
     
-    out(i).P.boneymat = fullfile(out(i).P.reportpath, sprintf('boney%s_%s.mat'  , pmethod, ff(2:end)));
-    out(i).P.boneySPM = fullfile(out(i).P.reportpath, sprintf('boneySPM_%s.mat' , ff(2:end)));
-    out(i).P.boneyCAT = fullfile(out(i).P.reportpath, sprintf('boneyCAT_%s.mat' , ff(2:end)));
+    out(i).P.boneymat = fullfile(out(i).P.reportpath, sprintf('boney%s_%s.mat'  , pmethod, ff));
+    out(i).P.boneySPM = fullfile(out(i).P.reportpath, sprintf('boneySPM_%s.mat' , ff));
+    out(i).P.boneyCAT = fullfile(out(i).P.reportpath, sprintf('boneyCAT_%s.mat' , ff));
 
     % vols
     if job.output.writevol
