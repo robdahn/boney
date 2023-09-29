@@ -384,14 +384,26 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
       
       % == additional combined measures for the bone 
       if exist('vROI','var')
-        out(i).main.vBMDH  = -out(i).vROI.bonecortex(3) + out(i).vROI.bonethickness(1) ...
-                             -out(i).classic.bone_med   + out(i).vROI.bonethickness(3); % best for BMDH
+        if isfield(out,'classic')
+          out(i).main.vBMDH  = -out(i).vROI.bonecortex(3) + out(i).vROI.bonethickness(1) ...
+                               -out(i).classic.bone_med   + out(i).vROI.bonethickness(3); % best for BMDH
+        else
+          out(i).main.vBMDH  = -out(i).vROI.bonecortex(3) * 2 + out(i).vROI.bonethickness(1) ...
+                                                              + out(i).vROI.bonethickness(3); % best for BMDH
+        end
       end 
       if exist('sROI','var')
-        out(i).main.sBMDH  = -out(i).sROI.bonecortex(3) + out(i).sROI.bonethickness(1) ...
-                             -out(i).classic.bone_med   + out(i).sROI.bonethickness(3);
-        out(i).main.sBMDH2 = -out(i).sROI.bonecortex(3) + out(i).sROI.bonethickness(3) ...
-                             -out(i).classic.bone_med   + out(i).sROI.bonemarrow(3);
+        if isfield(out,'classic')
+          out(i).main.sBMDH  = -out(i).sROI.bonecortex(3) + out(i).sROI.bonethickness(1) ...
+                               -out(i).classic.bone_med   + out(i).sROI.bonethickness(3);
+          out(i).main.sBMDH2 = -out(i).sROI.bonecortex(3) + out(i).sROI.bonethickness(3) ...
+                               -out(i).classic.bone_med   + out(i).sROI.bonemarrow(3);
+        else
+          out(i).main.sBMDH  = -out(i).sROI.bonecortex(3) * 2 + out(i).sROI.bonethickness(1) ...
+                                                              + out(i).sROI.bonethickness(3);
+          out(i).main.sBMDH2 = -out(i).sROI.bonecortex(3) * 2 + out(i).sROI.bonethickness(3) ...
+                                                              + out(i).sROI.bonemarrow(3);
+        end
       end       
           
 
@@ -443,7 +455,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
     rlevel = {'boney_default','boney_expert'}; 
     matlabbatch{1}.spm.tools.boney.xml2csv.files        = Pout.xml'; 
     matlabbatch{1}.spm.tools.boney.xml2csv.outdir       = {out(1).P.orgpp};
-    matlabbatch{1}.spm.tools.boney.xml2csv.fname        = sprintf('Boney_xml_%s.csv',datestr(stime,'YYYYmmDD-HHMMSS'));
+    matlabbatch{1}.spm.tools.boney.xml2csv.fname        = sprintf('Boney_xm2csv_report_%s.csv',datestr(stime,'YYYYmmDD-HHMMSS'));
     matlabbatch{1}.spm.tools.boney.xml2csv.fieldnames   = {' '};
     matlabbatch{1}.spm.tools.boney.xml2csv.avoidfields  = {''};
     matlabbatch{1}.spm.tools.boney.xml2csv.report       = rlevel{ ( boned.expertgui > 0) + 1 };
