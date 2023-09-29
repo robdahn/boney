@@ -77,14 +77,14 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   Vpp          = cat_io_writenii(Vo, Ybonemarrow , '', 'skull.marrow' ,'bone marrow', 'single', [0,1],[1 0 0],struct());
   mappingstr   = sprintf('-linear -max -steps "9" -start "-.5" -end ".5" -thickness "%s" ', out.P.thick); % weighted_avg
   cmd          = sprintf('CAT_3dVol2Surf %s "%s" "%s" "%s" ',mappingstr, out.P.central,  Vpp.fname , out.P.marrow );
-  cat_system(cmd,0);
+  cat_system(cmd,0); delete(Vpp.fname);
   marrowmax    = cat_io_FreeSurfer('read_surf_data',out.P.marrow);
 
   % estimate average for bone marrow with even limited range
   Vpp          = cat_io_writenii(Vo, Ybonemarrow , '', 'skull.marrow' ,'bone marrow', 'single', [0,1],[1 0 0],struct());
   mappingstr   = sprintf('-linear -weighted_avg -steps "5" -start "-.1" -end ".1" -thickness "%s" ', out.P.thick); % weighted_avg
   cmd          = sprintf('CAT_3dVol2Surf %s "%s" "%s" "%s" ',mappingstr, out.P.central,  Vpp.fname , out.P.marrow );
-  cat_system(cmd,0);
+  cat_system(cmd,0); delete(Vpp.fname);
   Si.facevertexcdata = cat_io_FreeSurfer('read_surf_data',out.P.marrow);
 
   % get atlas information
