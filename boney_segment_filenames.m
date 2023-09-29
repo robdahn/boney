@@ -240,21 +240,13 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
         else
           [pp,ff,ee]    = spm_fileparts(P{i}); 
           out(i).P.org  = P{i};
-          if cat_get_defaults('extopts.subfolders')
-            out(i).P.bc = fullfile( pp , 'mri' , sprintf('%s%s%s','m',ff,ee) ); 
-          else
-            out(i).P.bc = fullfile( pp , sprintf('%s%s%s','m',ff,ee) ); 
-          end
+          out(i).P.bc = fullfile( pp , out(i).P.mridir, sprintf('%s%s%s','m',ff,ee) ); 
         end
         out(i).P.orgpp  = pp; 
         out(i).P.orgff  = ff;
         out(i).P.ee     = ee;
         for ci = 1:5
-          if cat_get_defaults('extopts.subfolders')
-            out(i).P.cls{ci} = fullfile( pp , 'mri' , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
-          else
-            out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
-          end
+          out(i).P.cls{ci} = fullfile( pp , out(i).P.mridir, sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
         end
       end
     end
@@ -278,8 +270,9 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
     out(i).P.xml    = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.xml'  , job.output.prefix, job.opts.bmethod, ff(2:end)));
     out(i).P.mat    = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.mat'  , job.output.prefix, job.opts.bmethod, ff(2:end)));
     
-    out(i).P.boneySPM = fullfile(out(i).P.reportpath, sprintf('boneySPM_%s.mat'  , job.opts.bmethod, ff(2:end)));
-    out(i).P.boneyCAT = fullfile(out(i).P.reportpath, sprintf('boneyCAT_%s.mat'  , job.opts.bmethod, ff(2:end)));
+    out(i).P.boneymat = fullfile(out(i).P.reportpath, sprintf('boney%s_%s.mat'  , pmethod, ff(2:end)));
+    out(i).P.boneySPM = fullfile(out(i).P.reportpath, sprintf('boneySPM_%s.mat' , ff(2:end)));
+    out(i).P.boneyCAT = fullfile(out(i).P.reportpath, sprintf('boneyCAT_%s.mat' , ff(2:end)));
 
     % vols
     if job.output.writevol

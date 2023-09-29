@@ -87,7 +87,6 @@ function [Pout,out] = boney_segment(job)
                                     %    1~120k, 2~30k, 3~13k, 4~7k, 6~3k, 8~2k
                                     %  - robust results for 1-4
   def.opts.refine       = 1;        % refine segmenation 
-  def.opts.subdirs      = 1;        % use subdirectories 
   def.opts.normCT       = 0;        % use hard defined CT tissue thresholds for CTseg (used flag?) 
   def.opts.Patlas       = {fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-regions.nii')};
   def.opts.Pmask        = {fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-mask.nii')};
@@ -103,6 +102,8 @@ function [Pout,out] = boney_segment(job)
   def.output.writeCSV   = 1; 
   def.output.prefix     = 'boney_';
   job                   = cat_io_checkinopt(job,def);
+  job.opts.subdirs      = job.opts.pmethod == 2 && cat_get_defaults('extopts.subfolders');
+  
   Pout = struct();
 
   % no surface output (report==3) without surface processing (bmethod == 2)
