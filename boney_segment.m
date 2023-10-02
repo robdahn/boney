@@ -446,12 +446,19 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
 
   end
 
+  % final print and cleanup
+  if job.opts.verb > 0, fprintf('Boney main processing done.\n\n'); end
+  spm_progress_bar('Clear');
+    
+
 
 % ############ final csv-export depending on processing level?
 % - use/add flag?
   if job.output.writeCSV && numel(Pout.xml)>1
     %%
-    stime = cat_io_cmd('Create CSV with all subjects','g9','',job.opts.verb>0); 
+    if job.opts.verb
+      stime = cat_io_cmd('Create CSV with all subjects','g9','',job.opts.verb>0);
+    end
     rlevel = {'boney_default','boney_expert'}; 
     matlabbatch{1}.spm.tools.boney.xml2csv.files        = Pout.xml'; 
     matlabbatch{1}.spm.tools.boney.xml2csv.outdir       = {out(1).P.orgpp};
@@ -461,15 +468,8 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
     matlabbatch{1}.spm.tools.boney.xml2csv.report       = rlevel{ ( boned.expertgui > 0) + 1 };
 
     % run silently 
-    txt = evalc('spm_jobman(''run'',matlabbatch);');
-    if job.opts.verb>0, fprintf('% 5.0fs\n',etime(clock,stime)); end
+    evalc('spm_jobman(''run'',matlabbatch);');
+    if job.opts.verb > 0, fprintf('% 5.0fs\n\n',etime(clock,stime)); end
   end
 
-
-  % final print and cleanup
-  if job.opts.verb
-    spm_progress_bar('Clear');
-    fprintf('done.\n')
-  end
-  spm_progress_bar('Clear'); 
 end

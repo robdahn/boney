@@ -46,7 +46,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
   % the correction is done later if the refinement is selected
   if ~seg8t.isCTseg 
     tismri.warning.clsUpdate = (sum( Yc{5}(:)>.5 & Ym(:)<.3 & Ybraindist0(:)<50 ) / sum( Yc{5}(:)>.5 & Ybraindist0(:)<50 ) ) > .2; 
-    if tismri.warning.clsUpdate && 0
+    if tismri.warning.clsUpdate && 0 % ###### INACTIVE ######
       % create a (silent) warning
       cat_io_addwarning( [mfilename ':needSegUpdate'], ...
         sprintf('Bad SPM tissue class 5 - probably overestimated (%0.2f)', ...
@@ -120,6 +120,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
         cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
           sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)),1,[1 1],0,0,0);
       catch
+        if job.verb > 1, fprintf('\n'); end 
         cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
           sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)));
       end
