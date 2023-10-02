@@ -55,7 +55,7 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
         matlabbatch = SPM_preprocessing(PC, Ptpm, bias);
       case {2,'cat'} % not working
         expertgui = cat_get_defaults('extopts.expertgui');
-        if expertgui < 2, cat12('expert'); end % need expert/developer batch to write class 4 to 6
+        if expertgui < 1, cat12('expert'); end % need expert/developer batch to write class 4 to 6
         matlabbatch = CAT_preprocessing(PC, Ptpm, bias, expertgui); 
       case {3,'CT_seg'}
         if exist(fullfile(spm('dir'),'toolbox','CTseg'),'dir')
@@ -118,7 +118,7 @@ function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expertgui)
   matlabbatch{1}.spm.tools.cat.estwrite.data_wmh                          = {''};
   matlabbatch{1}.spm.tools.cat.estwrite.nproc                             = 0; % if parallel, then maybe the whole processing
   matlabbatch{1}.spm.tools.cat.estwrite.useprior                          = '';
-  matlabbatch{1}.spm.tools.cat.estwrite.opts.tpm                          = Ptmp;
+  matlabbatch{1}.spm.tools.cat.estwrite.opts.tpm                          = {Ptmp};
   matlabbatch{1}.spm.tools.cat.estwrite.opts.affreg                       = 'subj';
   if expertgui == 2
     matlabbatch{1}.spm.tools.cat.estwrite.opts.ngaus                      = [1 1 2 3 4 2];
