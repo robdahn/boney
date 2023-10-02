@@ -49,6 +49,17 @@ Furthermore, you can specify which output files to write, e.g., the short bone-r
 ![Image of the bone atlas and mask](images/KADA_regions_mask.png "Shown is the bone atlas and the bone mask.")
 
 
+## Results
+For each subject Boney writes report file and a mat file that include all processed values. 
+Moreover, a csv-table of the most relevant measures for all subjects is created at the end of the processing.
+
+![Bonereport](images/boney_bonereport2_OASIS131.jpg "Shown is the bone report with ... Oups, this report need an update for the histogram...")
+Figure: Bonereport with (1) Table 1 with the tissue intensities and absolute/relative volumes, (2) Table 2 with specific bone and head values (see abbreviations for details, (3) a histogram with the major values, (4) two volumes (i) the orignal image with bone and fat overlay and (ii) the normalized bone intensities with GM, WM and head (HD) segment for orientation, and (5) two surface sets (i) with bone thickness (and atlas boundaries) and (ii) the bone marrow intensity.  
+Abbreviations: 
+Table 1: GM=grey matter, WM=white matter, CSF=cerebrospinalfluid, BG=background, TPM=tissue probability map, Norm.Med.Int.=normalized median intensity.
+Table 2: Tw=image weighting, Tres=root mean square resolution rating, Tbg=background type, Tfat=heat fat suppression type, Tbone=bone fat intensity, sBcor=surface-base bone-cortex intensity, sBmar=surface-based bone-marrow intensity, sBth=surface-based bone thickness, sHth=surface-based head thickness.
+
+
 ## Validation
 *RD: Show only the main measures for BMD and FAT linked with the processing routines*
 
