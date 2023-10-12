@@ -120,7 +120,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
         cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
           sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)),1,[1 1],0,0,0);
       catch
-        if job.verb > 1, fprintf('\n'); end 
+        if job.opts.verb > 1, fprintf('\n'); end 
         cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
           sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)));
       end
