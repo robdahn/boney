@@ -315,7 +315,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   % - settings for native/affine - affine could be used for ML/DL 
   writevol              = cfg_menu;
   writevol.tag          = 'writevol';
-  writevol.name         = 'Write bone (expert)';
+  writevol.name         = 'Write bone volumes (expert)';
   writevol.labels       = {'No','Native','Affine','Native + Affine'};
   writevol.values       = {0,1,2,3};
   writevol.val          = {0};
