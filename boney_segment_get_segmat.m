@@ -35,7 +35,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
 
   % load SPM/CTseg or  mat 
   if strcmp(out.P.seg8(end-2:end),'mat')
-    seg8t          = load(out.P.seg8); 
+    seg8t           = load(out.P.seg8); 
     if out.CTseg
       seg8t.dat.model.gmm = rmfield(seg8t.dat.model.gmm,{'T','Sig'});
       % #### this is not fully working and the classes values are strange ...
@@ -71,8 +71,18 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
 % ###################
   else
     % read CAT XML rather than the SPM file 
-    Sxml  = cat_io_xml(out.P.seg8); 
-    seg8t = Sxml.SPMpreprocessing;
+    Sxml          = cat_io_xml(out.P.seg8); 
+    if isfield(Sxml,'error')
+      %tis    = struct();
+      %vx_vol = [];
+      cat_io_cprintf('err','boney.CATpperror: CAT prepreprocessing was not successful. Will went on with next subject. \n'); 
+      %return
+    end
+    if isfield(Sxml,'SPMpreprocessing')
+      seg8t       = Sxml.SPMpreprocessing;
+    else
+      seg8t       = struct('Affine',nan(4),'Affine0',nan(4),'lkp',nan(6),'mn',nan(6),'vr',nan(1,1,6),'ll',nan,'mg',nan(6,1));
+    end
     tmp           = spm_load_priors8(fullfile(spm('dir'),'TPM','TPM.nii'));
     seg8t.tpmA    = tmp;
     seg8t.tpm     = rmfield(tmp.V,'private');
@@ -93,7 +103,11 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
       'vr'     , 'Variance of each Gaussian peak value of each TPM class define by lkp.', ...
       'll'     , 'Final total log-likelyhood of the SPM preprocessing.', ...
       'isCTseg', 'Addditional flat that CTseg was used to process CT data.');
-    vx_vol        = Sxml.qualitymeasures.res_vx_vol;
+    if isfield(Sxml,'qualitymeasures') && isfield(Sxml.qualitymeasures,'res_vx_vol') 
+      vx_vol      = Sxml.qualitymeasures.res_vx_vol;
+    else
+      vx_vol      = nan(1,3); 
+    end
 % ###################
 % In case of CAT we could directly use the QC ratings.
 % ###################
@@ -103,8 +117,9 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
 
 
   %% check for problems and skip in the worst case
-  if max(seg8t.lkp) ~= 6 
-    cat_io_cprintf('err','ERROR: Only 6 class models are supported!\n');
+  if ~isfield(Sxml,'error') && max(seg8t.lkp) ~= 6 
+    tis = struct(); 
+    cat_io_cprintf('err','ERROR:boney.SPMpperror: Only 6 class models are supported yet! Continue with next subject\n');
     return
   end
   % #####################
@@ -132,21 +147,23 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   % create intensity variables
   tis.seg8o           = nan(1,6);
   tis.seg8ov          = nan(1,6);
-  for ci = 1:max(seg8t.lkp) 
-    % The SPM Gaussians seem to be unsorted and sorting based on the mean
-    % value or the variance would be useful 
-    sortvar = 'vr';
-    [~,sorti] = sort( seg8t.(sortvar)(seg8t.lkp==ci) ); 
-    var = seg8t.mn( seg8t.lkp==ci ); tis.seg8mns( seg8t.lkp==ci ) = var(sorti); 
-    var = seg8t.mg( seg8t.lkp==ci ); tis.seg8mgs( seg8t.lkp==ci ) = var(sorti); 
-    var = seg8t.vr( seg8t.lkp==ci ); tis.seg8vrs( seg8t.lkp==ci ) = var(sorti); 
-    
-    % How to average values ... well, when we are interested in changes of
-    % intensities in bone(marrow) and the proportion of fat then (weighted)  
-    % averaging should be fine (will depend on a subject and protocol).
-    % To only use the strongest value is less stable (eg. for the 2-class CSF)
-    tis.seg8o(ci)     = mean(seg8t.mg(seg8t.lkp==ci)' .* seg8t.mn(seg8t.lkp==ci),2);
-    tis.seg8ov(ci)    = mean(seg8t.mg(seg8t.lkp==ci)' .* shiftdim(seg8t.vr(seg8t.lkp==ci),4),2);
+  if ~isfield(Sxml,'error')
+    for ci = 1:max(seg8t.lkp) 
+      % The SPM Gaussians seem to be unsorted and sorting based on the mean
+      % value or the variance would be useful 
+      sortvar = 'vr';
+      [~,sorti] = sort( seg8t.(sortvar)(seg8t.lkp==ci) ); 
+      var = seg8t.mn( seg8t.lkp==ci ); tis.seg8mns( seg8t.lkp==ci ) = var(sorti); 
+      var = seg8t.mg( seg8t.lkp==ci ); tis.seg8mgs( seg8t.lkp==ci ) = var(sorti); 
+      var = seg8t.vr( seg8t.lkp==ci ); tis.seg8vrs( seg8t.lkp==ci ) = var(sorti); 
+      
+      % How to average values ... well, when we are interested in changes of
+      % intensities in bone(marrow) and the proportion of fat then (weighted)  
+      % averaging should be fine (will depend on a subject and protocol).
+      % To only use the strongest value is less stable (eg. for the 2-class CSF)
+      tis.seg8o(ci)     = mean(seg8t.mg(seg8t.lkp==ci)' .* seg8t.mn(seg8t.lkp==ci),2);
+      tis.seg8ov(ci)    = mean(seg8t.mg(seg8t.lkp==ci)' .* shiftdim(seg8t.vr(seg8t.lkp==ci),4),2);
+    end
   end
 
   % test if an image is a CT based on the intensities
