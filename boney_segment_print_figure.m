@@ -703,10 +703,11 @@ function printSurfaces(St,Si,job,out,popts)
       if 1
         % no bone histogram
         cb = cat_surf_render2('Colorbar',h{4});
-        set(cb.colourbar,'Location','South','Position',[0.5 + 0.275 0.015 0.2 0.005]);
-        text(0.5,0.015,'Bonemarrow intensity','fontsize',popts.fontsize-1,'FontName',popts.fontname,...
-          'HorizontalAlignment','center','Parent',hCS{5}); 
-  
+        if isfield(cb,'colourbar')
+          set(cb.colourbar,'Location','South','Position',[0.5 + 0.275 0.015 0.2 0.005]);
+          text(0.5,0.015,'Bonemarrow intensity','fontsize',popts.fontsize-1,'FontName',popts.fontname,...
+            'HorizontalAlignment','center','Parent',hCS{5}); 
+        end
       else
         %% colormap
         axes('Position',[0.965 0.03 0.01 0.28],'Parent',popts.fig); 

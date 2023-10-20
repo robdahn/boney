@@ -89,7 +89,7 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
 
   % get atlas information
   Satlas = cat_surf_fun('isocolors',Ya, CBS, matlab_mm,'nearest');
-  Si.facevertexcdata = Si.facevertexcdata .* (Satlas>0);
+  Si.facevertexcdata = single(Si.facevertexcdata .* (Satlas>0));
   cat_io_FreeSurfer('write_surf_data',out.P.thick,Si.facevertexcdata);
 
   if 0 %#ok<*UNRCH>

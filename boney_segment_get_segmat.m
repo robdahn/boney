@@ -149,7 +149,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   % create intensity variables
   tis.seg8o           = nan(1,6);
   tis.seg8ov          = nan(1,6);
-  if exist('Sxml','var') && ~isfield(Sxml,'error')
+  if ~exist('Sxml','var') || ( exist('Sxml','var') && ~isfield(Sxml,'error') )
     for ci = 1:max(seg8t.lkp) 
       % The SPM Gaussians seem to be unsorted and sorting based on the mean
       % value or the variance would be useful 
