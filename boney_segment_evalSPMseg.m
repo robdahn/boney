@@ -48,9 +48,18 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
     tismri.warning.clsUpdate = (sum( Yc{5}(:)>.5 & Ym(:)<.3 & Ybraindist0(:)<50 ) / sum( Yc{5}(:)>.5 & Ybraindist0(:)<50 ) ) > .2; 
     if tismri.warning.clsUpdate && 0 % ###### INACTIVE ######
       % create a (silent) warning
-      cat_io_addwarning( [mfilename ':needSegUpdate'], ...
-        sprintf('Bad SPM tissue class 5 - probably overestimated (%0.2f)', ...
-        ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) , 1, [1 1], [], 0, job.opts.verb>1);
+      try 
+        cat_io_addwarning( [mfilename ':needSegUpdate'], ...
+          sprintf('Bad SPM tissue class 5 - probably overestimated (%0.2f)', ...
+          ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) , 1, [1 1], [], 0, job.opts.verb>1);
+      catch
+        if job.opts.verb > 1 % print only for expert
+          fprintf('\n');  
+          cat_io_addwarning(  [mfilename ':needSegUpdate'], ...
+            sprintf('Bad SPM tissue class 5 - probably overestimated (%0.2f)', ...
+            ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) );
+        end
+      end
     end
   end
 % ################### 
@@ -116,13 +125,19 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
     % test if any class has more low probability values than high
     tismri.clsQC(ci) = sum(Yc{ci}(:)>.5) ./ sum(Yc{ci}(:)>eps & Yc{ci}(:)<.5 & Ybraindist0(:)<30); 
     if tismri.clsQC(ci)<.5
+      % we add only a note as this one is not so relevant so far
       try
         cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
-          sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)),1,[1 1],0,0,0);
+          sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)), ...
+          0,[1 1],0,0,job.opts.verb>1);
       catch
-        if job.opts.verb > 1, fprintf('\n'); end 
-        cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
-          sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)));
+        % for the old function only if highly verbose
+        if job.opts.verb > 1
+          fprintf('\n');  
+          cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
+            sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)), ...
+            0,[1 1],0,0);
+        end
       end
     end
  

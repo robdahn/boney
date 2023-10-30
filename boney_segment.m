@@ -272,6 +272,7 @@ end
       [ seg8t , tis , vx_vol ] = boney_segment_get_segmat( out(i), job.opts.verb );
       if isempty(vx_vol) || numel(fieldnames(tis))==0
         % in case of problems export the (empty) XML and go on with the next subject 
+% ##### here was maybe a bug or other problem #######        
         cat_io_xml(out(i).P.xml, out(i)); % export to XML
         continue;
       end
