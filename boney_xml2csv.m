@@ -31,7 +31,7 @@ function varagout = boney_xml2csv(job)
 
 
   % maybe we need some predefined structures for better named regions etc.  
-  job.fieldnames = { ...
+  job.fieldnames = [job.fieldnames; { ...
     ... filename
     'P.org';
     ... opts
@@ -46,7 +46,7 @@ function varagout = boney_xml2csv(job)
     'tismri.volfatr'; 'tismri.volmusr'; % relative tissue volumes 
     ... main measures
     'main';
-    };
+    }];
   job.avoidfields = [job.avoidfields; 
     {'tis.headBoneType'; 'tis_headFatType'; 'tismri.warning'}]; % head is not unique
 
@@ -68,6 +68,7 @@ function varagout = boney_xml2csv(job)
         'tismri.vol(01)';  'tismri.vol(02)';  'tismri.vol(03)';  'tismri.vol(04)';  'tismri.vol(05)';  % no BG!
         ... additonal options
         'opts.bias';'opts.ctpm'; 'opts.refine'; 'opts.reduce';
+        'classic';
         } ]; 
     case {'all'}
       xml   = cat_io_xml(job.files(1));
