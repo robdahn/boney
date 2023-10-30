@@ -127,7 +127,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   bmethod.help          = {[ ...
     'Bone processing method using volumes or additional surfaces to extract bone intensities. ' ...
     'Values are normalized for tissue contrast but are still depending on image weighting (e.g., T1, T2, PD, EPI) and image protocol parameters (e.g., fat supression) ' ...
-    'Harmonization (e.g., via external tools such as COMBAT) is recommended. ']; ''};
+    'and harmonization (e.g., via external tools such as COMBAT) is recommended. ']; ''};
 
   classic               = cfg_menu;
   classic.tag           = 'classic';
@@ -169,7 +169,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
     'Without fat supression, the bone marrow can have high intensities that can be mislabed as head. ' ...
     'This can be seen as large local underestimations of bone thickness and bone intensity - ' ...
     'typically well visible on the skull surface. ' ...
-    'Morphological operations were used to close such holes and obtain a complete skull segment. '];''};
+    'Morphological operations were used to close such holes and obtain a more complete skull segment. '];''};
   
   % As this is seen to be stable - reprocessing is generally not required.
   % To support faster reprocessing of the bone measures, it would be nice
@@ -221,7 +221,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   reduce.help           = {
     ['Surface resolution reduction factor supports accurate, robust, and at once fast processing. ' ...
      'Without reduction, surfaces of volumes with about 1 cm resolution typically have 120k vertices in humans. ' ...
-     'For our purpose, the reduction to 2 mm with about 30k surfaces is sufficient. ' ...
+     'But for our purpose the reduction to 2 mm with about 30k surfaces is sufficient. ' ...
      'However, reductions for 3 or 4 times still result in quite similar measurements. ']; ''};
  
   % The idea was to avoid problematic regions in the global case. 
@@ -315,7 +315,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   % - settings for native/affine - affine could be used for ML/DL 
   writevol              = cfg_menu;
   writevol.tag          = 'writevol';
-  writevol.name         = 'Write bone volumes (expert)';
+  writevol.name         = 'Write bone (expert)';
   writevol.labels       = {'No','Native','Affine','Native + Affine'};
   writevol.values       = {0,1,2,3};
   writevol.val          = {0};
@@ -375,7 +375,7 @@ function xml2csv = conf_io_xml2csv(expertgui)
   outdir.filter     = 'dir';
   outdir.ufilter    = '.*';
   outdir.num        = [0 1];
-  outdir.help       = {'Select a directory where files are written.'};
+  outdir.help       = {'Select a directory where files are written. Use current directory if empty.'};
   outdir.val{1}     = {''};
 
 
@@ -385,7 +385,11 @@ function xml2csv = conf_io_xml2csv(expertgui)
   fname.name        = 'Filename';
   fname.strtype     = 's';
   fname.num         = [1 inf];
-  fname.val         = {'Boney_xml.csv'}; 
+  if expertgui
+    fname.val       = {'Boney_xml_REPORT_DATE.csv'}; 
+  else
+    fname.val       = {'Boney_xml_DATE.csv'}; 
+  end
   fname.help        = {'CSV filename.' };
   
   % expert output options
@@ -398,11 +402,17 @@ function xml2csv = conf_io_xml2csv(expertgui)
   fieldnames.num        = [0 inf];
   fieldnames.hidden     = expertgui<1; 
   fieldnames.help       = {
-     'Define keywords or complete fields to limit the extraction (empty = include all), i.e., only fields that include these strings are used. '
-     'In case of catROI-files you can limit the extraction to specific atlas, regions, or tissues. '
-     'In case of cat-files you can limit the extraction to specific parameters ("opts" or "extopts") or QC ratings ("qualityratings"). '
+    ['Define keywords or complete fields to limit the extraction (empty = include all), i.e., ' ...
+     'only fields that include these strings are used. ' ...
+     'In case of catROI-files you can limit the extraction to specific atlas, regions, or tissues. ' ...
+     'In case of cat-files you can limit the extraction to specific parameters ("opts" or "extopts") ' ...
+     'or QC ratings ("qualityratings"). ' ...
+     'The keyword DATE is replace by the data string "YYYYmmDD-HHMMSS".']
      ''
     };
+  if expertgui
+    fieldnames.help = [fieldnames.help(1:end-1);{'The keyword REPORT is replace by the selected export level.';''}]; 
+  end
 
   % avoidfields
   avoidfields            = cfg_entry;
@@ -423,8 +433,13 @@ function xml2csv = conf_io_xml2csv(expertgui)
   report           = cfg_menu;
   report.tag       = 'report';
   report.name      = 'Boney XML export field sets';
-  report.labels    = {'Boney default','Boney details','Boney expert','Only processing parameters','No processing parameters'};
-  report.values    = {'boney_default','boney_details','boney_expert','paraonly'  ,'nopara'       };
+  report.labels    = {'Boney default', 'Boney details', 'Boney expert', ...
+                      ...'Only processing parameters','No processing parameters', ...
+                      'All fields'};
+  report.values    = {'boney_default', 'boney_details', 'boney_expert', ...
+                      ...'paraonly', 'nopara', ...
+                      'all'
+                      };
   report.val       = {'boney_default'}; 
   report.help      = {'Predefined sets of boney XML values in case of "boney_" processing XML files (no effect in other XMLs). '};
 

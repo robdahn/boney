@@ -50,16 +50,19 @@ function varagout = boney_xml2csv(job)
  
   % add extra expert/developer fields
   switch job.report
-    case {'boney_details','boney_expertx','boney_developer'}
+    case {'boney_details','boney_expert','boney_developer'}
       job.fieldnames = [job.fieldnames; {
         'tismri.vol(01)';  'tismri.vol(02)';  'tismri.vol(03)';  'tismri.vol(04)';  'tismri.vol(05)';  % absolute tissue volumes
         'vROI.bonemarrow';'vROI.bonecortex';'vROI.bonethickness';'vROI.headthickness';'vROI.head';
         'sROI.bonecortex';'sROI.bonecortex';'sROI.bonethickness';'sROI.headthickness';'sROI.head';
         } ]; 
+    case {'all'}
+      xml = cat_io_xml(job.files(1));
+      job.fieldnames = unique( [ job.fieldnames; getFN(xml)] ); 
   end
     
   switch job.report
-    case {'boney_expertx','boney_developer'}
+    case {'boney_expert','boney_developer'}
       job.fieldnames = [job.fieldnames; {
         'opts.bias';'opts.ctpm'; 'opts.refine'; 'opts.reduce';
         } ]; 
@@ -70,6 +73,10 @@ function varagout = boney_xml2csv(job)
         'tis.clsQC';
         } ]; 
   end
+
+  % replace DATE by current data
+  job.fname = strrep(job.fname,'DATE',datestr(clock,'YYYYmmDD-HHMMSS'));
+  job.fname = strrep(job.fname,'REPORT',job.report);
 
   varagout{1} = cat_io_xml2csv_boney(job);
 
