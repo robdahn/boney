@@ -4,7 +4,14 @@ function varagout = boney_xml2csv(job)
 %
 %  varagout = boney_xml2csv(job)
 % 
-%  
+%  report 
+%   'boney_default' .. only the most relevant fields that should be clear 
+%                      their naming
+%   'boney_details' .. some additional selected fields 
+%                      (regional, values, parameter)
+%   'boney_expert'  .. more selected fields 
+%                      (all regions, and more paraemter)
+%   'all'           .. just all fields avaible from the the first XML
 % _________________________________________________________________________
 %
 % Robert Dahnke
@@ -35,36 +42,48 @@ function varagout = boney_xml2csv(job)
     'tis.bonecortex'; 'tis.bonemarrow'; 'tis.bonedensity';  'tis.bone'; 'tis.head';   
     ... volume measurements
     'tismri.TIV'; 
-    'tismri.volr(01)'; 'tismri.volr(02)'; 'tismri.volr(03)'; 'tismri.volr(04)'; 'tismri.volr(05)'; % relative tissue volumes 
-    'tismri.volmus'; 'tismri.volfat'; 'tismri.volfatr'; 'tismri.volmusr';
-    ... voxel-based measurements (3-occ,4-rpar,5-lpar)
-    'vROI.bonecortex(03)';    'vROI.bonemarrow(04)';    'vROI.bonemarrow(05)'; 
-    'vROI.bonethickness(03)'; 'vROI.bonethickness(04)'; 'vROI.bonethickness(05)';
-    'vROI.headthickness(03)'; 'vROI.headthickness(04)'; 'vROI.headthickness(05)';
-    ... surface-based measurements
-    'sROI.bonecortex(03)';    'sROI.bonemarrow(04)';    'sROI.bonecortex(05)'; 
-    'sROI.bonethickness(03)'; 'sROI.bonethickness(04)'; 'sROI.bonethickness(05)';
-    'sROI.headthickness(03)'; 'sROI.headthickness(04)'; 'sROI.headthickness(05)';
+    'tismri.volr(01)'; 'tismri.volr(02)'; 'tismri.volr(03)'; ... 'tismri.volr(04)'; 'tismri.volr(05)';
+    'tismri.volfatr'; 'tismri.volmusr'; % relative tissue volumes 
+    ... main measures
+    'main';
     };
+  job.avoidfields = [job.avoidfields; 
+    {'tis.headBoneType'; 'tis_headFatType'; 'tismri.warning'}]; % head is not unique
 
  
   % add extra expert/developer fields
   switch job.report
     case {'boney_details','boney_expert','boney_developer'}
       job.fieldnames = [job.fieldnames; {
-        'tismri.vol(01)';  'tismri.vol(02)';  'tismri.vol(03)';  'tismri.vol(04)';  'tismri.vol(05)';  % absolute tissue volumes
-        'vROI.bonemarrow';'vROI.bonecortex';'vROI.bonethickness';'vROI.headthickness';'vROI.head';
-        'sROI.bonecortex';'sROI.bonecortex';'sROI.bonethickness';'sROI.headthickness';'sROI.head';
+         ... voxel-based measurements (3-occ,4-rpar,5-lpar)
+        'vROI.bonecortex(03)';    'vROI.bonemarrow(04)';    'vROI.bonemarrow(05)'; 
+        'vROI.bonethickness(03)'; 'vROI.bonethickness(04)'; 'vROI.bonethickness(05)';
+        'vROI.headthickness(03)'; 'vROI.headthickness(04)'; 'vROI.headthickness(05)';
+        ... surface-based measurements
+        'sROI.bonecortex(03)';    'sROI.bonemarrow(04)';    'sROI.bonecortex(05)'; 
+        'sROI.bonethickness(03)'; 'sROI.bonethickness(04)'; 'sROI.bonethickness(05)';
+        'sROI.headthickness(03)'; 'sROI.headthickness(04)'; 'sROI.headthickness(05)';
+        ... absolute tissue volumes
+        'tismri.volr(01)'; 'tismri.volr(02)'; 'tismri.volr(03)'; 'tismri.volr(04)'; 'tismri.volr(05)'; % no BG!
+        'tismri.vol(01)';  'tismri.vol(02)';  'tismri.vol(03)';  'tismri.vol(04)';  'tismri.vol(05)';  % no BG!
+        ... additonal options
+        'opts.bias';'opts.ctpm'; 'opts.refine'; 'opts.reduce';
         } ]; 
     case {'all'}
-      xml = cat_io_xml(job.files(1));
-      job.fieldnames = unique( [ job.fieldnames; getFN(xml)] ); 
+      xml   = cat_io_xml(job.files(1));
+      xmlfn = getFN(xml); 
+      xmlfn( ~cellfun('isempty',strfind(xmlfn,'help')) ) = []; 
+      job.fieldnames = unique( [ job.fieldnames; xmlfn ] ); 
   end
     
   switch job.report
     case {'boney_expert','boney_developer'}
       job.fieldnames = [job.fieldnames; {
-        'opts.bias';'opts.ctpm'; 'opts.refine'; 'opts.reduce';
+        'vROI.bonemarrow';'vROI.bonecortex';'vROI.bonethickness';'vROI.headthickness';'vROI.head';
+        'sROI.bonecortex';'sROI.bonecortex';'sROI.bonethickness';'sROI.headthickness';'sROI.head';
+        ...
+        'tismri'; % all tismri Boney measures 
+        'tis';    % all tis SPM measures
         } ]; 
   end
   switch job.report
