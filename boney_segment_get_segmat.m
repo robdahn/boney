@@ -266,6 +266,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
       tis.headBoneType  = 2; 
       tis.headBoneTypen = 'high'; 
     elseif tis.headFatType < 2  &&  minBone < 0.1
+      % #### bug: not working in OASIS3-1260 (detect fat-suppression in on of the rescans
       tis.headBoneType  = 0; 
       tis.headBoneTypen = 'low'; 
     else

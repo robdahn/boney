@@ -164,7 +164,9 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
   [Ybonepp, Ybonethick, Ybonemarrow,Yheadthick] = cat_vol_resize({Ybonepp, Ybonethick, Ybonemarrow,Yheadthick} ,'dereduceV' ,RES); % ############### INTERPOLATION ???
   [Ybonepp, Ybonethick, Ybonemarrow,Yheadthick] = cat_vol_resize({Ybonepp, Ybonethick, Ybonemarrow,Yheadthick} ,'dereduceBrain',BB); 
 
-  if tis.headBoneType == 0 && tis.weighting > 0
+  if tis.headBoneType == 0 && tis.weighting > 0  &&  0 % #########
+    % #### RD20231102: This correction is completely arbitrary and needs
+    % explaination and further test (not working in OASIS3-1260 test-retest
     Ybonemarrow = Ybonemarrow * 3;
   end
   if tis.weighting == -1
