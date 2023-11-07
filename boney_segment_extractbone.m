@@ -132,11 +132,11 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
       else,                             vROI.boneatlas_name{1,rii} = 'full-unmasked'; 
       end
       vROI.nonnanvol(1,rii)         = sum(Ya(:)>intmax('uint16')) ./ numel(Ya(:));
-      vROI.bonemarrow(1,rii)        = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)>1  & Ybonemarrow(:)~=0 & Ybonepp(:)>.8 ) ); 
-      vROI.bonecortex(1,rii)        = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)>1  & Ybonemarrow(:)~=0 ) ); 
-      vROI.bonethickness(1,rii)     = cat_stat_nanmean(   Ybonethick(  Ymsk(:)>1  & Ybonethick(:)~=0  ) ); 
-      vROI.head(1,rii)              = cat_stat_nanmean(   Yskull(      Ymsk(:)>1  & Yskull(:)~=0      ) ); 
-      vROI.headthickness(1,rii)     = cat_stat_nanmean(   Yheadthick(  Ymsk(:)>1  & Yheadthick(:)~=0  ) ); 
+      vROI.bonemarrow(1,rii)        = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)  & Ybonemarrow(:)~=0 & Ybonepp(:)>.8 ) ); 
+      vROI.bonecortex(1,rii)        = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)  & Ybonemarrow(:)~=0 ) ); 
+      vROI.bonethickness(1,rii)     = cat_stat_nanmean(   Ybonethick(  Ymsk(:)  & Ybonethick(:)~=0  ) ); 
+      vROI.head(1,rii)              = cat_stat_nanmean(   Yskull(      Ymsk(:)  & Yskull(:)~=0      ) ); 
+      vROI.headthickness(1,rii)     = cat_stat_nanmean(   Yheadthick(  Ymsk(:)  & Yheadthick(:)~=0  ) ); 
       rii = rii + 1;
     else
       % regional values

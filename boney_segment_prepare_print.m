@@ -42,7 +42,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
   exc = job.opts.bmethod>0 & job.opts.classic;   % show classic 
   exm = job.opts.bmethod;   % show vol and/or surface results
   MA  = {
-  ... name    field0    field1          i format  sep dips
+  ... name    field0    field1          i format  sep disp
     'Tw'      'tis'     'weightingn'    1    's'  0   1
     'Tbg'     'tis'     'highBGn'       1    's'  0   1
     'Tfat'    'tis'     'headFatTypen'  1    's'  0   1
