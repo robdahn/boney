@@ -52,9 +52,11 @@ Furthermore, you can specify which output files to write, e.g., the short bone-r
 ## Results
 For each subject Boney writes a report file and a mat file that include all processed values.  While processing, the major measure of the just processed subject are promted on the command line.  The parameters are group by processing aspects listed in table #.  The T* paramter are derived from the SPM/CAT preprocessing and code major information about the given input MRI.  The following mean thickness (th) or intensity parameters were created volume- or surface-base (v/s) in the masked occiptial-region of the head (H), bone (B) cortex (cor), marrow (mar) or full structure (see table).  Intensity-based measures were normalized for CSF intensity but depend strongly on the protocol.
 
-| nr | parameters | content |
+
+Table: Command-line and report abbreviations: 
+| nr | parameter  | content |
 | -: | ---------- | --------| 
-|  1 | Tw         | MRI image weighting (T1w, T2w, PDw, ...) |
+|  1 | Tw         | MRI image weighting (T1w, T2w, PDw, MTw, IRw) |
 |  2 | Tbg        | Backgound intensity (e.g. low in MPRage, high in many MP2Rage, MT, R1 protocols |
 |  3 | Tfat       | Use of fat suppression protocol that reduces the bone (marrow) intensity that is affected by fat | 
 |  4 | Tres       | RMS resolution quality measure, i.e. weighted-average resolution in mm (lower=better) | 
@@ -69,7 +71,65 @@ For each subject Boney writes a report file and a mat file that include all proc
 | 13 | Tbdns      | SPM-based bone density - volume-ratio between SPM minimum and median Gaussian (expert, only for comparison) |
 | 14 | Tmed(c)    | Volume-based (classic) median bone intensity of the corrected bone (expert, only for comparison) |
 
+
 In addition, a csv-table of the most relevant measures (including tissue volumes) for all subjects is created at the end of the processing. The csv-export batch can be used to create independent table of previously processed data by selecting the XML-reports of interest. 
+
+
+Table: Major XML report fields:
+| struct | group    | function   | content |
+| ------ | -------- | ---------- | --------| 
+| set8t  | SPM      | boney_segment_get_segmat | The main field "seg8t" includes single values from the SPM preprocessing used by SPM12, CAT12, or CTseg. |
+| tis    | SPM      | boney_segment_get_segmat | The main "tis" structure inlcudes SPM-based measures (seg8*,WMth) image resolution (res_*) and major image class values (WM,GM,CSF,bone[cortex|marrow],head,background).
+| tismri | vol      | boney_segment_evalSPMseg | 
+
+
+Table: Detailed XML report fields:
+| struct | group    | parameter    | content |
+| ------ | -------- | ------------ | --------| 
+| set8t  | SPM      | Affine       | Affine transformation matrix from individual to (MNI) template space. |
+| set8t  | SPM      | lkp          | Gaussians for each TPM class. | 
+| set8t  | SPM      | wp           | - | 
+| set8t  | SPM      | mg           | Weighting within each TPM class defined by lkp. | 
+| set8t  | SPM      | mn           | Gaussian peak value of each TPM class define by lkp. |
+| set8t  | SPM      | vr           | Variance of each Gaussian peak value of each TPM class define by lkp. |
+| set8t  | SPM      | ll           | Final total log-likelyhood of the SPM preprocessing. |
+| tis    | SPM      | seg8o        | SPM seg8 main tissue intensity (mn of max mg in lkp). |
+| tis    | SPM      | seg8ov       | SPM seg8 main tissue variance (vr of max mg in lkp). |
+| tis    | SPM      | seg8n        | SPM main tissue intensity (mn of max mg in lkp) normalized by the WM. |
+| tis    | SPM      | seg8nv       | SPM main tissue variance (vr of max mg in lkp) normalized by the WM. |
+| tis    | SPM      | seg8con      | Minimum brain tissue contrast in SPM seg8t. |
+| tis    | SPM      | seg8conn     | Minimum brain tissue contrast in SPM seg8t normalized by the WM. |
+| tis    | SPM      | seg8CNR      | Noise estimate as minimum of the WM and CSF variance in percent (similar to BWP). |
+| tis    | SPM      | WMth         | SPM WM tissue intensity. |
+| tis    | SPM      | res_vx_vol   | Image voxel resolution in mm. |
+| tis    | SPM      | res_RES      | RMS voxel resolution. |
+| tis    | SPM      | weighting(n) | MRI image weighting (T1w, T2w, PDw, MTw, IRw).  |
+| tis    | SPM      | highBG       | RMS voxel resolution. |
+| tis    | SPM      | headFatType  | Protocol intensity type of the head based on SPM seg8t values (0-low[<CSV], 1-mid[<WM], 2-[>WM]).  |
+| tis    | SPM      | boneIntType  | Protocol intensity type of the bone based on SPM seg8t values (0-low[<CSF], 1-mid[<WM], 2-[>WM]). |
+| tis    | SPM      | WM           | Averaged SPM WM intensity. |
+| tis    | SPM      | GM           | Averaged SPM GM intensity. | 
+| tis    | SPM      | CSF          | Averaged SPM CSF intensity. | 
+| tis    | SPM      | bonecortex   | Cortical bone intensity, i.e. "min( seg8.mn( seg8t.lkp==4) )". | 
+| tis    | SPM      | bonemarrow   | Cortical bone intensity, i.e. "min( seg8.mn( seg8t.lkp==4) )". | 
+| tis    | SPM      | bonestruct   | Ratio between cortical and spongy bone. | 
+| tis    | SPM      | bone         | Average bone intensity, i.e. "mean( seg8.mn( seg8t.lkp==4 ) )". | 
+| tis    | SPM      | head         | Average head intensity, i.e. "mean( seg8.mn( seg8t.lkp==5 ) )". | 
+| tis    | SPM      | background   | Averaged SPM background intensity. | 
+| tismri | vol      | TIV          | Total intracranial volume (GM + WM + CSF). | 
+| tismri | vol      | vol          | Volume of the SPM tissues classes in mm (probability >.5). | 
+| tismri | vol      | volr         | Relative volume of the SPM tissues classes (probability >.5) normalized by TIV. | 
+| tismri | vol      | TIV          | Total intracranial volume (GM + WM + CSF). | 
+| tismri | vol      | vol          | Volume of the SPM tissues classes in mm (probability >.5). | 
+| tismri | vol      | volr         | Relative volume of the SPM tissues classes (probability >.5) normalized by TIV. | 
+| tismri | vol      | volfat       | Volume of fat tissue in the masked upper head (simple threshold to separate the head tissues, in mm). | 
+| tismri | vol      | volmus       | Volume of muscle-like tissue in the masked upper head (simple threshold to separate the head tissues, in mm). | 
+| tismri | vol      | volmusr      | Relative volume of muscle-like tissue in the masked upper head (simple threshold to separate the head tissues). | 
+| tismri | vol      | clsQC        | Relation of voxel with high vs. low density within 30 mm distance. | 
+| tismri | vol      | int          | Intensity based evaluated tissue classes: (1) GM: median (=tismri.Tth(1)); (2) WM: median (=tismir.Tth(2)); (3) CSF: median (=tismri.Th(3)); (4) bone: kmeans with 3 classes for bone (1) and bone marrow (3); (5) head: kmeans with 3 classes head (1), muscle (2), and fat (3); (6) bg:  median (=tismri.Th(6)). |
+
+
+
 
 
 ![Bonereport](images/boney_bonereport2_OASIS131.jpg "Shown is the bone report with ... Oups, this report need an update for the histogram...")
