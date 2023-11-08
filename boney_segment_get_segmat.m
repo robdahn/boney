@@ -1,5 +1,5 @@
 function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)   
-%get_segmat. Get and evaluate SPM preprocessing structure.
+%boney_segment_get_segmat. Get and evaluate SPM preprocessing structure.
 %
 %  [seg8t, tis, vx_vol] = get_spm8(P)
 %
@@ -101,8 +101,8 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
       'mg'     , 'Weighting within each TPM class defined by lkp.', ...
       'mn'     , 'Gaussian peak value of each TPM class define by lkp.', ...
       'vr'     , 'Variance of each Gaussian peak value of each TPM class define by lkp.', ...
-      'll'     , 'Final total log-likelyhood of the SPM preprocessing.', ...
-      'isCTseg', 'Addditional flat that CTseg was used to process CT data.');
+      'll'     , 'Final total log-likelihood of the SPM preprocessing.', ...
+      'isCTseg', 'Additional flat that CTseg was used to process CT data.');
     if isfield(Sxml,'qualitymeasures') && isfield(Sxml.qualitymeasures,'res_vx_vol') 
       vx_vol      = Sxml.qualitymeasures.res_vx_vol;
     else
@@ -134,12 +134,12 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   % SPM main tissue thresholds
   tis.help.main       = ['The main "tis" structure inlcudes SPM-based measures (seg8*,WMth), ' ...
                          'image resolution (res_*) and major image class values (WM,GM,CSF,bone[cortex|marrow],head,background).'];
-  tis.help.seg8o      = 'SPM seg8 main tissue intensity (mn of max mg in lkp)';
-  tis.help.seg8ov     = 'SPM seg8 main tissue variance (vr of max mg in lkp)';
-  tis.help.seg8n      = 'SPM main tissue intensity (mn of max mg in lkp) normalized by the WM'; % normalized by WM
-  tis.help.seg8nv     = 'SPM main tissue variance (vr of max mg in lkp) normalized by the WM';
-  tis.help.seg8con    = 'mimimum brain tissue contrast in SPM seg8t'; 
-  tis.help.seg8conn   = 'mimimum brain tissue contrast in SPM seg8t normalized by the WM'; 
+  tis.help.seg8o      = 'SPM seg8 main tissue intensity (mn of max mg in lkp).';
+  tis.help.seg8ov     = 'SPM seg8 main tissue variance (vr of max mg in lkp).';
+  tis.help.seg8n      = 'SPM main tissue intensity (mn of max mg in lkp) normalized by the WM.'; % normalized by WM
+  tis.help.seg8nv     = 'SPM main tissue variance (vr of max mg in lkp) normalized by the WM.';
+  tis.help.seg8con    = 'Minimum brain tissue contrast in SPM seg8t.'; 
+  tis.help.seg8conn   = 'Minimum brain tissue contrast in SPM seg8t normalized by the WM.'; 
   tis.help.seg8CNR    = 'Noise estimate as minimum of the WM and CSF variance in percent (similar to BWP).';
   % ---
   tis.help.WMth       = 'SPM WM tissue intensity.'; 
@@ -240,8 +240,8 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
 
 
   % fat suppression
-  tis.help.headFatType = 'Protocol intensity type of the head based on SPM seg8t values (0-low[<CSV], 1-mid[<WM], 2-[>WM]). ';
-  tis.help.boneIntType = 'Protocol intensity type of the bone based on SPM seg8t values (0-low[<CSV], 1-mid[<WM], 2-[>WM]). ';
+  tis.help.headFatType = 'Protocol intensity type of the head based on SPM seg8t values (0-low[<CSF], 1-mid[<WM], 2-[>WM]). ';
+  tis.help.boneIntType = 'Protocol intensity type of the bone based on SPM seg8t values (0-low[<CSF], 1-mid[<WM], 2-[>WM]). ';
   minBone = min( seg8t.mn (seg8t.lkp==4 & seg8t.mg'>0.05)) / tis.seg8o(2); % hard bone 
   maxBone = max( seg8t.mn (seg8t.lkp==4 & seg8t.mg'>0.05)) / tis.seg8o(2); % bone marrow
   maxHead = max( seg8t.mn (seg8t.lkp==5 & seg8t.mg'>0.05)) / tis.seg8o(2); % fat 
@@ -296,18 +296,18 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
 
 
   % final intensity measures
-  tis.help.WM         = 'averaged SPM WM intensity';  % refined ( max in T1w, otherwise min )
-  tis.help.GM         = 'averaged SPM GM intensity';  % no refinement possible
-  tis.help.CSF        = 'averaged SPM CSF intensity'; % refined ( min in T1w, otherwise max )  
-  tis.help.bonecortex = 'cortical bone intensity, i.e. min( seg8.mn( seg8t.lkp==4) )';  
-  tis.help.bonemarrow = 'spongy bone intensity, i.e. max( seg8.mn( seg8t.lkp==4) )'; 
-  tis.help.bonestruct = 'relation between cortical and spongy bone';
-  tis.help.bone       = 'average bone intensity, i.e. mn( seg8.mn( seg8t.lkp==4 ) )';
-  tis.help.head       = 'average head intensity, i.e. mn( seg8.mn( seg8t.lkp==5 ) )';
-  tis.help.background = 'averaged SPM background intensity';
+  tis.help.WM         = 'Averaged SPM WM intensity.';  % refined ( max in T1w, otherwise min )
+  tis.help.GM         = 'Averaged SPM GM intensity.';  % no refinement possible
+  tis.help.CSF        = 'Averaged SPM CSF intensity.'; % refined ( min in T1w, otherwise max )  
+  tis.help.bonecortex = 'Cortical bone intensity, i.e. "min( seg8.mn( seg8t.lkp==4) )".';  
+  tis.help.bonemarrow = 'Spongy bone intensity, i.e. "max( seg8.mn( seg8t.lkp==4) )".'; 
+  tis.help.bonestruct = 'Ratio between cortical and spongy bone.';
+  tis.help.bone       = 'Average bone intensity, i.e. "mean( seg8.mn( seg8t.lkp==4 ) )".';
+  tis.help.head       = 'Average head intensity, i.e. "mean( seg8.mn( seg8t.lkp==5 ) )".';
+  tis.help.background = 'Averaged SPM background intensity.';
   % not so easy to extract the values from the typical 4 peaks 
-  %tis.help.muscle     = 'normalized protocol-selected values of tis.*Head.'; 
-  %tis.help.fat        = 'normalized protocol-selected values of tis.*Head.'; 
+  %tis.help.muscle     = 'Normalized protocol-selected values of tis.*Head.'; 
+  %tis.help.fat        = 'Normalized protocol-selected values of tis.*Head.'; 
   
   tis.WM              = tis.seg8n(2);
   tis.GM              = tis.seg8n(1);
@@ -326,7 +326,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   if verb == 3
     %% just an internal overview of SPM paraemter
     WMth = seg8t.mn( (seg8t.lkp==2) &  seg8t.mg' == max( seg8t.mg' .* (seg8t.lkp==2) )); % main WM intensity 
-    fprintf('\nTissue table [class; propotion; WM normed intensity; WM normed var; normed var]:\n')
+    fprintf('\nTissue table [class; proportion; WM normed intensity; WM normed var; normed var]:\n')
     disp( [seg8t.lkp; seg8t.mg';  
       seg8t.mn / WMth; shiftdim(seg8t.vr,1)  ./ WMth; % normalized by WM intensity 
       shiftdim(seg8t.vr,1) ./ WMth  .* (seg8t.mn / WMth);  ] ) 

@@ -71,7 +71,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
 % * detect skull-stripping 
 % * detect defacing 
 % * detect WMHs? (as a second peak in WM class)
-% * detect high intesity blood vessels
+% * detect high intensity blood vessels
 % ###################
 
 
@@ -94,9 +94,9 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
   tismri.help.vol     = 'Volume of the SPM tissues classes in mm (probability >.5).';
   tismri.help.volr    = 'Relative volume of the SPM tissues classes (probability >.5) normalized by TIV.';
   tismri.help.volfat  = 'Volume of fat tissue in the masked upper head (simple threshold to separate the head tissues, in mm).'; 
-  tismri.help.volfatr = 'relative volume of fat tissue in the masked upper head (simple threshold to separate the head tissues).'; 
+  tismri.help.volfatr = 'Relative volume of fat tissue in the masked upper head (simple threshold to separate the head tissues).'; 
   tismri.help.volmus  = 'Volume of muscle-like tissue in the masked upper head (simple threshold to separate the head tissues, in mm).'; 
-  tismri.help.volmusr = 'relative volume of muscle-like tissue in the masked upper head (simple threshold to separate the head tissues).'; 
+  tismri.help.volmusr = 'Relative volume of muscle-like tissue in the masked upper head (simple threshold to separate the head tissues).'; 
   tismri.help.clsQC   = 'Relation of voxel with high vs. low density within 30 mm distance. ';
   %tismri.help.Tth     = 'Median intensity of the (optimized) tissue class (~peak intensity).'; 
   %tismri.help.Tiqr    = 'IQR of the intensity of the (optimized) tissue class (~peak intensity).'; 
