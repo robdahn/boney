@@ -52,7 +52,6 @@ Furthermore, you can specify which output files to write, e.g., the short bone-r
 ## Results
 For each subject Boney writes a report file and a mat file that include all processed values.  While processing, the major measure of the just processed subject are promted on the command line.  The parameters are group by processing aspects listed in table #.  The T* paramter are derived from the SPM/CAT preprocessing and code major information about the given input MRI.  The following mean thickness (th) or intensity parameters were created volume- or surface-base (v/s) in the masked occiptial-region of the head (H), bone (B) cortex (cor), marrow (mar) or full structure (see table).  Intensity-based measures were normalized for CSF intensity but depend strongly on the protocol.
 
-
 Table: Command-line and report abbreviations: 
 | nr | parameter  | content |
 | -: | ---------- | --------| 
@@ -157,6 +156,35 @@ In addition, the estimated head fat measure is supported by high correlations wi
 
 ## References
 You can find out more about the bone and skin-fold thickness measures in the paper ...
+
+
+## Supplement
+### Main functions
+Concept and overview with main functions and data-flow chart.
+
+Table of Boney functions with **important** subfunctions and major variables ***vars*** (see table #) stored in the boney XML output.
+| function      | subfunction               | content                                                    |
+| ------------- | ------------------------- | ---------------------------------------------------------- | 
+| **boney_segment** | .                     | Main processing function of the ***Bone segmentation*** batch that uses the following subroutines to extract bone and head specific measures. | 
+| . | (1) **boney_segment_preprocessing**   | Call of SPM or CAT to prepare the MRI images and tissue segments. |
+| . | (2) boney_segment_filenames           | Setup of filenames depending on the selected input files. |
+| . | (3) boney_segment_prepare_print       | Prepare command-line output. | 
+| . | (4) **boney_segment_get_segmat**      | Get SPM and CAT presprocessing structures (***seg8t*** and ***tis*** values) |
+| . | (5.A1) boney_segment_loadMRI          | Load the images and limite the resolution. |
+| . | (5.A2) *boney_segment_simpleBone*     | Original prototype processing functino with "classic" bone measures. |
+| . | (5.A3) boney_segment_evalSPMseg       | Estimate refined tissue peaks on the given images (***tismri*** values). |
+| . | (5.A4) **boney_segment_refineSPM**    | Refine SPM/CAT bone and head classes (high intensity bone tissue is often misslabed as head). |
+| . | (5.A5) **boney_segment_extractbone**  | Estimate the bone/head intensity and thickness maps and parameters (***vROI*** values and ***boney_\*.nii*** volumes files). | 
+| . | (5.A6) **boney_segment_create_bone_surface**  | Create median bone surface and map meassures (***sROI*** values and  ***boney_\*.gii*** surface files). |
+| . | (5.B) **boney_segment_fst**           | Fast processing without refinements just using SPM/CAT parameters. |
+| . | (.) .                                 | Prepare and write XML output (***boney_*.xml***). |
+| . | (6) **boney_segment_print_figure**    | A lot of code to print a result figure with images and surfaces (***boney_report_\*.jpg***) |
+| . | (7) boney_segment_cmdline             | Print results on the command-line. |
+| . | (8) boney_segment_cleanup             | Remove temporary data. |
+| **boney_xml2csv** | cat_io_xml2csv        | XML to CSV export function of the ***XML2CSV*** batch that calls the (interal) cat_io_xml2csv function. |
+
+
+
 
 
 ![](images/AdobeStock_375705917_Preview.jpg "Just a bone pile - Did you know that ...")
