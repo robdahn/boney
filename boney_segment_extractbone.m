@@ -166,7 +166,7 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
 
   if tis.headBoneType == 0 && tis.weighting > 0  &&  0 % #########
     % #### RD20231102: This correction is completely arbitrary and needs
-    % explaination and further test (not working in OASIS3-1260 test-retest
+    % explanation and further test (not working in OASIS3-1260 test-retest
     Ybonemarrow = Ybonemarrow * 3;
   end
   if tis.weighting == -1
