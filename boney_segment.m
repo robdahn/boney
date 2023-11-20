@@ -388,28 +388,15 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
       if exist('sROI','var'), out(i).sROI = sROI;   end
 
 
-      % == additional combined measures for the bone
+      % == final measures for the bone and head ==
+      %  * [v|s]BMDH have to use the inverted measure as the increased  
+      %    intensity of fatty marrow results in weaker bones (lower BMD) 
+      %    with H for the UKB BMD head measure
       if exist('vROI','var')
-        if isfield(out,'classic')
-          out(i).main.vBMDH  = -out(i).vROI.bonecortex(3) + out(i).vROI.bonethickness(1) ...
-                               -out(i).classic.bone_med   + out(i).vROI.bonethickness(3); % best for BMDH
-        else
-          out(i).main.vBMDH  = -out(i).vROI.bonecortex(3) * 2 + out(i).vROI.bonethickness(1) ...
-                                                              + out(i).vROI.bonethickness(3); % best for BMDH
-        end
+        out(i).main.vBMDH = -out(i).vROI.bonecortex(3);
       end
       if exist('sROI','var')
-        if isfield(out,'classic')
-          out(i).main.sBMDH  = -out(i).sROI.bonecortex(3) + out(i).sROI.bonethickness(1) ...
-                               -out(i).classic.bone_med   + out(i).sROI.bonethickness(3);
-          out(i).main.sBMDH2 = -out(i).sROI.bonecortex(3) + out(i).sROI.bonethickness(3) ...
-                               -out(i).classic.bone_med   + out(i).sROI.bonemarrow(3);
-        else
-          out(i).main.sBMDH  = -out(i).sROI.bonecortex(3) * 2 + out(i).sROI.bonethickness(1) ...
-                                                              + out(i).sROI.bonethickness(3);
-          out(i).main.sBMDH2 = -out(i).sROI.bonecortex(3) * 2 + out(i).sROI.bonethickness(3) ...
-                                                              + out(i).sROI.bonemarrow(3);
-        end
+        out(i).main.sBMDH = -out(i).sROI.bonecortex(3);
       end
 
 
