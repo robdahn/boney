@@ -49,20 +49,20 @@ Furthermore, you can specify which output files to write, e.g., the short bone-r
 
 
 ## Results
-For each subject Boney writes a report file and a mat file that include all processed values.  While processing, the major measure of the just processed subject are promted on the command line.  The parameters are group by processing aspects listed in table #.  The T* paramter are derived from the SPM/CAT preprocessing and code major information about the given input MRI.  The following mean thickness (th) or intensity parameters were created volume- or surface-base (v/s) in the masked occiptial-region of the head (H), bone (B) cortex (cor), marrow (mar) or full structure (see table).  Intensity-based measures were normalized for CSF intensity but depend strongly on the protocol.
+Boney writes a report file and a mat file that include all processed values for each individual. The most important measures are prompted on the command line while processing. The parameters are grouped by processing aspects listed in table #.  The T* parameters are derived from SPM/CAT preprocessing and provide important information about the given MRI input. We estimate thickness (th) or intensity parameters, which can be volume- or surface-based (v/s) in the masked occipital region of the head (H), bone cortex (Bcor), bone marrow (Bmar), or full structure (see table). Intensity-based measures were normalized for CSF intensity but depend strongly on the protocol.
 
 Table: Command-line and report abbreviations: 
 | nr | parameter  | content |
 | -: | ---------- | --------| 
 |  1 | Tw         | MRI image weighting (T1w, T2w, PDw, MTw, IRw) |
 |  2 | Tbg        | Backgound intensity (e.g. low in MPRage, high in many MP2Rage, MT, R1 protocols |
-|  3 | Tfat       | Use of fat suppression protocol that reduces the bone (marrow) intensity that is affected by fat | 
+|  3 | Tfat       | Use of fat suppression protocol that reduces the bone (marrow) intensity | 
 |  4 | Tres       | RMS resolution quality measure, i.e. weighted-average resolution in mm (lower=better) | 
-|  5 | Tcnr       | Contrast-to-noise ratio to roughly quantify image quality and presents of motion artifacts (lower=better)|
+|  5 | Tcnr       | Contrast-to-noise ratio to roughly quantify image quality and the presence of motion artifacts (lower=better)|
 |  6 | v/sBmar    | Volume/surface-based bone marrow measure |
 |  7 | v/sBcor    | Volume/surface-based bone cortex measure (~bone mineral density) | 
-|  8 | v/sBth     | Volume/surface-based bone thickness (marrow and cortex) |
-|  9 | v/sHth     | Volume/surface-based head thickness (fat muscles) |
+|  8 | v/sBth     | Volume/surface-based bone thickness (diploë and cortex) |
+|  9 | v/sHth     | Volume/surface-based head thickness (fat and muscles) |
 | 10 | v/sHmed    | Volume/surface-based head intensity (median of all voxel-values, protocol dependent!) |
 | 11 | Tbcor      | SPM-based bone cortex intensity - the minimum of the typically 3 Gaussians of the unified segmentation (basic measure only for debugging/tests/comparison) |
 | 12 | Tbmar      | SPM-based bone cortex intensity - the maximum of the typically 3 Gaussians of the unified segmentation (basic measure only for debugging/tests/comparison) |
@@ -70,7 +70,7 @@ Table: Command-line and report abbreviations:
 | 14 | Tmed(c)    | Volume-based (classic) median bone intensity of the corrected bone (expert, only for comparison) |
 
 
-In addition, a csv-table of the most relevant measures (including tissue volumes) for all subjects is created at the end of the processing. The csv-export batch can be used to create independent table of previously processed data by selecting the XML-reports of interest. 
+In addition, a csv-table of the most relevant measures (including brain tissue volumes) is created at the end of the processing. The csv-export batch can be used to create independent table of previously processed data by selecting the XML-reports of interest. 
 
 
 Table: Major XML report fields:
@@ -133,8 +133,8 @@ Table: Detailed XML report fields:
 ![Bonereport](images/boney_bonereport2_OASIS131.jpg "Shown is the bone report with ... Oups, this report need an update for the histogram...")
 Figure: Bonereport with (1) Table 1 with the tissue intensities and absolute/relative volumes, (2) Table 2 with specific bone and head values (see abbreviations for details, (3) a histogram with the major values, (4) two volumes (i) the orignal image with bone and fat overlay and (ii) the normalized bone intensities with GM, WM and head (HD) segment for orientation, and (5) two surface sets (i) with bone thickness (and atlas boundaries) and (ii) the bone marrow intensity.  
 Abbreviations: 
-Table 1: GM=grey matter, WM=white matter, CSF=cerebrospinalfluid, BG=background, TPM=tissue probability map, Norm.Med.Int.=normalized median intensity.
-Table 2: Tw=image weighting, Tres=root mean square resolution rating, Tbg=background type, Tfat=heat fat suppression type, Tbone=bone fat intensity, sBcor=surface-base bone-cortex intensity, sBmar=surface-based bone-marrow intensity, sBth=surface-based bone thickness, sHth=surface-based head thickness.
+Table 1: GM = grey matter, WM = white matter, CSF = cerebrospinal fluid, BG = background, TPM = tissue probability map, Norm. Med. Int. = normalized median intensity.
+Table 2: Tw = image weighting, Tres = root mean square resolution rating, Tbg = background type, Tfat = heat fat suppression type, Tbone = bone fat intensity, sBcor = surface-based bone-cortex intensity, sBmar = surface-based bone-marrow intensity, sBth = surface-based bone thickness, sHth = surface-based head thickness.
 
 
 ## Validation
@@ -161,7 +161,7 @@ You can find out more about the bone and skin-fold thickness measures in the pap
 ### Main functions
 Concept and overview with main functions and data-flow chart.
 
-Table of Boney functions with **important** subfunctions and major variables ***vars*** (see table #) stored in the boney XML output.
+Table of Boney functions with **important** subfunctions and variables ***vars*** (see table #) stored in the boney XML output.
 | order    | (sub)function / directories       | content                                                    |
 | -------- | --------------------------------- | ---------------------------------------------------------- | 
 | **1**    | **boney_segment**                 | Main processing function of the ***Bone segmentation*** batch that uses the following subroutines to extract bone and head specific measures. | 
@@ -172,10 +172,10 @@ Table of Boney functions with **important** subfunctions and major variables ***
 | 1.5.A1   | boney_segment_loadMRI             | Load the images and limite the resolution. |
 | 1.5.A2   | *boney_segment_simpleBone*        | Original prototype processing functino with "classic" bone measures. |
 | 1.5.A3   | boney_segment_evalSPMseg          | Estimate refined tissue peaks on the given images (***tismri*** values). |
-| 1.5.A4   | **boney_segment_refineSPM**       | Refine SPM/CAT bone and head classes (high intensity bone tissue is often misslabed as head). |
+| 1.5.A4   | **boney_segment_refineSPM**       | Refined SPM/CAT bone and head classes (high intensity bone tissue is often misslabed as head). |
 | 1.5.A5   | **boney_segment_extractbone**     | Estimate the bone/head intensity and thickness maps and parameters (***vROI*** values and ***boney_\*.nii*** volumes files). | 
 | 1.5.A6   | **boney_segment_create_bone_surface**  | Create median bone surface and map meassures (***sROI*** values and  ***boney_\*.gii*** surface files). |
-| 1.5.B    | **boney_segment_fst**             | Fast processing without refinements just using SPM/CAT parameters. |
+| 1.5.B    | **boney_segment_fst**             | Fast processing without refinements, just using SPM/CAT parameters. |
 | 1.6      | .                                 | Prepare and write XML output (***boney_*.xml***). |
 | 1.7      | **boney_segment_print_figure**    | A lot of code to print a result figure with images and surfaces (***boney_report_\*.jpg***) |
 | 1.8      | boney_segment_cmdline             | Print results on the command-line. |
