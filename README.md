@@ -169,8 +169,8 @@ Table of Boney functions with **important** subfunctions and variables ***vars**
 | 1.2      | boney_segment_filenames           | Setup of filenames depending on the selected input files. |
 | 1.3      | boney_segment_prepare_print       | Prepare command-line output. | 
 | 1.4      | **boney_segment_get_segmat**      | Get SPM and CAT presprocessing structures (***seg8t*** and ***tis*** values) |
-| 1.5.A1   | boney_segment_loadMRI             | Load the images and limite the resolution. |
-| 1.5.A2   | *boney_segment_simpleBone*        | Original prototype processing functino with "classic" bone measures. |
+| 1.5.A1   | boney_segment_loadMRI             | Load the images and limit the resolution. |
+| 1.5.A2   | *boney_segment_simpleBone*        | Original prototype processing function with "classic" bone measures. |
 | 1.5.A3   | boney_segment_evalSPMseg          | Estimate refined tissue peaks on the given images (***tismri*** values). |
 | 1.5.A4   | **boney_segment_refineSPM**       | Refined SPM/CAT bone and head classes (high intensity bone tissue is often misslabed as head). |
 | 1.5.A5   | **boney_segment_extractbone**     | Estimate the bone/head intensity and thickness maps and parameters (***vROI*** values and ***boney_\*.nii*** volumes files). | 
