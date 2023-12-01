@@ -46,7 +46,7 @@ use_vals   = {
 
 
 % loop over the cases defined per use_vals rows
-for uvi = 1 %:size(use_vals,1)
+for uvi = 1:size(use_vals,1)
   %% prepare smaller tables
   men_corr2   = men_corr(   [1 1+use_vals{uvi,1}] , [1 1+use_vals{uvi,2}])'; 
   men_pval2   = men_pval(   [1 1+use_vals{uvi,1}] , [1 1+use_vals{uvi,2}])'; 
@@ -57,7 +57,7 @@ for uvi = 1 %:size(use_vals,1)
 
   % create figure
   fg = 11; fgh = figure(fg);  clf(fg);  fgh.Color = [1 1 1];  colormap(jet);
-  fgh.Position(3:4) = [100 + 60*size( men_corr2 ,1 )   100 + 20*size( men_corr2 ,1 ) ]; 
+  fgh.Position(3:4) = [100 + 60*size( men_corr2 ,2 )   100 + 20*size( men_corr2 ,1 ) ]; 
 
   % title 
   ha = annotation('textbox',[0.005 0.92 0.99 0.08],'string',...
@@ -70,7 +70,7 @@ for uvi = 1 %:size(use_vals,1)
   
 
   % plot for both sexes - print a matix a a specific position 
-  sb1 = subplot('Position', [0.20  0.45 - 0.01*size( men_corr2 ,1 )  0.237   .3 + 0.02*size( men_corr2 ,1 ) ]); hold on
+  sb1 = subplot('Position', [0.20  0.45 - 0.01*size( men_corr2 ,1 )  0.23   .3 + 0.02*size( men_corr2 ,1 ) ]); hold on
   im                      = imagesc( cell2mat(both_corr2(2:end,2:end)) ); 
   im.AlphaData            = min(1,max(0,1/6 * log10(10e-2 ./ cell2mat(both_pval2(2:end,2:end) )))); 
   for uvix = 1:size(men_corr2,1),  plot([uvix uvix]+.5,[1 22]-.5,'Color',[0.9 0.9 0.9]); end
@@ -92,7 +92,7 @@ for uvi = 1 %:size(use_vals,1)
   
 
   % women
-  sb2 = subplot('Position', sb1.Position + [0.24 0 0 0]); hold on
+  sb2 = subplot('Position', sb1.Position + [0.232 0 0 0]); hold on
   im                      = imagesc( cell2mat(women_corr2(2:end,2:end)) ); 
   im.AlphaData            = min(1,max(0,1/6 * log10(10e-2 ./ cell2mat(women_pval2(2:end,2:end))) )); 
   for uvix = 1:size(men_corr2,1),  plot([uvix uvix]+.5,[1 22]-.5,'Color',[0.9 0.9 0.9]); end
@@ -111,7 +111,7 @@ for uvi = 1 %:size(use_vals,1)
   
 
   % men 
-  sb3 = subplot('Position', sb2.Position + [0.24 0 0 0]); hold on
+  sb3 = subplot('Position', sb2.Position + [0.232 0 0 0]); hold on
   im                      = imagesc( cell2mat(men_corr2(2:end,2:end)) ); 
   im.AlphaData            = min(1,max(0,1/6 * log10(10e-2 ./ cell2mat(men_pval2(2:end,2:end))) )); 
   for uvix = 1:size(men_corr2,1),  plot([uvix uvix]+.5,[1 22]-.5,'Color',[0.9 0.9 0.9]); end
@@ -132,7 +132,7 @@ for uvi = 1 %:size(use_vals,1)
  
   % Legend with colortable to code the r-values by color and p-values by
   % transparency.
-  subplot('Position',[0.925 sb3.Position(2) 0.045 sb3.Position(4)]); hold on
+  subplot('Position',[0.91 sb3.Position(2) 0.045 sb3.Position(4)]); hold on
   im                      = imagesc( repmat( flip( (-1:.1:1)' ,2 ), 1 , 4) );
   im.AlphaData            = repmat( min(1,max(0,1/6 * log10(10e-2 ./  [10e-2 10e-4 10e-6 10e-8]) )), 21 , 1);   
   ax                      = gca; 
