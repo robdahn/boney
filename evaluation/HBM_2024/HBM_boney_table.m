@@ -77,7 +77,7 @@ for uvi = 1 %:size(use_vals,1)
   for uvix = 1:size(men_corr2,2), plot([1 22]-.5,[uvix uvix]+.5,'Color',[0.9 0.9 0.9]); end
   for uvix = use_vals{uvi,5}, plot([uvix uvix]+.5,[1 size(both_corr2,1)]-.5,'Color',[0 0 0]); end
   for uvix = use_vals{uvi,4}, plot([1 size(both_corr2,2)]-.5,[uvix uvix]+.5,'Color',[0 0 0]); end
-  xlim([0.5 size(both_corr2,2)-.5]); ylim([0.5 size(both_corr2,1)-.5]); clim([-1 1]);
+  xlim([0.5 size(both_corr2,2)-.5]); ylim([0.5 size(both_corr2,1)-.5]); caxis([-1 1]);
   % no we have to update the axis labels 
   ax                      = gca; 
   ax.TickLength           = [0 0];
@@ -99,7 +99,7 @@ for uvi = 1 %:size(use_vals,1)
   for uvix = 1:size(men_corr2,2), plot([1 22]-.5,[uvix uvix]+.5,'Color',[0.9 0.9 0.9]); end
   for uvix = use_vals{uvi,5}, plot([uvix uvix]+.5,[1 size(both_corr2,1)]-.5,'Color',[0 0 0]); end
   for uvix = use_vals{uvi,4}, plot([1 size(both_corr2,2)]-.5,[uvix uvix]+.5,'Color',[0 0 0]); end
-  xlim([0.5 size(both_corr2,2)-.5]); ylim([0.5 size(both_corr2,1)-.5]); clim([-1 1]);
+  xlim([0.5 size(both_corr2,2)-.5]); ylim([0.5 size(both_corr2,1)-.5]); caxis([-1 1]);
   ax = gca; ax.TickLength = [0 0];
   ax.XTick                = 1:numel( both_corr2(1,2:end) ); 
   ax.XTickLabel           = cat_io_strrep( both_corr2(1,2:end) ,'_','\_');
@@ -118,7 +118,7 @@ for uvi = 1 %:size(use_vals,1)
   for uvix = 1:size(men_corr2,2), plot([1 22]-.5,[uvix uvix]+.5,'Color',[0.9 0.9 0.9]); end
   for uvix = use_vals{uvi,5}, plot([uvix uvix]+.5,[1 size(both_corr2,1)]-.5,'Color',[0 0 0]); end
   for uvix = use_vals{uvi,4}, plot([1 size(both_corr2,2)]-.5,[uvix uvix]+.5,'Color',[0 0 0]); end
-  xlim([0.5 size(both_corr2,2)-.5]); ylim([0.5 size(both_corr2,1)-.5]); clim([-1 1]);
+  xlim([0.5 size(both_corr2,2)-.5]); ylim([0.5 size(both_corr2,1)-.5]); caxis([-1 1]);
   ax                      = gca; 
   ax.TickLength           = [0 0];
   ax.XTick                = 1:numel( both_corr2(1,2:end) ); 
