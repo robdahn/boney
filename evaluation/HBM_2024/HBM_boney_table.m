@@ -13,11 +13,11 @@ boneyEvalDir = fileparts(which('HBM_boney_table.m'));
 
 
 % load correlation data prepared in R
-men_corr   = cat_io_csv(fullfile(boneyEvalDir,'men_corr_Boney.csv'));
+men_corr   = cat_io_csv(fullfile(boneyEvalDir,'men_cor_Boney.csv'));
 men_pval   = cat_io_csv(fullfile(boneyEvalDir,'men_pval_Boney.csv'));
-women_corr = cat_io_csv(fullfile(boneyEvalDir,'women_corr_Boney.csv'));
+women_corr = cat_io_csv(fullfile(boneyEvalDir,'women_cor_Boney.csv'));
 women_pval = cat_io_csv(fullfile(boneyEvalDir,'women_pval_Boney.csv'));
-both_corr  = cat_io_csv(fullfile(boneyEvalDir,'boney_correlation_proper.csv')); 
+both_corr  = cat_io_csv(fullfile(boneyEvalDir,'boney_correlation.csv')); 
 both_pval  = cat_io_csv(fullfile(boneyEvalDir,'boney_cor_pval.csv'));
 
 % map upper diagnal values (corrected for multiple comparisions) to lower side
@@ -31,8 +31,8 @@ both_pvalv = both_pvalv .* triu(ones(size(both_pvalv)),1)  +  both_pvalv' .* tri
 both_pval(2:end,2:end) = num2cell( both_pvalv ); 
 
 % replace some strings in the header lines
-both_corr{contains(both_corr(:,1)  ,'femur_BMD'),1} = 'BMD_femur';
-both_corr{1,contains(both_corr(1,:),'femur_BMD')  } = 'BMD_femur';
+both_corr{contains(both_corr(:,1)  ,'BMD femur'),1} = 'BMD femur';
+both_corr{1,contains(both_corr(1,:),'BMD femur')  } = 'BMD femur';
 
 % We want to create multipe talbes with specific focus, i.e. to evaluate 
 % the bone and then fat measures separatly or together. 
@@ -88,7 +88,7 @@ for uvi = 1:size(use_vals,1)
   ax.YTickLabel           = cat_io_strrep( both_corr2(2:end,1) ,'_','\_');
   ax.FontSize             = fontsize; 
   ax.YDir                 = 'reverse';
-  title('both sexes','FontSize',fontsize); box on
+  title('full sample','FontSize',fontsize); box on
   
 
   % women
@@ -153,7 +153,7 @@ for uvi = 1:size(use_vals,1)
   
  
   % save image
-  saveas(gcf,fullfile(boneyEvalDir,sprintf('HBM_2024_table%02d.png', uvi ))); 
+  saveas(gcf,fullfile(sprintf('HBM_2024_table%02d.png', uvi ))); 
 
 end
 
