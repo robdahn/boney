@@ -92,7 +92,7 @@ function matlabbatch = SPM_preprocessing(P,Ptmp,bias)
   matlabbatch{1}.spm.spatial.preproc.channel.biasfwhm    = 60 - 30*bias;
   matlabbatch{1}.spm.spatial.preproc.channel.write       = [0 1]; % write bias corrected image
   % use default classes (a skull-stripped case is irrelevant here ;-)
-  ngaus = [1 1 2 4 3 2]; 
+  ngaus = [1 1 2 3 4 2]; 
   for ti = 1:6
     matlabbatch{1}.spm.spatial.preproc.tissue(ti).tpm    = {sprintf('%s,%d',Ptmp,ti)};
     matlabbatch{1}.spm.spatial.preproc.tissue(ti).ngaus  = ngaus(ti);
