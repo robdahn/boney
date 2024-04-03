@@ -72,7 +72,7 @@ function boney = tbx_cfg_boney
     verb.values       = [ verb.values, {2} ];
     verb.help         = {'Verbose processing. Currently with details to support more information in testing. '};
   end
-  verb.val            = {max(1,expertgui)}; 
+  verb.val            = {1}; % RD202403: avoid details {max(1,expertgui)}; 
   verb.hidden         = expertgui<1; 
   
   
@@ -161,15 +161,18 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   refine                = cfg_menu;
   refine.tag            = 'refine';
   refine.name           = 'Refine preprocessing (expert)';
-  refine.labels         = {'No','Yes'};
-  refine.values         = {0,1};
-  refine.val            = {1};
+  refine.labels         = {'No','Yes','Yes - enhanced'};
+  refine.values         = {0,1,2};
+  refine.val            = {2};
   refine.hidden         = expertgui<1;
   refine.help           = {[ ...
     'Without fat supression, the bone marrow can have high intensities that can be mislabed as head. ' ...
     'This can be seen as large local underestimations of bone thickness and bone intensity - ' ...
     'typically well visible on the skull surface. ' ...
-    'Morphological operations were used to close such holes and obtain a more complete skull segment. '];''};
+    'Morphological operations were used to close such holes and obtain a more complete skull segment. '];'';
+   ['The enhanced version did a precorrection of the background and brainmask to estimate a distance-based refinement guided by atlas regions. ' ...
+    'It follows the assumption that head and skull have some 50:50 relation in thinner skull-regions, that would be covered by a hat, to correct severe outliers. '];'';
+   };
   
   % As this is seen to be stable - reprocessing is generally not required.
   % To support faster reprocessing of the bone measures, it would be nice
@@ -296,6 +299,30 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   report.help           = {['Write JPG report file with values only (Basic) or ' ...
     'additional volume and available surfaces (Full) into a "report" subdirectory.'];''};
 
+  resdir                = cfg_entry;
+  resdir.tag            = 'resdir';
+  resdir.name           = '(Relative) folder';
+  resdir.strtype        = 's';
+  resdir.num            = [0 Inf];
+  resdir.val            = {'../derivatives/boney'};
+  resdir.hidden         = expertgui<1;
+  resdir.help           = {
+   ['Use relative directory structure for storing data although if it is not BIDS conform.  ' ...
+    'This alternative definion based on the depth of the file, controlled here by the repetition of "../" ' ...
+    'is keeping subdirectories to be more robust in case of a regular but non-BIDS structure without default directory ' ...
+    'naming "sub-##/ses-##/anat" and similar filenames, e.g. for "../../derivatives/CAT##.#_#" and the following files:'];
+    '   ../group-01/sub-01/t1w.nii';
+    '   ../group-01/sub-02/t1w.nii';
+    'it results in:'; 
+    '   ../derivatives/CAT##.#_#/group-01/sub-01/t1w.nii';
+    '   ../derivatives/CAT##.#_#/group-01/sub-02/t1w.nii';
+    'rather than:';
+    '   ../derivatives/CAT##.#_#/t1w.nii';
+    '   ../derivatives/CAT##.#_#/t1w.nii';
+    'where the relative BIDS folder would also cause conflicts by overwriting results.';
+    '';
+    };
+
   % alternative naming: delete temporary segmetation files
   % - not sure if data can be compressed in one image - maybe as shell
   %   model with PVE to have just one volume (should be fine enough)
@@ -316,8 +343,8 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   writevol              = cfg_menu;
   writevol.tag          = 'writevol';
   writevol.name         = 'Write bone (expert)';
-  writevol.labels       = {'No','Native','Affine','Native + Affine'};
-  writevol.values       = {0,1,2,3};
+  writevol.labels       = {'No','Native','Warped','Affine','Native + Affine + Warped'};
+  writevol.values       = {0,1,2,3,4};
   writevol.val          = {0};
   writevol.hidden       = expertgui<1;
   writevol.help         = {'Write refined bone segment volumes used for extraction into a "vol" subdirectory';''};
@@ -337,7 +364,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   output                = cfg_exbranch;
   output.tag            = 'output';
   output.name           = 'Output';
-  output.val            = { report , writeseg, writevol , writesurf }; 
+  output.val            = { resdir , report , writeseg, writevol , writesurf }; 
   output.help           = {'Specify output parameters. The main results are written as XML/MAT file into a "report" subdirectory.' ''};
 
 
