@@ -686,7 +686,11 @@ function printSurfaces(St,Si,job,out,popts)
       V      = (Rigid * ([Si.vertices, ones(size(Si.vertices,1),1)])' )'; V(:,4) = []; Si.vertices = V;
   
       for ci = 1:4
-        h{ci} = cat_surf_render2(Si,'parent',hCS{ci}); 
+        try
+          h{ci} = cat_surf_render2(Si,'parent',hCS{ci}); 
+        catch 
+          cat_io_cprintf('err','cat_surf_render2 error\n');
+        end
         if out.tis.weighting < 0 
           cat_surf_render2('Clim',h{ci},[500 1500]); 
         else
