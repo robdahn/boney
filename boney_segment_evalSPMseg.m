@@ -171,17 +171,66 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
       case 4
         % ################### needs refinement depending on number ###########
         if seg8t.isCTseg 
-          tismri.int.bone = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),2); 
+          tismri.int.bone = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.5,'e')),2); 
           tismri.Tth(ci)  = mean(tismri.int.bone);
         else
-          tismri.int.bone = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
+          %%
+          Ymx = Yc{4}>.25 & Ym<.5;
+          Ybx = cat_vol_localstat(Ym ,Ymx,1,2,1);  
+          Ybx = cat_vol_localstat(Ybx,Ymx,1,1,1);
+          tismri.int.bone_cortex = median(Ybx(Ymx(:))); 
+          
+          Ymx = smooth3( Yc{4}>.5 & Ym>tismri.int.bone_cortex * 2 ) > .5;
+          Ybx = cat_vol_localstat(Ym ,Ymx,1,3,2);  
+          Ybx = cat_vol_localstat(Ybx,Ymx,1,1,2);
+          tismri.int.bone_marrow = median(Ybx(Ymx(:) & Ym(:)>1));
+
+          Ymx = smooth3( Yc{4}>.5 & Ym>tismri.int.bone_cortex * 2) > .5 & Ym<1.5;
+          Ybx = cat_vol_localstat(Ybx,Ymx,2,1,2);
+          mn  = cat_stat_kmeans(Ybx(Ymx(:) & Ybx(:)>0),3); 
+          tismri.int.bone_marrow_red = mn(2);
+          
+          tismri.int.bone = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.5,'e')),3); 
           tismri.Tth(ci)  = tismri.int.bone(3);
         end
        
       case 5
-        % ################### needs refinement depending on number ###########
+        %% ################### needs refinement depending on number ###########
+        Ybrainskulldist   = cat_vbdist( Yc{1} + Yc{2} + Yc{3} + Yc{4} ) / mean(vx_vol);
+       
+        Ymx = smooth3( Yc{5}>.5 & Ym > tismri.int.bone_cortex * 4 ) > .5 & Ybrainskulldist<60;
+        Ybx = cat_vol_localstat(Ym ,Ymx,1,3,3);  
+        Ybx = cat_vol_localstat(Ybx,Ymx,1,1,2);
+        mn  = cat_stat_kmeans(Ybx(Ymx(:) & Ybx(:)>0),2); 
+        tismri.int.head_fat = mn(2);
+        tismri.head_fat = mn(2);
+%%   
+        Yg  = cat_vol_grad(Ym); 
+        Ymx = smooth3( Yc{5}>.5 & Ym > tis.bonecortex * 2 & Ym<1 & Yg<.5 ) > .5 & Ybrainskulldist<60;
+        Ybx = cat_vol_localstat(Ym ,Ymx,1,1,1);  
+        mn  = cat_stat_kmeans(Ybx(Ymx(:)>.5),2); 
+        tismri.int.head_muscle = mn(2);
+        tismri.head_muscle = mn(2);
+        %{
         tismri.int.head   = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
         tismri.Tth(ci)    = tismri.int.head(3);
+        
+          
+        Ymus              = Yc{5}>.5 & Ym>mean([tis.CSF,tis.GM]) & Ym<.9; 
+        Ymus              = cat_vol_morph(smooth3(Ymus)>.5,'o'); 
+        if tis.headFatType == 0
+          Yfat            = Yc{5}>.5 & Ym>( cat_stat_nanmedian(Ym(Ymus(:)))  +  2*cat_stat_nanmedian(Ym(Ymus(:))) ); 
+        else
+          if tis.highBG 
+            Yfat          = Yc{5}>.5 & ~Ymus;
+          else
+            Yfat          = Yc{5}>.5 & ~Ymus & Ym>tis.background*2;
+          end
+        end
+        tismri.head_muscle = cat_stat_nanmedian(Ym(Ymus(:) & Ybrainskulldist(:) < 60));
+        tismri.head_fat    = cat_stat_nanmedian(Ym(Yfat(:) & Ybrainskulldist(:) < 60));
+        %}
+
       otherwise
         [Yir,Ymr]         = cat_vol_resize( {Yo .* (Yc{ci}>.5),(Yc{ci}>.9)} ,'reduceV' ,1,2,32,'meanm'); 
         tismri.Tth(ci)    = cat_stat_nanmedian(Yir(Ymr>.5));
