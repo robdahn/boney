@@ -107,7 +107,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
   else
   % just a simple BG/WM based normalization
     if tis.weighting == 2 % MT
-      Ym = (Yo - min([-.5 tis.seg8o ])) / (tis.seg8o(2) - min([-.5 tis.seg8o ]));
+      Ym = (Yo - min([-.5 tis.intnorm(1) ])) / ( tis.intnorm(2) - min([-.5 tis.intnorm(1) ]));
     elseif tis.weighting == -1 % CT
       if job.opts.normCT
         Ym = (Yo - min( tis.seg8o )) / max(tis.seg8o(:) - min(tis.seg8o(:)));
@@ -115,7 +115,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
         Ym = Yo;
       end
     else
-      Ym = (Yo - min( tis.seg8o )) / (tis.seg8o(2) - min([tis.seg8o(3),tis.seg8o(end)]));
+      Ym = (Yo - tis.intnorm(1) ) / (tis.intnorm(2)  - tis.intnorm(1) );
     end
   end
 
@@ -239,7 +239,13 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
   [Yo,Ym,RES] = cat_vol_resize({Yo,Ym} ,'reduceV'  ,tis.res_vx_vol,job.opts.reslim,16,'meanm');
   Ya          = cat_vol_resize(Ya      ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'nearest');
   Ymsk        = cat_vol_resize(Ymsk    ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'meanm') > 0.5;
+  Ysum        = zeros(size(Ym),'single'); 
   for ci = 1:numel(Yc)
     Yc{ci} = cat_vol_resize(Yc{ci},'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'meanm');
+    Ysum   = Ysum + Yc{ci}; 
   end
+  for ci = 1:numel(Yc)
+    Yc{ci} = Yc{ci} ./ Ysum; 
+  end
+
 end
