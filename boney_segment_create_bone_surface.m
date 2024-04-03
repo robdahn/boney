@@ -35,24 +35,38 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
 
   % surface coordinate transformation matrix
   matlab_mm  = Vo.mat * [0 1 0 0; 1 0 0 0; 0 0 1 0; 0 0 0 1];   % CAT internal space
-  vx_vol     = sqrt(sum(Vo.mat(1:3,1:3).^2));
+  vx_vol     = sqrt(sum(Vo.mat(1:3,1:3).^2)) ;
 
 
   %% == create surface ==
   %  Worked best for the already smooth Ybonepp map and additional strong
   %  surface smoothing. Surface deformation was not helpful.
-  [Yboneppr,res] = cat_vol_resize(smooth3(Ybonepp),'reduceV',vx_vol,job.opts.reduce,6,'meanm'); %#ok<ASGLU>
-  txt = evalc(sprintf('[Yppc,CBS.faces,CBS.vertices] = cat_vol_genus0(Yboneppr,.5,0);')); %#ok<NASGU>
-  CBS.vertices = CBS.vertices .* repmat(res.vx_red,size(CBS.vertices,1),1) - repmat((res.vx_red-1)/2,size(CBS.vertices,1),1); %#ok<NODEF>
-  CBS = cat_surf_fun('smat',CBS,matlab_mm); % transform to mm
-  CBS.EC = size(CBS.vertices,1) + size(CBS.faces,1) - size(spm_mesh_edges(CBS),1);
-  saveSurf(CBS,out.P.central);
+  if 1
+    [Yboneppr,res] = cat_vol_resize(smooth3(Ybonepp),'reduceV',vx_vol,job.opts.reduce,6,'meanm'); %#ok<ASGLU>
+    txt = evalc(sprintf('[Yppc,CBS.faces,CBS.vertices] = cat_vol_genus0(Yboneppr,.5,0);')); %#ok<NASGU>
+    CBS.vertices = CBS.vertices .* repmat(res.vx_red * [0 1 0; 1 0 0; 0 0 1],size(CBS.vertices,1),1) ... 
+      - repmat((res.vx_red * [0 1 0; 1 0 0; 0 0 1]-1)/2,size(CBS.vertices,1),1); %#ok<NODEF> 
+    CBS = cat_surf_fun('smat',CBS,matlab_mm); % transform to mm
+    CBS.EC = size(CBS.vertices,1) + size(CBS.faces,1) - size(spm_mesh_edges(CBS),1);
+    saveSurf(CBS,out.P.central);
+  
+    % optimize surface for midbone position by simple blurring
+    % simple smoothing to remove stair artifacts - 8-16 iterations in red 2
+    cmd = sprintf('CAT_BlurSurfHK "%s" "%s" %d', out.P.central ,out.P.central, 16 );
+    cat_system(cmd,0);
+  else
+      cmd = sprintf('CAT_VolMarchingCubes -pre-fwhm "-1" -post-fwhm "1" -thresh "%g" "%s" "%s"',th_initial,Vpp_side.fname,Pcentral);
+      cat_system(cmd,opt.verb-3);
 
-  % optimize surface for midbone position by simple blurring
-  % simple smoothing to remove stair artifacts - 8-16 iterations in red 2
-  cmd = sprintf('CAT_BlurSurfHK "%s" "%s" %d', out.P.central ,out.P.central, 16 );
-  cat_system(cmd,0);
-  CBS = loadSurf(out.P.central);
+      % Collins-without: 2.5996 ± 0.6292 mm, 0.0798 / 0.1096, 10.29% (121.38 cm²) 24.19% (285.46 cm²)
+      % Collins-with:    2.5713 ± 0.6525 mm, 0.0723 / 0.0934,  8.51% (98.93 cm²)  23.79% (276.42 cm²)
+      cmd = sprintf(['CAT_DeformSurf "%s" none 0 0 0 "%s" "%s" none  0  1  -1  .1 ' ...           
+                  'avg  -0.1  0.1 .2  .1  5  0 "0.5"  "0.5"  n 0  0  0 %d  %g  0.0 0'], ...    
+                  Vpp_side.fname,Pcentral,Pcentral,50,0.001);
+      cat_system(cmd,opt.verb-3);
+  end
+
+    CBS = loadSurf(out.P.central);
 
   % create a (smoothed) thickness map for the mapping extracted values from the bone
   % .. however, the smoothing was not improving the mapping
@@ -81,11 +95,15 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   marrowmax    = cat_io_FreeSurfer('read_surf_data',out.P.marrow);
 
   % estimate average for bone marrow with even limited range
-  Vpp          = cat_io_writenii(Vo, Ybonemarrow , '', 'skull.marrow' ,'bone marrow', 'single', [0,1],[1 0 0],struct());
-  mappingstr   = sprintf('-linear -weighted_avg -steps "5" -start "-.1" -end ".1" -thickness "%s" ', out.P.thick); % weighted_avg
-  cmd          = sprintf('CAT_3dVol2Surf %s "%s" "%s" "%s" ',mappingstr, out.P.central,  Vpp.fname , out.P.marrow );
-  cat_system(cmd,0); delete(Vpp.fname);
-  Si.facevertexcdata = cat_io_FreeSurfer('read_surf_data',out.P.marrow);
+  if 1
+    Vpp          = cat_io_writenii(Vo, Ybonemarrow , '', 'skull.marrow' ,'bone marrow', 'single', [0,1],[1 0 0],struct());
+    mappingstr   = sprintf('-linear -weighted_avg -steps "5" -start "-.5" -end ".5" -thickness "%s" ', out.P.thick); % weighted_avg
+    cmd          = sprintf('CAT_3dVol2Surf %s "%s" "%s" "%s" ',mappingstr, out.P.central,  Vpp.fname , out.P.marrow );
+    cat_system(cmd,0); delete(Vpp.fname);
+    Si.facevertexcdata = cat_io_FreeSurfer('read_surf_data',out.P.marrow);
+  else
+    Si.facevertexcdata = marrowmax;
+  end
 
   % get atlas information
   Satlas = cat_surf_fun('isocolors',Ya, CBS, matlab_mm,'nearest');
