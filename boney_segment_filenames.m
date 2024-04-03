@@ -23,6 +23,7 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
   %#ok<*AGROW>
 
   % try to get the prefix
+  P = cat_io_strrep(P,',1',''); 
   if numel(P)==1
     % if we have only one file the 'C' option of spm_str_manip is not working
     [~,ff]  = spm_fileparts(P{1});
@@ -51,6 +52,51 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
       PC.e = PC.e(end-3:end);
     end
   end
+
+  for pi = 1:numel(P)
+    fname    = P{pi}; 
+    ind      = max(strfind(spm_fileparts(fname),[filesep 'sub-']));
+    der      = max(strfind(spm_fileparts(fname),[filesep 'derivatives' filesep]));
+    if ~isempty(der) & ~isempty(ind) 
+      derdir{pi}       = fullpath( fileparts(fname(1:ind)) ,'derivatives');  
+    else
+      derdir{pi}       = ''; 
+    end
+
+    sub_ses_anat{pi}   = ''; 
+    if ~isempty(ind)
+      maindir{pi}      = fileparts(fname(1:ind));  
+      sub_ses_anat{pi} = fileparts(fname(ind+1:end));  
+    else
+      % RD202403:
+      % alternative definion based on the depth of the file and is keeping 
+      % subdirectories to be more robust in case of a regular but non-BIDS
+      % structure wihtout anat directory or with similar filenames, e.g. 
+      % for ../derivatives/CAT##.#_#
+      %   testdir/subtestdir1/f1.nii
+      %   testdir/subtestdir2/f1.nii
+      % it result in 
+      %   testdir/derivatives/CAT##.#_#/subtestdir1/f1.nii
+      %   testdir/derivatives/CAT##.#_#/subtestdir1/f1.nii
+      % rather than
+      %   testdir/derivatives/CAT##.#_#/f1.nii
+      %   testdir/derivatives/CAT##.#_#/f1.nii
+      % what would cause conflicts
+  
+      %%
+      subdirs     = strfind(job.output.resdir,['..' filesep]);  
+      maindir{pi} = spm_file(fname,'path');
+  
+      for si = 1:numel(subdirs)
+        [maindir{pi},ff,ee] = spm_fileparts(maindir{pi});
+        sub_ses_anat{pi} = fullfile([ff ee], sub_ses_anat{pi});
+      end
+      maindir{pi} = fullfile( maindir{pi},strrep(job.output.resdir,['..' filesep],'')); 
+    end
+  end
+
+  
+
 
   if job.opts.subdirs
     mridir    = 'mri'; 
@@ -200,7 +246,7 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
           out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s','c0',ci,ff(4:end),ee) ); 
         end
       else % SPM12 case
-        out(i).P.bc   = P{i};
+        out(i).P.bc   = spm_file(out(i).P.org,'prefix','m');
         out(i).P.seg8 = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
         for ci = 1:5
           out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s','c',ci,out(i).P.orgff,ee) ); 
@@ -252,12 +298,12 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
     end
 
     % output dirs
-    out(i).P.mripath    = fullfile(pp,out(i).P.mridir); 
-    out(i).P.surfpath   = fullfile(pp,out(i).P.surfdir); 
-    out(i).P.reportpath = fullfile(pp,out(i).P.reportdir); 
+    out(i).P.mripath    = fullfile(maindir{pi}, sub_ses_anat{i}, out(i).P.mridir); 
+    out(i).P.surfpath   = fullfile(maindir{pi}, sub_ses_anat{i}, out(i).P.surfdir); 
+    out(i).P.reportpath = fullfile(maindir{pi}, sub_ses_anat{i}, out(i).P.reportdir); 
 
     % boney preprocessing mat file for faster reprocessing
-    out(i).P.boneyPPmat  = fullfile(out(i).P.mripath,['boneyPPmat_' ff '.mat']); 
+    out(i).P.boneyPPmat  = fullfile(out(i).P.mripath, ['boneyPPmat_' ff '.mat']); 
     
     % create dirs if required
     if ~exist(out(i).P.mripath   ,'dir'), mkdir(out(i).P.mripath); end
@@ -266,9 +312,9 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
 
 
     % xml/mat output
-    out(i).P.report = fullfile(out(i).P.reportpath, sprintf('%sbonereport%d_%s.jpg', job.output.prefix, job.opts.bmethod, ff));              
-    out(i).P.xml    = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.xml'  , job.output.prefix, job.opts.bmethod, ff));
-    out(i).P.mat    = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.mat'  , job.output.prefix, job.opts.bmethod, ff));
+    out(i).P.report   = fullfile(out(i).P.reportpath, sprintf('%sbonereport%d_%s.jpg', job.output.prefix, job.opts.bmethod, ff));              
+    out(i).P.xml      = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.xml'  , job.output.prefix, job.opts.bmethod, ff));
+    out(i).P.mat      = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.mat'  , job.output.prefix, job.opts.bmethod, ff));
     
     out(i).P.boneymat = fullfile(out(i).P.reportpath, sprintf('boney%s_%s.mat'  , pmethod, ff));
     out(i).P.boneySPM = fullfile(out(i).P.reportpath, sprintf('boneySPM_%s.mat' , ff));
