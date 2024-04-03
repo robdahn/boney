@@ -1,4 +1,4 @@
-function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)   
+function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_writevol,verb)   
 %boney_segment_get_segmat. Get and evaluate SPM preprocessing structure.
 %
 %  [seg8t, tis, vx_vol] = get_spm8(P)
@@ -36,6 +36,7 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   % load SPM/CTseg or  mat 
   if strcmp(out.P.seg8(end-2:end),'mat')
     seg8t           = load(out.P.seg8); 
+    trans           = getDeformation(seg8t, job_ouput_writevol >= 3 ); 
     if out.CTseg
       seg8t.dat.model.gmm = rmfield(seg8t.dat.model.gmm,{'T','Sig'});
       % #### this is not fully working and the classes values are strange ...
@@ -296,9 +297,10 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
 
 
   % final intensity measures
-  tis.help.WM         = 'Averaged SPM WM intensity.';  % refined ( max in T1w, otherwise min )
-  tis.help.GM         = 'Averaged SPM GM intensity.';  % no refinement possible
-  tis.help.CSF        = 'Averaged SPM CSF intensity.'; % refined ( min in T1w, otherwise max )  
+  tis.help.WM         = 'Averaged SPM WM intensity (default 1 class).';  % refined ( max in T1w, otherwise min )
+  tis.help.GM         = 'Averaged SPM GM intensity (default 1 class).';  % no refinement possible
+  tis.help.CSF        = 'Lower(T1)/higher(T2/PD) SPM CSF intensity (default 2 classes), average for more than 2 classes.'; 
+                          % refined ( min in T1w, otherwise max )  
   tis.help.bonecortex = 'Cortical bone intensity, i.e. "min( seg8.mn( seg8t.lkp==4) )".';  
   tis.help.bonemarrow = 'Spongy bone intensity, i.e. "max( seg8.mn( seg8t.lkp==4) )".'; 
   tis.help.bonestruct = 'Ratio between cortical and spongy bone.';
@@ -311,9 +313,19 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   
   tis.WM              = tis.seg8n(2);
   tis.GM              = tis.seg8n(1);
-  tis.CSF             = tis.seg8n(3);
+  if sum( seg8t.lkp == 3 ) == 2 &&  tis.weighting 
+    %% take the value that stronger vary from the other 
+    tis.CSF = seg8t.mn( seg8t.lkp(:) == 3 & seg8t.mg(:) > .1) / tis.seg8o(2); 
+    GMdiff  = abs(tis.CSF - tis.GM);
+    tis.CSF = tis.CSF( GMdiff==max(GMdiff) ); 
+  else
+    tis.CSF           = tis.seg8n(3);
+  end
+  
   tis.bonecortex      = min(seg8t.mn( seg8t.lkp==4 ) ) / tis.WMth;   
   tis.bonemarrow      = max(seg8t.mn( seg8t.lkp==4 ) ) / tis.WMth; 
+  tis.headfat         = max(seg8t.mn( seg8t.lkp==5 ) ) / tis.WMth; 
+
   tis.bonedensity     = seg8t.mg( seg8t.mn == min(seg8t.mn( seg8t.lkp==4 ) ) )  + ... % percentage of min bone
                          0.5 * sum( seg8t.mg( seg8t.lkp==4 & ... % half percentage of median bone (neither min nor max) 
                           seg8t.mn ~= min(seg8t.mn( seg8t.lkp==4 ) ) & ...
@@ -321,6 +333,12 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   tis.bone            = tis.seg8n(4);
   tis.head            = tis.seg8n(5);        
   tis.background      = tis.seg8n(6);
+
+  % normalization values as minimal main CSF or background and maximal WM intensity
+  tis.intnorm = [
+    min([ seg8t.mn(seg8t.lkp(:) == 3              & seg8t.mg(:) > .1) , ...
+          seg8t.mn(seg8t.lkp(:) == max(seg8t.lkp) & seg8t.mg(:) > .1) ] ), ...
+    max(  seg8t.mn(seg8t.lkp(:) == 2              & seg8t.mg(:) > .3)   ) ];
 
 
   if verb == 3
@@ -334,3 +352,83 @@ function [ seg8t, tis, vx_vol ] = boney_segment_get_segmat(out,verb)
   end
 
 end
+function trans = getDeformation(seg8t, dodefs)
+%% relevant lines from spm_preproc_write8 and cat_main_registration
+
+  tdim = seg8t.tpm(1).dim; 
+  M0   = seg8t.image.mat;          
+  M1   = seg8t.tpm(1).mat;
+
+  % affine and rigid parameters for registration 
+  % if the rigid output is incorrect but affine is good then the Yy caused the problem (and probably another call of this function) 
+  R               = spm_imatrix(seg8t.Affine); R(7:9)=1; R(10:12)=0; R=spm_matrix(R);  
+  Mrigid          = M0\inv(R)*M1;                      % transformation from subject to registration space (rigid)
+  Maffine         = M0\inv(seg8t.Affine)*M1;           % individual to registration space (affine)
+  mat0a           = seg8t.Affine\M1;                   % mat0 for affine output
+  mat0r           = R\M1;                              % mat0 for rigid ouput
+  M2              = inv(Maffine);                      % warped - if we use the US than we may have to use rigid
+ 
+  % Use SPM deformation fir the actual dimensions and orientations of the tissue priors.
+  if dodefs
+    prm       = [3 3 3 0 0 0];
+    Coef      = cell(1,3);
+    Coef{1}   = spm_bsplinc(seg8t.Twarp(:,:,:,1),prm);
+    Coef{2}   = spm_bsplinc(seg8t.Twarp(:,:,:,2),prm);
+    Coef{3}   = spm_bsplinc(seg8t.Twarp(:,:,:,3),prm);
+    d         = seg8t.image(1).dim(1:3);
+    [x1,x2,~] = ndgrid(1:d(1),1:d(2),1); x3 = 1:d(3);
+    M         = M1 \ seg8t.Affine * seg8t.image(1).mat;
+    y         = zeros([seg8t.image(1).dim(1:3),3],'single'); % native < template
+    for z=1:length(x3)
+      [t1,t2,t3] = defs(Coef,z,seg8t.MT,prm,x1,x2,x3,M);
+      y(:,:,z,1) = t1;
+      y(:,:,z,2) = t2;
+      y(:,:,z,3) = t3;
+    end
+  
+    % inverse deformation
+    if 0
+      yi = spm_diffeo('invdef',y,tdim,eye(4),M0); % template > native (but in subject space)
+      yi = spm_extrapolate_def(yi,M1);            % apply BB
+      w  = max( eps , abs(spm_diffeo('def2det', yi ) ) ); 
+      yi2 = yi; 
+    else  
+      yid             = spm_diffeo('invdef', y  , d, eye(4), M1\seg8t.Affine*M0); 
+      yi              = spm_diffeo('invdef', yid, d, inv(M1\seg8t.Affine*M0), eye(4)); clear yid; 
+      yi2             = spm_diffeo('invdef', yi , tdim, eye(4), eye(4)); 
+      w               = max( eps , abs(spm_diffeo('def2det', yi2 ) ) ); 
+    end
+  end
+
+  % final structure
+  trans.native.Vo = seg8t.image(1); 
+  trans.native.Vi = seg8t.image(1);
+  trans.affine    = struct('odim',tdim,'mat',M1,'mat0',mat0a,'M',Maffine,'A',seg8t.Affine);  % structure for cat_io_writenii
+  trans.rigid     = struct('odim',tdim,'mat',M1,'mat0',mat0r,'M',Mrigid ,'R',R);           % structure for cat_io_writenii
+  if dodefs
+    trans.warped  = struct('y',y ,'yi',yi2,'w',w,'odim',tdim,'M0',M0,'M1',M1,'M2',M2,'dartel',1,'fs',0);  % nicer version with interpolation
+  end
+end
+%==========================================================================
+% function [x1,y1,z1] = defs(sol,z,MT,prm,x0,y0,z0,M)
+%==========================================================================
+function [x1,y1,z1] = defs(sol,z,MT,prm,x0,y0,z0,M)
+  iMT = inv(MT);
+  x1  = x0*iMT(1,1)+iMT(1,4);
+  y1  = y0*iMT(2,2)+iMT(2,4);
+  z1  = (z0(z)*iMT(3,3)+iMT(3,4))*ones(size(x1));
+  
+  % Eliminate NaNs (see email from Pratik on 01/09/23)
+  x1  = min(max(x1,1),size(sol{1},1));
+  y1  = min(max(y1,1),size(sol{1},2));
+  z1  = min(max(z1,1),size(sol{1},3));
+  
+  x1a = x0    + spm_bsplins(sol{1},x1,y1,z1,prm);
+  y1a = y0    + spm_bsplins(sol{2},x1,y1,z1,prm);
+  z1a = z0(z) + spm_bsplins(sol{3},x1,y1,z1,prm);
+  x1  = M(1,1)*x1a + M(1,2)*y1a + M(1,3)*z1a + M(1,4);
+  y1  = M(2,1)*x1a + M(2,2)*y1a + M(2,3)*z1a + M(2,4);
+  z1  = M(3,1)*x1a + M(3,2)*y1a + M(3,3)*z1a + M(3,4);
+end
+
+
