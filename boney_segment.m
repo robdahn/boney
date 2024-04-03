@@ -71,6 +71,10 @@ function [Pout,out] = boney_segment(job)
   end
 
 
+  % RD202403: currently force expert setting for rerun/lazy settings
+  cat_get_defaults('extopts.expertgui',2)
+
+
   % == default parameters ==
   def.files             = {};       % SPM m-files
   def.opts.verb         = 2;        % display progress (0 - be silent, 1 - one line per subject, 2 - details)
@@ -92,7 +96,7 @@ function [Pout,out] = boney_segment(job)
   def.opts.Pmask        = {fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-mask.nii')};
   def.opts.snspace      = [80,7,2];                      % cmd print format - only internal
   def.opts.MarkColor    = cat_io_colormaps('marks+',40); % colormap for ratings - only internal
-  def.opts.reslim       = 1.5;      % general resolution limit
+  def.opts.reslim       = 1.5;      % general resolution limit 
   def.opts.expert       = 2;        % user level (0 - default, 1 - expert, 2 - developer)
   def.opts.classic      = 1;        % estimate also first prototype version
   def.output.report     = 2;        % write report
@@ -103,6 +107,7 @@ function [Pout,out] = boney_segment(job)
   def.output.prefix     = 'boney_';
   job                   = cat_io_checkinopt(job,def);
   job.opts.subdirs      = job.opts.pmethod == 2 && cat_get_defaults('extopts.subfolders');
+  job.output.resdir     = strrep(job.output.resdir,'BIDS','../derivatives/boney'); 
 
   Pout = struct();
 
@@ -112,16 +117,6 @@ function [Pout,out] = boney_segment(job)
   % filenames for dependencies
   % job.opts.fmethod .. method defined by the selected file
   [out,job.opts.fmethod,job.opts.pmethod] = boney_segment_filenames(P,job);
-
-
-% ######################
-% just some fast test settings
-if 0
-  job.opts.verb    = 1;
-  job.opts.classic = 1;
-  job.opts.rerun   = 0;
-end
-% ######################
 
 
 
@@ -262,14 +257,14 @@ end
 
 
     if ... %cat_io_rerun(which(mfilename),out(i).P.xml) || ...
-        cat_io_rerun(out(i).P.org,out(i).P.xml,0,-1) || job.opts.rerun
+        cat_io_rerun(out(i).P.org,out(i).P.xml,0) || job.opts.rerun 
 
 
       % == GET SPM DATA ==
       %  - get and evaluate the original SPM preprocessing structure (seg8t)
       %    extract further values (tis) and voxel size
       stime = cat_io_cmd('  Load SPM','g5','',job.opts.verb>1);
-      [ seg8t , tis , vx_vol ] = boney_segment_get_segmat( out(i), job.opts.verb );
+      [ seg8t , tis , vx_vol , trans ] = boney_segment_get_segmat( out(i), job.output.writevol, job.opts.verb );
       if isempty(vx_vol) || numel(fieldnames(tis))==0
         % in case of problems export the (empty) XML and go on with the next subject 
 % ##### here was maybe a bug or other problem #######        
@@ -316,21 +311,34 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         %  - store the changes also in the output structure
         if job.opts.refine && ~out(i).CTseg
           stime = cat_io_cmd('  Refine SPM','g5','',job.opts.verb>1,stime);
-          [Yc,Ye,Ya,out(i).boney_refine_SPM] = boney_segment_refineSPM(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri);
+          [Yc,Ye,Ya,out(i).boney_refine_SPM] = boney_segment_refineSPM(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri,job.opts.refine);
         else
           Ye = cell(0);
         end
         spm_progress_bar('Set',i - 0.6);
         clear Yo
 
+        
+        %% == bone / head subsegmentation == 
+        % * separation between bone cortex (inc. sutures), and bone marrow
+        % * however this can be heavily biased by chemical shift artifacts!
+        % * but what to do with these segments? 
+        %   >> fat thickness vs. skin/muscle thickness (fat - total)
+        %   >> estimation of chift artifact 
+        if 0 % in development (internal)
+          [Yc, Ybonecortex, Ybonemarrow, Ybonehead, Yheadmuscle, Yheadfat] = ...
+            boney_segment_segmentHead(Ym, Yc, tis)
+        end
+       
 
         % == get bone measures ==
         %  - get different bone maps Y* and the volume-based regional values vROI:
         %      Y*   .. bone/head maps for surface mapping
         %      vROI .. extracted global/regional bone/head values
         stime = cat_io_cmd('  Extract bone measures','g5','',job.opts.verb>1,stime);
+        job.bnorm = 'fat'; % wm, csf, muscle, bone
         [Ybonepp,Ybonethick,Ybonemarrow,Yheadthick, vROI] = ...
-          boney_segment_extractbone(Vo,Ym,Yc,Ye,Ya,Ymsk,seg8t,tis,out(i),job,vx_vol,YaROIname,RES,BB);
+          boney_segment_extractbone(Vo,Ym,Yc,Ye,Ya,Ymsk,trans,seg8t,tis,tismri,out(i),job,vx_vol,YaROIname,RES,BB);
         spm_progress_bar('Set',i - 0.4);
 
 
@@ -461,7 +469,11 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
     matlabbatch{1}.spm.tools.boney.xml2csv.report       = rlevel{ ( boned.expertgui > 0) + 1 };
 
     % run silently
-    evalc('spm_jobman(''run'',matlabbatch);');
+    try
+      evalc('spm_jobman(''run'',matlabbatch);');
+    catch
+      cat_io_fprintf('Error:boney_segment:exprtCSV','Failed to write final CSV file! Check cat_io_xml2csv.m function.')
+    end
     if job.opts.verb > 0, fprintf('% 5.0fs\n\n',etime(clock,stime)); end
   end
 
