@@ -121,10 +121,11 @@ for csvi = 1:numel(Pcsv{1})
             [pp,ff,ee] = spm_fileparts(groups{1}{si}); 
           %  if ~contains(pp,'ukb'), continue; end
             pp2 = spm_str_manip(pp,'ht');
-            if strcmp(pp2,'202301_MRIbones') && ~contains(pp,'testsetExt') && ~contains(pp,'subsample') 
+%            
+            if contains(pp,'testsetExt') %&& ~contains(pp,'subsample') % % strcmp(pp2,'202301_MRIbones') && 
               seps = find(ff=='_'); 
               id = find(contains( cellfun( @(x) sprintf('%d',x), csv(:,1), 'UniformOutput', false) ,ff(seps(4)+1+4:seps(5)-1))==1,1,'first');
-            elseif strcmp(pp2,'202301_MRIbones') && strcmp( ff(1:4) , 'msub' )
+            elseif  strcmp( ff(1:4) , 'msub' ) %strcmp(pp2,'202301_MRIbones') &&
               seps = find(ff=='_'); 
               id = find(contains( cellfun( @(x) sprintf('%d',x), csv(:,1), 'UniformOutput', false) ,ff(2+4:seps(1)-1))==1,1,'first');
             else

@@ -44,6 +44,12 @@ clear groups
 matonlyn  = {'MED','SPM',   'NEWSPM','NEWMED','SPM0','MED0','','','','','BoneySPM','BoneyV','BoneyS'}; 
 if 1
   maindirs  = {
+    '/Users/robertdahnke/MRData/Boney/'; 
+    '/Users/robertdahnke/MRData/Boney/'; 
+    '/Users/robertdahnke/MRData/Boney/'; 
+    };
+elseif true
+  maindirs  = {
     '/Volumes/SG5TB/MRData/202301_MRIbones/'; 
     '/Volumes/SG5TB/MRData/202301_MRIbones/'; 
     '/Volumes/SG5TB/MRData/202301_MRIbones/'; 
@@ -94,7 +100,7 @@ Pcsv{1} = {
 %
 boney_eval_readCSV
 
-
+cat_get_defaults('extopts.expertgui',2)
 
 
 % single tests
@@ -112,7 +118,7 @@ out = boney_getBoneMeasures(groups,struct('matonly',matonly,'rerun',0));
 % end
 %%
 plevel = 2; % 1-basic, 2-3-full
-boney_eval_prepareMeasures
+boney_eval_prepareMeasure
 
 % scatter plot for each test paramter with linear fits
 % print overview    
@@ -130,8 +136,8 @@ boney_eval_printCrossCorrelation
 
 
 %% create table
-tab = cell(1,numel(Pcsv));
-for csvi = 1:numel(Pcsv)
+tab = cell(1,numel(Pcsv{1}));
+for csvi = 1:numel(Pcsv{1})
    tab{csvi}{1,1}       = 'Filename'; 
    tab{csvi}(2:numel(groups{csvi})+1,1) = spm_str_manip(groups{csvi},'t');
 
@@ -152,7 +158,7 @@ for csvi = 1:numel(Pcsv)
    end
    
    
-   FN = {'bone_num','bone_med','rGMV','rWMV','rCSF'}; 
+   FN = {'bone_num','bone_med','rGMV','rWMV','rCMV'}; 
    for fni = 1:numel(FN)
        tab{csvi}{1,end+1} = FN{fni};
        if size( out.(FN{fni}){csvi} , 2) > 1  
@@ -162,7 +168,7 @@ for csvi = 1:numel(Pcsv)
        end
    end
    
-   [pp,ff,ee] = fileparts(Pcsv{csvi}); 
+   [pp,ff,ee] = fileparts(Pcsv{1}{csvi}); 
    resultcsv{csvi} = fullfile(pp,sprintf('%s_bonemeasures.csv',ff));
    cat_io_csv(resultcsv{csvi},tab{csvi});
 end
