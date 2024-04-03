@@ -53,13 +53,13 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
     'Tcsf'    'tis'     'CSF'           1    'f'  0   ex>1
     'Tgm'     'tis'     'GM'            1    'f'  0   ex>1
     'Thead'   'tis'     'head'          1    'f'  0   ex>1
-    'vBmar'   'vROI'    'bonemarrow'    3    'f'  1   exm>=1
     'vBcor'   'vROI'    'bonecortex'    4    'f'  0   exm>=1 
+    'vBmar'   'vROI'    'bonemarrow'    3    'f'  1   exm>=1
     'vBth'    'vROI'    'bonethickness' 3    'f'  0   exm>=1
     'vHth'    'vROI'    'headthickness' 4    'f'  0   exm>=1 
     'vHmed'   'vROI'    'head'          1    'f'  0   exm>=1 
-    'sBmar'   'sROI'    'bonemarrow'    3    'f'  1   exm==2
     'sBcor'   'sROI'    'bonecortex'    4    'f'  0   exm==2
+    'sBmar'   'sROI'    'bonemarrow'    3    'f'  1   exm==2
     'sBth'    'sROI'    'bonethickness' 3    'f'  0   exm==2
     'sHth'    'sROI'    'headthickness' 4    'f'  0   exm==2 
     'sHmed'   'vROI'    'head'          1    'f'  0   exm==2 
@@ -110,6 +110,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
       bmethodstr = {'SPMmat8','Volume-based','Surface-based', ...
         'Volume-based (old version without refinement)','Volume-based (old version with refinement)'};
       reportstr  = {'No','Yes - Basic','Yes - Details','Yes - Details'};
+      volstr     = {'No','native','warped','affine','all'}; 
       %reportstr = {'Table','Table + Volumes','Table + Volumes + Surfaces'};
       fprintf('  Tissue Probability Map:   %d (%s)\n', job.opts.ctpm,     tmpstr{job.opts.ctpm});
       fprintf('  Preprocessing   method:   %d (%s)\n', job.opts.pmethod,  pmethodstr{job.opts.pmethod+1});
@@ -131,8 +132,9 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
         fprintf('  Bone atlas:               %s\n'     , job.opts.Patlas{1} );
         fprintf('  Bone mask:                %s\n'     , job.opts.Pmask{1} );
         fprintf('  Write ouput: \n');
-        fprintf('    Write volumes:          %d (%s)\n', job.output.writevol, reportstr{job.output.writevol + 1});
-        fprintf('    Write surfaces:         %d (%s)\n', job.output.writevol, reportstr{job.output.writevol + 1});
+        fprintf('    Report:                 %s\n'     , job.output.resdir);
+        fprintf('    Write volumes:          %d (%s)\n', job.output.writevol,  volstr{job.output.writevol + 1});
+        fprintf('    Write surfaces:         %d (%s)\n', job.output.writesurf, reportstr{job.output.writesurf + 1});
         fprintf('    Report:                 %d (%s)\n', job.output.report, reportstr{job.output.report});
       else
         fprintf('  Report:                   %d (%s)\n', job.output.report, reportstr{job.output.report});
