@@ -218,7 +218,7 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
       M1   = seg8t.tpm(1).mat;
   
       % affine and rigid parameters for registration 
-      % if the rigid output is incorrect but affine is good then the Yy caused the problem (and probably another call of this function) 
+      % if the rigid output is incorrect, but the affine is good, then the Yy caused the problem (and probably another call of this function) 
       R               = spm_imatrix(seg8t.Affine); R(7:9)=1; R(10:12)=0; R=spm_matrix(R);  
       Mrigid          = M0\inv(R)*M1;                                                            % transformation from subject to registration space (rigid)
       Maffine         = M0\inv(seg8t.Affine)*M1;                                                 % individual to registration space (affine)

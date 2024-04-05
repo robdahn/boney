@@ -69,7 +69,7 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
     CBS = loadSurf(out.P.central);
 
   % create a (smoothed) thickness map for the mapping extracted values from the bone
-  % .. however, the smoothing was not improving the mapping
+  % .. however, the smoothing did not improve the mapping
   Ybonethick2 = cat_vol_approx(Ybonethick .* (Ybonethick>1 & Ybonethick<100),'nh',1,3);
   Si = CBS; Si.facevertexcdata = cat_surf_fun('isocolors',max(3,Ybonethick2), CBS, matlab_mm);
   cat_io_FreeSurfer('write_surf_data',out.P.thick,Si.facevertexcdata);
@@ -138,7 +138,7 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   %  - similar to the volume measures we also focus here on the global/
   %    regional mean values and ignore median, std, and iqr
   rii = 1;
-  sROI.help = 'ROI=0 is defined masked global values excluding the lower parts of the skull, whereas all other ROIs are without masking';
+  sROI.help = 'ROI=0 is defined as masked global values excluding the lower parts of the skull, whereas all other ROIs are without masking';
   for ri = 0:max(Ya(Ya(:)<intmax('uint16'))) % region ri==0 is the global value
     if ri == 0 || isnan(ri)
       ri = 0; %#ok<FXSET> % case of failed atlas mapping

@@ -5,13 +5,12 @@ function varagout = boney_xml2csv(job)
 %  varagout = boney_xml2csv(job)
 % 
 %  report 
-%   'boney_default' .. only the most relevant fields that should be clear 
-%                      their naming
+%   'boney_default' .. only the most relevant fields
 %   'boney_details' .. some additional selected fields 
-%                      (regional, values, parameter)
+%                      (regional, values, parameters)
 %   'boney_expert'  .. more selected fields 
-%                      (all regions, and more paraemter)
-%   'all'           .. just all fields avaible from the the first XML
+%                      (all regions and more parameters)
+%   'all'           .. all fields avaible from the the first XML
 % _________________________________________________________________________
 %
 % Robert Dahnke

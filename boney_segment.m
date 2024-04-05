@@ -10,8 +10,8 @@ function [Pout,out] = boney_segment(job)
 %    .pmethod  .. preprocessing method: 1-SPM12, 2-CAT12 [, 3-CTseg]
 %    .bmethod  .. method used for evaluation (default=2):
 %                  0 - SPM seg8t mat values evaluation (fast)
-%                  1 - SPM volumes with problems for high intensity bone
-%                      marrow
+%                  1 - SPM volumes with problems in high intensity bone
+%                      marrow cases
 %                  2 - refined volumes
 %    .verb      .. display progress
 %                 (0 - be silent, 1 - one line per subject, 2 - details)
@@ -100,6 +100,7 @@ function [Pout,out] = boney_segment(job)
   def.opts.expert       = 2;        % user level (0 - default, 1 - expert, 2 - developer)
   def.opts.classic      = 1;        % estimate also first prototype version
   def.output.report     = 2;        % write report
+  def.output.resdir     = 'BIDS';
   def.output.writevol   = 1;        % write volume output
   def.output.writeseg   = 1;        % write volume output
   def.output.writesurf  = 1;        % write surface data
@@ -210,7 +211,7 @@ function [Pout,out] = boney_segment(job)
   % ##### cleanup #######
   % FEATURES are my BUG :(
   %
-  % What do I realy need!
+  % What do I realy need?
   % - fast mat-based intensity measurements [ SPM8MAT > TIS ]
   %    - global kmeans
   % - (refined) volumen-based intensity measurements [ TISMRI ]
@@ -324,7 +325,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         % * however this can be heavily biased by chemical shift artifacts!
         % * but what to do with these segments? 
         %   >> fat thickness vs. skin/muscle thickness (fat - total)
-        %   >> estimation of chift artifact 
+        %   >> estimation of shift artifact 
         if 0 % in development (internal)
           [Yc, Ybonecortex, Ybonemarrow, Ybonehead, Yheadmuscle, Yheadfat] = ...
             boney_segment_segmentHead(Ym, Yc, tis)
@@ -358,7 +359,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         %    regional values sROI:
         %      Si/Stm .. bone-surface with bone-intensity/bone-thickness
         %      sROI   .. extracted global/regional bone/head surface values
-        %  - although the surfaces can be saved it does not suport surface
+        %  - although the surfaces can be saved, it does not suport surface
         %    registration now!
         if job.opts.bmethod>1
           stime = cat_io_cmd('  Extract bone surfaces','g5','',job.opts.verb>1,stime);
@@ -369,7 +370,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
 
       else
         % == fast SPM mat-based pipeline ==
-        %  - fast version that looks only for (and exports) the bone tissue
+        %  - fast version that only looks for (and exports) the bone tissue
         %    values and creates some report (Yo==Ym?)
         %  - no other tissues (e.g. GM etc.) are loaded and processed!
         [Vo, Ym, Yc, Ybonemarrow, tismri, Si, Stm, Affine] = ...

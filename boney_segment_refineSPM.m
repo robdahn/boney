@@ -235,7 +235,7 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the transferr
     end
   else
     % noisy background of MP2RAGE/MT sequences need some other (gradient-based) definition 
-    % nothing what we can do here or?
+    % nothing that we can do here, right?
     Yc6a = 0; 
   end
   clscor.HD2BN = sum(Yc6a(:)) / vxmm3  / tismri.TIV; 
