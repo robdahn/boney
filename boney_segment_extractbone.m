@@ -105,7 +105,8 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
 
 
   %% head 
-  Yskull       = single(Ym/tis.seg8n(3)) .* (Yc{5}>.5);
+% PK20240405: check normalization for skull - using the CSF value may lead to unwanted statistical dependencies ! 
+  Yskull       = single(Ym/tis.seg8n(3)) .* (Yc{5}>.5); 
   [Yc6,Yheadr,Ybrainr,res] = cat_vol_resize({single(Yc{6}),cat_vol_morph(single(Ybrain + Ybone),'lc'),Ybrain},'reduceV',vx_vol,2,64,'meanm');
   Ybgdist      = vbx_dist( Yc6 , Ybrainr<0.5, res.vx_volr, nvbdist,0);
   Ybndist      = vbx_dist( Yheadr , Yc6<.5, res.vx_volr, nvbdist,0);
@@ -150,8 +151,9 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
   %  - we finally decided to keep only the mean as (i) it is more expected 
   %    and (ii) we already did some outlier correction by masking  
   rii = 1;
-  if ~isempty(job.opts.Pmask{1}), mskd = ' excluding the lower parts of the skull (masked)'; else, mskd = ' (unmasked)'; end 
-  vROI.help = sprintf('ROI=0 is defined global values%s, whereas all other ROIs are without masking',mskd);
+  vROI.help = [
+      'A masked image is used (if available) for global values to extract only the upper part of the skull, ' ...
+      'whereas no masking is used in case of atlas regions. '];
   for ri = 0:max(Ya(Ya(:)<intmax('uint16')))
     if ri == 0 || isnan(ri)
       % global values

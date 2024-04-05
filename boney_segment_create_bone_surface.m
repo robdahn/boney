@@ -138,7 +138,9 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   %  - similar to the volume measures we also focus here on the global/
   %    regional mean values and ignore median, std, and iqr
   rii = 1;
-  sROI.help = 'ROI=0 is defined as masked global values excluding the lower parts of the skull, whereas all other ROIs are without masking';
+  sROI.help = [
+      'A masked image is used for global values to extract only the upper part of the skull, ' ...
+      'whereas no masking is used in case of atlas regions. '];
   for ri = 0:max(Ya(Ya(:)<intmax('uint16'))) % region ri==0 is the global value
     if ri == 0 || isnan(ri)
       ri = 0; %#ok<FXSET> % case of failed atlas mapping
