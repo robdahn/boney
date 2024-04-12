@@ -182,6 +182,9 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
 
 
 
+% #########
+% - add non-linear mapping
+% ##########
 
   % load atlas in individual space by applying the affine transformation
   if ~isempty(job.opts.Patlas{1})
@@ -236,7 +239,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
   end
 
   % limit resolution
-  [Yo,Ym,RES] = cat_vol_resize({Yo,Ym} ,'reduceV'  ,tis.res_vx_vol,job.opts.reslim,16,'meanm');
+  [Yo,Ym,RES] = cat_vol_resize({Yo,Ym} ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'meanm');
   Ya          = cat_vol_resize(Ya      ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'nearest');
   Ymsk        = cat_vol_resize(Ymsk    ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'meanm') > 0.5;
   Ysum        = zeros(size(Ym),'single'); 

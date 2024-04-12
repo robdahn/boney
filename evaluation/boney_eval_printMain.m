@@ -14,7 +14,7 @@
     
     fg=11; fgh = figure(fg); clf(fg); fgh.Color = [1 1 1]; fgh.Position(3:4) = [1000 150 + 10*numel(measure) ]; 
     ha = annotation('textbox',[0.005 0.92 0.99 0.08],'string',sprintf( ...
-      '(%d) %s - site %d, N=%d (r~color,p~transparency<%0.03f)',matonly,matonlyn{matonly+1},si, numel(age), pv));
+      '(%d) %s%s - site %d, N=%d (r~color,p~transparency<%0.03f)',matonly,matonlyn{matonly+1},strrep(resdir,'_','\_'),si, numel(age), pv));
     ha.FontSize             = 13;
     ha.FontWeight           = 'bold';
     ha.HorizontalAlignment  = 'center';
@@ -39,7 +39,12 @@
           p2 = eval( sprintf('out.%s{1}( ~isnan(%s(:)) %s & msk(:) )', measure{mj}, para{mi}, sexm ));
           if size(p1,1)<size(p1,2), p1 = p1'; end
           if size(p2,1)<size(p2,2), p2 = p2'; end
-          [RHOm(mi,mj,gi),PVALm(mi,mj,gi)] = corr( p1 , p2 ,'type', corrtype); 
+          try
+            [RHOm(mi,mj,gi),PVALm(mi,mj,gi)] = corr( p1 , p2 ,'type', corrtype); 
+          catch
+            RHOm(mi,mj,gi) = 0; 
+            PVALm(mi,mj,gi) = 0; 
+          end
         end
       end
       
@@ -71,13 +76,13 @@
       plot(edge_x', edge_y', 'Color', repmat(.9,3,1) ) % horizontal lines
 
       % extra lines to group measures/paras
-      nxi = [3 6 7  8  13 15 ];
+      nxi = [3 6 7  8  13 15 22];
       plot( repmat(nxi+0.5, 2,1) , repmat([0 ny+1]', 1,numel(nxi)) , 'Color', zeros(3,1) ) % vertical lines
       %nxi = [3 4 10 12 ];
       %plot( repmat(nxi+0.5, 2,1) , repmat([0 ny+1]', 1,numel(nxi)) , 'LineWidth', 2, 'Color', zeros(3,1) ) % vertical lines
       switch matonly 
         case {11,12}
-          % nyi = [4 7 13 19 25   10 16 22 28]; nyim = [7 13 19 25]; % full
+          %nyi = [4 7 13 19 25   10 16 22 28]; nyim = [7 13 19 25]; % full
         case {2,3}
           nyi = [3 4 9 12]; nyim = [];
         otherwise
@@ -89,12 +94,13 @@
       if ~isempty(nyim)
         plot( repmat([0 nx+1]', 1,numel(nyim)), repmat(nyim+0.5, 2,1)  , 'Color', col, 'LineWidth', 1.5) % vertical lines
       end
+      colormap(jet);
+      caxis([-1 1]); %#ok<CAXIS>
     end
 
-    colormap(jet); caxis([-1 1]); %cat_io_colormaps('BWR',64)); %graybluered
+     %cat_io_colormaps('BWR',64)); %graybluered
     subplot('Position',[0.95,0.27,0.0001,0.6]); imagesc( (-1:.1:1)' ); axis equal off
-    colorbar
-
+    colorbar;
     
     saveas(gcf,fullfile(resultdir,sprintf('mt%d_%s_site%d_n%d_%d.png',matonly,matonlyn{matonly+1},si,numel(age),plevel ) )); 
     

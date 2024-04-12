@@ -303,9 +303,8 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
                           % refined ( min in T1w, otherwise max )  
   tis.help.bonecortex = 'Cortical bone intensity, i.e. "min( seg8.mn( seg8t.lkp==4) )".';  
   tis.help.bonemarrow = 'Spongy bone intensity, i.e. "max( seg8.mn( seg8t.lkp==4) )".'; 
-  tis.help.bonestruct = 'Ratio between cortical and spongy bone.';
-  tis.help.bone       = 'Average bone intensity, i.e. "mean( seg8.mn( seg8t.lkp==4 ) )".';
-  tis.help.head       = 'Average head intensity, i.e. "mean( seg8.mn( seg8t.lkp==5 ) )".';
+  tis.help.bone       = 'Weighted average of the SPM bone intensities, i.e. "mean(seg8t.mg(seg8t.lkp==4)'' .* seg8t.mn(seg8t.lkp==4),2)".';
+  tis.help.head       = 'Weighted average of the SPM head intensities, i.e. "mean(seg8t.mg(seg8t.lkp==5)'' .* seg8t.mn(seg8t.lkp==5),2)".';
   tis.help.background = 'Averaged SPM background intensity.';
   % not so easy to extract the values from the typical 4 peaks 
   %tis.help.muscle     = 'Normalized protocol-selected values of tis.*Head.'; 
@@ -314,7 +313,7 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
   tis.WM              = tis.seg8n(2);
   tis.GM              = tis.seg8n(1);
   if sum( seg8t.lkp == 3 ) == 2 &&  tis.weighting 
-    %% take the value that stronger vary from the other 
+    %% take the value that stronger vary from the other tissues 
     tis.CSF = seg8t.mn( seg8t.lkp(:) == 3 & seg8t.mg(:) > .1) / tis.seg8o(2); 
     GMdiff  = abs(tis.CSF - tis.GM);
     tis.CSF = tis.CSF( GMdiff==max(GMdiff) ); 
@@ -322,17 +321,21 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
     tis.CSF           = tis.seg8n(3);
   end
   
-  tis.bonecortex      = min(seg8t.mn( seg8t.lkp==4 ) ) / tis.WMth;   
-  tis.bonemarrow      = max(seg8t.mn( seg8t.lkp==4 ) ) / tis.WMth; 
-  tis.headfat         = max(seg8t.mn( seg8t.lkp==5 ) ) / tis.WMth; 
-
-  tis.bonedensity     = seg8t.mg( seg8t.mn == min(seg8t.mn( seg8t.lkp==4 ) ) )  + ... % percentage of min bone
-                         0.5 * sum( seg8t.mg( seg8t.lkp==4 & ... % half percentage of median bone (neither min nor max) 
-                          seg8t.mn ~= min(seg8t.mn( seg8t.lkp==4 ) ) & ...
-                          seg8t.mn ~= max(seg8t.mn( seg8t.lkp==4 ) ) ));
-  tis.bone            = tis.seg8n(4);
-  tis.head            = tis.seg8n(5);        
-  tis.background      = tis.seg8n(6);
+  if 1 % no good correlation 
+    [~,bminid]  = min( seg8t.mn  + inf*(seg8t.lkp==4) ); 
+    if  tis.headFatType
+      [~,hdmaxid] = max( seg8t.mn .* (seg8t.lkp==5) ); 
+    else
+      [~,hdmaxid] = min( seg8t.mn + inf*(seg8t.lkp==5 | seg8t.mn > min( seg8t.mn + inf*(seg8t.lkp==5) )  ) ); 
+    end
+    tis.bonecortexpercentage  = seg8t.mg( bminid ); 
+    tis.headfatpercentage     = seg8t.mg( hdmaxid ); 
+  end
+  tis.bonecortex            = min(seg8t.mn( seg8t.lkp==4 ) ) / tis.WMth;   
+  tis.bonemarrow            = max(seg8t.mn( seg8t.lkp==4 ) ) / tis.WMth; 
+  tis.bone                  = tis.seg8n(4);
+  tis.head                  = tis.seg8n(5);        
+  tis.background            = tis.seg8n(6);
 
   % normalization values as minimal main CSF or background and maximal WM intensity
   tis.intnorm = [

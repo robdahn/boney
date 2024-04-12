@@ -35,19 +35,21 @@ function out = boney_getBoneMeasures(groups,opt)
         fprintf('Group %d/%d\n',gi,numel(groups)); 
         if opt.matonly > 9
         %% new approach
-          clear opt2;
+          opt2 = opt; 
           opt2.files             = groups{gi}; 
           opt2.opts.bmethod      = min(2,opt.matonly - 10); 
+          %opt2.output.resdir     = '../derivatives/boney_ref0'; 
           opt2.output.writevol   = opt.printvol * 0;
-          opt2.output.writeseg   = opt.printvol;
+          opt2.output.writeseg   = opt.printvol * 0;
           opt2.output.writesurf  = opt.printvol * 0; 
-          opt2.output.report     = 3 * opt.printimg; 
+          %opt2.output.report     = 3 * opt.printimg; 
           opt2.opts.subdirs      = 1; 
           opt2.opts.affreg       = 0; % 0-
-          opt2.opts.reduce       = 2; %
+          %opt2.opts.reduce       = 2; %
+          %opt2.opts.refine       = 0;  
           opt2.opts.rerun        = opt.rerun; 
-          opt2.opts.verb         = 1; % 1-default, 2-details
-
+          %opt2.opts.verb         = 2; % 1-default, 2-details
+          %opt2.opts.reslim       = 2.5; 
           %%
           [~,nout] = boney_segment(opt2);
 
@@ -64,86 +66,193 @@ function out = boney_getBoneMeasures(groups,opt)
             end
           elseif opt.matonly == 11 || opt.matonly == 12
             for si = 1:numel(groups{gi})
-              out.bone_num{gi}(si,1)  = nout(si).classic.bone_num;                 % bone volume normalised by TIV
-              out.bone_med{gi}(si,1)  = nout(si).classic.bone_med; % median bone intensity value
-              out.bone_std{gi}(si,1)  = nout(si).classic.bone_std;
-              out.TIV{gi}(si,1)       = nout(si).tismri.TIV; 
-              out.int_ci{gi}(si,:)    = nout(si).tismri.Tth; 
-              out.vol_ci{gi}(si,:)    = nout(si).tismri.volr;    % relative volume by TIV 
-              out.con{gi}(si,1)       = nout(si).tis.seg8conr;     % GM/WM contrast
-              out.tis_bonecortex{gi}(si,1)  = nout(si).tis.bonecortex; 
-              out.tis_bonemarrow{gi}(si,1)  = nout(si).tis.bonemarrow; 
-              out.tis_bonedensity{gi}(si,1) = nout(si).tis.bonedensity; 
-              out.tis_bone{gi}(si,1)        = nout(si).tis.bone; 
-              out.tis_head{gi}(si,1)        = nout(si).tis.head; 
-              out.tismri_volfatr{gi}(si,1)  = nout(si).tismri.volfatr; 
-              out.tismri_volmusr{gi}(si,1)  = nout(si).tismri.volmusr; 
-              
-              % vol
-              out.vROI_bonecortex1{gi}(si,1)    = nout(si).vROI.bonecortex(1);
-              out.vROI_bonecortex2{gi}(si,1)    = nout(si).vROI.bonecortex(2);
-              out.vROI_bonecortex3{gi}(si,1)    = nout(si).vROI.bonecortex(3);
-              out.vROI_bonecortex4{gi}(si,1)    = nout(si).vROI.bonecortex(4) + nout(si).vROI.bonecortex(5);
+              % classic bone measures (where we started) 
+              out.bone_num{gi}(si,1)  = nout(si).classic.bone_num;         % bone volume normalised by TIV
+              out.bone_med{gi}(si,1)  = nout(si).classic.bone_med;         % median bone intensity value
+              out.bone_std{gi}(si,1)  = nout(si).classic.bone_std;         % standard deviation 
 
+              % SPM measures 
+              out.TIV{gi}(si,1)       = nout(si).tismri.TIV;               % total intracranial volume
+              out.int_ci{gi}(si,:)    = nout(si).tismri.Tth;               % tissue threshold (GM WM CSF bone fat background)
+              out.vol_ci{gi}(si,:)    = nout(si).tismri.volr;              % relative volume by TIV (GM WM CSF bone fat background)
+              out.con{gi}(si,1)       = nout(si).tis.seg8conr;             % GM/WM contrast
+              
+              % SPM bone measures 
+              out.tis_bonecortex{gi}(si,1)  = nout(si).tis.bonecortex;     % lowest SPM bone intensity (similar to bone_med but weaker)
+              out.tis_bonemarrow{gi}(si,1)  = nout(si).tis.bonemarrow;     % higest SPM bone intensity (bone_med but a bit weaker)
+              out.tis_bone{gi}(si,1)        = nout(si).tis.bone;           % (similar to bone_med
+              out.tis_head{gi}(si,1)        = nout(si).tis.head;           % (similar to head thickness but much weaker 
+              try
+                out.tis_headfatpercentage{gi}(si,1)     = nout(si).tis.headfatperentage;        % (similar to head thickness but much weaker 
+                out.tis_bonecortexpercentage{gi}(si,1)  = nout(si).tis.bonecortexperentage;        % (similar to head thickness but much weaker 
+              catch
+                out.tis_headfatpercentage{gi}(si,1)     = nout(si).tis.headfatpercentage;        % (similar to head thickness but much weaker 
+                out.tis_bonecortexpercentage{gi}(si,1)  = nout(si).tis.bonecortexpercentage;        % (similar to head thickness but much weaker 
+              end
+              
+              % 
+              out.tismri_volfatr{gi}(si,1)  = nout(si).tismri.volfatr;     % fat portion of the head tissue ??
+              out.tismri_volmusr{gi}(si,1)  = nout(si).tismri.volmusr;     % ?
+              
+              % == volume ROI measures ==
+              out.vROI_bone1{gi}(si,1)    = nout(si).vROI.bonecortex(1) + nout(si).vROI.bonemarrow(1);
+              out.vROI_bone2{gi}(si,1)    = nout(si).vROI.bonecortex(2) + nout(si).vROI.bonemarrow(2);
+              out.vROI_bone3{gi}(si,1)    = nout(si).vROI.bonecortex(3) + nout(si).vROI.bonemarrow(3);
+              out.vROI_bone4{gi}(si,1)    = nout(si).vROI.bonecortex(4) + nout(si).vROI.bonecortex(5) + ...
+                                            nout(si).vROI.bonemarrow(4) + nout(si).vROI.bonemarrow(5);
+               % vROI bone-cortex
+              out.vROI_bonecortex1{gi}(si,1)    = nout(si).vROI.bonecortex(1);                                % total
+              out.vROI_bonecortex2{gi}(si,1)    = nout(si).vROI.bonecortex(2);                                % frontal 
+              out.vROI_bonecortex3{gi}(si,1)    = nout(si).vROI.bonecortex(3);                                % occipital 
+              out.vROI_bonecortex4{gi}(si,1)    = nout(si).vROI.bonecortex(4) + nout(si).vROI.bonecortex(5);  % pariatal 
+              % vROI bone-marrow
               out.vROI_bonemarrow1{gi}(si,1)    = nout(si).vROI.bonemarrow(1);
               out.vROI_bonemarrow2{gi}(si,1)    = nout(si).vROI.bonemarrow(2);
               out.vROI_bonemarrow3{gi}(si,1)    = nout(si).vROI.bonemarrow(3);
               out.vROI_bonemarrow4{gi}(si,1)    = nout(si).vROI.bonemarrow(4) + nout(si).vROI.bonemarrow(5);
-              out.vROI_bonemarrow0{gi}(si,1)    = nout(si).vROI.bonemarrow(1) + nout(si).vROI.bonemarrow(2) ...
-                                               -2*nout(si).vROI.bonemarrow(2) - nout(si).vROI.bonethickness(1) ...
-                                               +  nout(si).vROI.bonethickness(2) ;
-
+              % vROI bone-thickness
               out.vROI_bonethickness1{gi}(si,1) = nout(si).vROI.bonethickness(1);
               out.vROI_bonethickness2{gi}(si,1) = nout(si).vROI.bonethickness(2);
               out.vROI_bonethickness3{gi}(si,1) = nout(si).vROI.bonethickness(3);
               out.vROI_bonethickness4{gi}(si,1) = nout(si).vROI.bonethickness(4) + nout(si).vROI.bonethickness(5);
-
+              % vROI head-thickness
+              norm = nout(si).tismri.TIV / 1200; 
+              out.vROI_headthickness1{gi}(si,1) = nout(si).vROI.headthickness(1);
               out.vROI_headthickness2{gi}(si,1) = nout(si).vROI.headthickness(2);
               out.vROI_headthickness3{gi}(si,1) = nout(si).vROI.headthickness(3);
               out.vROI_headthickness4{gi}(si,1) = nout(si).vROI.headthickness(4) + nout(si).vROI.headthickness(5);
-              %out.vROI_head3{gi}(si,1)          = nout(si).vROI.head(3);
-              %out.vROI_head4{gi}(si,1)          = nout(si).vROI.head(4);
-              % surf
+              % vROI bone-head-thickness
+              out.vROI_bhthickness1{gi}(si,1)   = out.vROI_bonethickness1{gi}(si,1) + out.vROI_headthickness1{gi}(si,1);
+              out.vROI_bhthickness2{gi}(si,1)   = out.vROI_bonethickness2{gi}(si,1) + out.vROI_headthickness2{gi}(si,1);
+              out.vROI_bhthickness3{gi}(si,1)   = out.vROI_bonethickness3{gi}(si,1) + out.vROI_headthickness3{gi}(si,1);
+              out.vROI_bhthickness4{gi}(si,1)   = out.vROI_bonethickness4{gi}(si,1) + out.vROI_headthickness4{gi}(si,1);
+              
+% special defintion of bone-marrow but why ????
+% .. I think the idea was to extract something that has a high interaction
+% with the brain volumes ... 
+%              out.vROI_bonemarrow0{gi}(si,1)    = nout(si).vROI.bonemarrow(1) + nout(si).vROI.bonemarrow(2) -2*nout(si).vROI.bonemarrow(2) - nout(si).vROI.bonethickness(1) ...
+%                                               +  nout(si).vROI.bonethickness(2) ;
+              % normalization between regions
+              out.vROI_bonemix{gi}(si,1)        = -(nout(si).vROI.bonemarrow(3)    - nout(si).vROI.bonemarrow(1)) + ...
+                                                   (nout(si).vROI.bonethickness(3) - nout(si).vROI.bonethickness(1));
+              % marrow to cortext values for intensity and thickness
+              % (occipital - global)
+              out.vROI_boneM2C{gi}(si,1)        = -(nout(si).vROI.bonemarrow(3)    - nout(si).vROI.bonecortex(3)) + ... 
+                                                   (nout(si).vROI.bonethickness(3) - nout(si).vROI.bonethickness(1)); 
+% combine thickness and intensity 
+              out.vROI_boneMpT{gi}(si,1)        = nout(si).vROI.bonemarrow(3)    + nout(si).vROI.bonethickness(3);
+              out.vROI_boneMxT{gi}(si,1)        = nout(si).vROI.bonemarrow(3)    * nout(si).vROI.bonethickness(3);
+              out.vROI_boneMdT{gi}(si,1)        = nout(si).vROI.bonemarrow(3)    / nout(si).vROI.bonethickness(3);
               if opt.matonly == 12
+                out.sROI_bonemix{gi}(si,1)      = nout(si).sROI.bonemarrow(3)    - nout(si).sROI.bonemarrow(1) + ...
+                                                  nout(si).sROI.bonethickness(3) - nout(si).sROI.bonethickness(1) ;
+                out.sROI_boneM2C{gi}(si,1)      = nout(si).sROI.bonemarrow(3)    - nout(si).sROI.bonecortex(3) + ...
+                                                  nout(si).sROI.bonethickness(3) - nout(si).sROI.bonethickness(1) ;
+                out.sROI_boneMxT{gi}(si,1)      = nout(si).sROI.bonemarrow(3)    * nout(si).sROI.bonethickness(3);
+              end
+
+              % == surface ROI measures ==
+              if opt.matonly == 12
+                % bone-cortext
+                out.sROI_bone1{gi}(si,1)    = nout(si).sROI.bonecortex(1) + nout(si).sROI.bonemarrow(1);
+                out.sROI_bone2{gi}(si,1)    = nout(si).sROI.bonecortex(2) + nout(si).sROI.bonemarrow(2);
+                out.sROI_bone3{gi}(si,1)    = nout(si).sROI.bonecortex(3) + nout(si).sROI.bonemarrow(3);
+                out.sROI_bone4{gi}(si,1)    = nout(si).sROI.bonecortex(4) + nout(si).sROI.bonecortex(5) + ...
+                                              nout(si).sROI.bonemarrow(4) + nout(si).sROI.bonemarrow(5);
+                % bone-cortext
                 out.sROI_bonecortex1{gi}(si,1)    = nout(si).sROI.bonecortex(1);
                 out.sROI_bonecortex2{gi}(si,1)    = nout(si).sROI.bonecortex(2);
                 out.sROI_bonecortex3{gi}(si,1)    = nout(si).sROI.bonecortex(3);
                 out.sROI_bonecortex4{gi}(si,1)    = nout(si).sROI.bonecortex(4) + nout(si).sROI.bonecortex(5);
+                % just invers
+                out.sROI_ibonecortex1{gi}(si,1)    = -nout(si).sROI.bonecortex(1);
+                out.sROI_ibonecortex2{gi}(si,1)    = -nout(si).sROI.bonecortex(2);
+                out.sROI_ibonecortex3{gi}(si,1)    = -nout(si).sROI.bonecortex(3);
+                out.sROI_ibonecortex4{gi}(si,1)    = -nout(si).sROI.bonecortex(4) - nout(si).sROI.bonecortex(5);
+                % bone-marrow
                 out.sROI_bonemarrow1{gi}(si,1)    = nout(si).sROI.bonemarrow(1);
                 out.sROI_bonemarrow2{gi}(si,1)    = nout(si).sROI.bonemarrow(2);
                 out.sROI_bonemarrow3{gi}(si,1)    = nout(si).sROI.bonemarrow(3);
-                out.sROI_bonemarrow4{gi}(si,1)    = nout(si).sROI.bonemarrow(4) + nout(si).sROI.bonecortex(6);
+                out.sROI_bonemarrow4{gi}(si,1)    = nout(si).sROI.bonemarrow(4) + nout(si).sROI.bonemarrow(5);
+                % bone-thickness
                 out.sROI_bonethickness1{gi}(si,1) = nout(si).sROI.bonethickness(1);
                 out.sROI_bonethickness2{gi}(si,1) = nout(si).sROI.bonethickness(2);
                 out.sROI_bonethickness3{gi}(si,1) = nout(si).sROI.bonethickness(3);
                 out.sROI_bonethickness4{gi}(si,1) = nout(si).sROI.bonethickness(4) + nout(si).sROI.bonethickness(5);
+                % head-tickness
                 out.sROI_headthickness1{gi}(si,1) = nout(si).sROI.headthickness(1);
                 out.sROI_headthickness2{gi}(si,1) = nout(si).sROI.headthickness(2);
                 out.sROI_headthickness3{gi}(si,1) = nout(si).sROI.headthickness(3);
                 out.sROI_headthickness4{gi}(si,1) = nout(si).sROI.headthickness(4) + nout(si).sROI.headthickness(5);
+                % bone-head-thickness
+                out.sROI_bhthickness1{gi}(si,1)   = out.sROI_bonethickness1{gi}(si,1) + out.sROI_headthickness1{gi}(si,1);
+                out.sROI_bhthickness2{gi}(si,1)   = out.sROI_bonethickness2{gi}(si,1) + out.sROI_headthickness2{gi}(si,1);
+                out.sROI_bhthickness3{gi}(si,1)   = out.sROI_bonethickness3{gi}(si,1) + out.sROI_headthickness3{gi}(si,1);
+                out.sROI_bhthickness4{gi}(si,1)   = out.sROI_bonethickness4{gi}(si,1) + out.sROI_headthickness4{gi}(si,1);
+                % NOR
+                TIVnorm = (nout(si).tismri.TIV / 1000 ) .^ (1/3); % 1600
+                out.sROI_nbhthickness1{gi}(si,1)   = out.sROI_bonethickness1{gi}(si,1) + out.sROI_headthickness1{gi}(si,1) / TIVnorm;
+                out.sROI_nbhthickness2{gi}(si,1)   = out.sROI_bonethickness2{gi}(si,1) + out.sROI_headthickness2{gi}(si,1) / TIVnorm;
+                out.sROI_nbhthickness3{gi}(si,1)   = out.sROI_bonethickness3{gi}(si,1) + out.sROI_headthickness3{gi}(si,1) / TIVnorm;
+                out.sROI_nbhthickness4{gi}(si,1)   = out.sROI_bonethickness4{gi}(si,1) + out.sROI_headthickness4{gi}(si,1) / TIVnorm;
               end
 
               % tried to normalize this but it is not working
-              %TIVnorm = ((nout(si).tismri.TIV / (pi*4/3)).^(1/3)) / ((1350 / (pi*4/3)).^(1/3)); 
-              TIVnorm = (nout(si).tismri.TIV / 1600 ) .^ (1/3); 
-              out.vROI_headthickness3t{gi}(si,1) = nout(si).vROI.headthickness(3) / TIVnorm;
-              out.sROI_headthickness3t{gi}(si,1) = nout(si).sROI.headthickness(3) / TIVnorm;
+              %%TIVnorm = ((nout(si).tismri.TIV / (pi*4/3)).^(1/3)) / ((1350 / (pi*4/3)).^(1/3)); 
+              TIVnorm = (nout(si).tismri.TIV / 1000 ) .^ (1/3); % 1600
+              if 1
+                out.vROI_nbonethickness1{gi}(si,1) = out.vROI_bonethickness1{gi}(si,1) / TIVnorm; 
+                out.vROI_nbonethickness2{gi}(si,1) = out.vROI_bonethickness2{gi}(si,1) / TIVnorm; 
+                out.vROI_nbonethickness3{gi}(si,1) = out.vROI_bonethickness3{gi}(si,1) / TIVnorm; 
+                out.vROI_nbonethickness4{gi}(si,1) = out.vROI_bonethickness4{gi}(si,1) / TIVnorm; 
+                out.vROI_nheadthickness1{gi}(si,1) = out.vROI_headthickness1{gi}(si,1) / TIVnorm; 
+                out.vROI_nheadthickness2{gi}(si,1) = out.vROI_headthickness2{gi}(si,1) / TIVnorm; 
+                out.vROI_nheadthickness3{gi}(si,1) = out.vROI_headthickness3{gi}(si,1) / TIVnorm; 
+                out.vROI_nheadthickness4{gi}(si,1) = out.vROI_headthickness4{gi}(si,1) / TIVnorm; 
+                out.vROI_nbhthickness1{gi}(si,1)   = out.vROI_bhthickness1{gi}(si,1) / TIVnorm; 
+                out.vROI_nbhthickness2{gi}(si,1)   = out.vROI_bhthickness2{gi}(si,1) / TIVnorm; 
+                out.vROI_nbhthickness3{gi}(si,1)   = out.vROI_bhthickness3{gi}(si,1) / TIVnorm; 
+                out.vROI_nbhthickness4{gi}(si,1)   = out.vROI_bhthickness4{gi}(si,1) / TIVnorm; 
+                if opt.matonly == 12 
+                  out.sROI_nbonethickness1{gi}(si,1) = out.sROI_bonethickness1{gi}(si,1) / TIVnorm; 
+                  out.sROI_nbonethickness2{gi}(si,1) = out.sROI_bonethickness2{gi}(si,1) / TIVnorm; 
+                  out.sROI_nbonethickness3{gi}(si,1) = out.sROI_bonethickness3{gi}(si,1) / TIVnorm; 
+                  out.sROI_nbonethickness4{gi}(si,1) = out.sROI_bonethickness4{gi}(si,1) / TIVnorm; 
+                  out.sROI_nheadthickness1{gi}(si,1) = out.sROI_headthickness1{gi}(si,1) / TIVnorm; 
+                  out.sROI_nheadthickness2{gi}(si,1) = out.sROI_headthickness2{gi}(si,1) / TIVnorm; 
+                  out.sROI_nheadthickness3{gi}(si,1) = out.sROI_headthickness3{gi}(si,1) / TIVnorm; 
+                  out.sROI_nheadthickness4{gi}(si,1) = out.sROI_headthickness4{gi}(si,1) / TIVnorm; 
+                 % out.sROI_nbhthickness1{gi}(si,1)   = out.sROI_bhthickness1{gi}(si,1) / TIVnorm; 
+                 % out.sROI_nbhthickness2{gi}(si,1)   = out.sROI_bhthickness2{gi}(si,1) / TIVnorm; 
+                 % out.sROI_nbhthickness3{gi}(si,1)   = out.sROI_bhthickness3{gi}(si,1) / TIVnorm; 
+                 % out.sROI_nbhthickness4{gi}(si,1)   = out.sROI_bhthickness4{gi}(si,1) / TIVnorm; 
+                end
+              end
+              %out.vROI_headthickness3t{gi}(si,1) = nout(si).vROI.headthickness(3) / TIVnorm;
+              %out.sROI_headthickness3t{gi}(si,1) = nout(si).sROI.headthickness(3) / TIVnorm;
 
               % combined head measures - not working
               out.vhdt1{gi}(si,1) =  nout(si).tis.head + nout(si).tismri.volfatr;
-              out.shdt3{gi}(si,1) = (nout(si).tis.head + nout(si).tismri.volfatr) .* nout(si).sROI.headthickness(3); 
+              out.shdt2{gi}(si,1) = (nout(si).tis.head + nout(si).tismri.volfatr) +  out.sROI_nheadthickness3{gi}(si,1); 
+              out.shdt3{gi}(si,1) = (nout(si).tis.head + nout(si).tismri.volfatr) .* out.sROI_nheadthickness3{gi}(si,1); 
 
               % combined bone measures - working!
-              out.vROI_BMDH{gi}(si,1)    = -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(1) ...
-                                           -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(3);
-              out.vROI_BMDH2{gi}(si,1)   = -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(1) ...
-                                           -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(1);
+              out.vROI_BMDH{gi}(si,1)    = -nout(si).vROI.bonecortex(3)*10 + nout(si).vROI.bonethickness(3)/10;
+              %out.vROI_BMDH{gi}(si,1)    = -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(1) ...
+              %                             -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(3);
+
+              %out.vROI_BMDH1{gi}(si,1)   = -nout(si).vROI.bonecortex(1) + nout(si).vROI.bonethickness(3);
+              %out.vROI_BMDH2{gi}(si,1)   = -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(1) ...
+              %                             -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(1);
+              out.vROI_BMDH1{gi}(si,1)   = -nout(si).vROI.bonecortex(1) + nout(si).vROI.bonethickness(1);
+              out.vROI_BMDH2{gi}(si,1)   = -nout(si).vROI.bonecortex(2) + nout(si).vROI.bonethickness(2);
+              %out.vROI_BMDH3{gi}(si,1)   = -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(1);
+              out.vROI_BMDH3{gi}(si,1)   = -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(3);
               out.vROI_BMDH4{gi}(si,1)   = -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(1) ...
                                            -nout(si).vROI.bonemarrow(3);
-              out.vROI_BMDH1{gi}(si,1)   = -nout(si).vROI.bonecortex(1) + nout(si).vROI.bonethickness(3);
-              out.vROI_BMDH3{gi}(si,1)   = -nout(si).vROI.bonecortex(3) + nout(si).vROI.bonethickness(1);
               if opt.matonly == 12
-                out.sROI_BMDH{gi}(si,1)  = -nout(si).sROI.bonecortex(3) + nout(si).sROI.bonethickness(1) ...
+                out.sROI_BMDH{gi}(si,1)  = -nout(si).sROI.bonecortex(3)*10 + nout(si).sROI.bonethickness(3)/10;
+                out.sROI_BMDH1{gi}(si,1)  = -nout(si).sROI.bonecortex(3) + nout(si).sROI.bonethickness(1) ...
                                            -nout(si).classic.bone_med   + nout(si).sROI.bonethickness(3);
                 out.sROI_BMDH2{gi}(si,1) = -nout(si).sROI.bonecortex(3) + nout(si).sROI.bonethickness(3) ...
                                            -nout(si).classic.bone_med   + nout(si).sROI.bonemarrow(3);
@@ -403,8 +512,15 @@ function out = boney_getBoneMeasures(groups,opt)
     end
    
     %%
-    FN = setdiff( fieldnames(out) , {'int_ci','vol_ci'} ) ; 
-    for fni = 1:numel(FN)
-        out.(FN{fni}) = reshape( out.(FN{fni}) , size(groups) ); 
+    if 1
+      FN = setdiff( fieldnames(out) , {'int_ci','vol_ci'} ) ; 
+      for fni = 1:numel(FN)
+        try
+          out.(FN{fni}) = reshape( out.(FN{fni}) , size(groups) ); 
+        catch
+          fni
+          FN{fni}
+        end
+      end
     end
 end

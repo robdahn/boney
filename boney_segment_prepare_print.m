@@ -49,23 +49,26 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
     'Tbone'   'tis'     'headBoneTypen' 1    's'  0   0
     'Tres'    'tis'     'res_RES'       1    'f'  0   1   
     'Tcnr'    'tis'     'seg8CNR'       1    'f'  0   1
+    ...
     'Tbg'     'tis'     'background'    1    'f'  1   ex>1
     'Tcsf'    'tis'     'CSF'           1    'f'  0   ex>1
     'Tgm'     'tis'     'GM'            1    'f'  0   ex>1
     'Thead'   'tis'     'head'          1    'f'  0   ex>1
-    'vBcor'   'vROI'    'bonecortex'    4    'f'  0   exm>=1 
-    'vBmar'   'vROI'    'bonemarrow'    3    'f'  1   exm>=1
+    ...
+    'vBcor'   'vROI'    'bonecortex'    4    'f'  1   exm>=1 
+    'vBmar'   'vROI'    'bonemarrow'    3    'f'  0   exm>=1
     'vBth'    'vROI'    'bonethickness' 3    'f'  0   exm>=1
     'vHth'    'vROI'    'headthickness' 4    'f'  0   exm>=1 
     'vHmed'   'vROI'    'head'          1    'f'  0   exm>=1 
-    'sBcor'   'sROI'    'bonecortex'    4    'f'  0   exm==2
-    'sBmar'   'sROI'    'bonemarrow'    3    'f'  1   exm==2
+    ...
+    'sBcor'   'sROI'    'bonecortex'    4    'f'  1   exm==2
+    'sBmar'   'sROI'    'bonemarrow'    3    'f'  0   exm==2
     'sBth'    'sROI'    'bonethickness' 3    'f'  0   exm==2
     'sHth'    'sROI'    'headthickness' 4    'f'  0   exm==2 
     'sHmed'   'vROI'    'head'          1    'f'  0   exm==2 
+    ...
     'Tbcor'   'tis'     'bonecortex'    1    'f'  1   1
     'Tbmar'   'tis'     'bonemarrow'    1    'f'  0   1
-    'Tbdns'   'tis'     'bonedensity'   1    'f'  0   1
     'Bmed'    'tismri'  'bone_med'      1    'f'  1   exm==0
     'Bmedc'   'classic' 'bone_med'      1    'f'  0   exc
     };
@@ -78,8 +81,8 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
   Tline   = sprintf('%%5d) %%%ds:',job.opts.snspace(1)-8);
   Tavg    = sprintf('%%%ds:',job.opts.snspace(1)-1);
   for fi = 1:size(MA,1)
-      Cheader = [Cheader MA{fi,1}]; %#ok<AGROW> 
-      MAfni   = strrep( MA{fi,1} ,'_','');
+    Cheader = [Cheader MA{fi,1}]; %#ok<AGROW> 
+    MAfni   = strrep( MA{fi,1} ,'_','');
     if MA{fi,6}, sep = ' |'; else, sep = ''; end
     Theader = sprintf(sprintf('%%s%%s%%%ds' ,job.opts.snspace(2)),Theader, sep, MAfni ); 
     switch MA{fi,5}
@@ -122,7 +125,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
         fprintf('  Affine registration:      %d (%s)\n', job.opts.affreg,  verbosestr{job.opts.affreg  + 1});
         fprintf('  Strong bias correction:   %d (%s)\n', job.opts.bias,    verbosestr{job.opts.bias    + 1});
         fprintf('  Refine segmentation:      %d (%s)\n', job.opts.refine,  verbosestr{job.opts.refine  + 1});
-        fprintf('  Use sub directories:      %d (%s)\n', job.opts.subdirs, verbosestr{job.opts.subdirs + 1});
+        fprintf('  Intensity normalization:  %s \n'    , job.opts.bnorm);
         fprintf('  Use sub directories:      %d (%s)\n', job.opts.subdirs, verbosestr{job.opts.subdirs + 1});
         fprintf('  Classic measures:         %d (%s)\n', job.opts.classic, verbosestr{job.opts.classic + 1});
         fprintf('  Resolution limit:         %0.2f  \n', job.opts.reslim);
@@ -135,9 +138,9 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
         fprintf('    Report:                 %s\n'     , job.output.resdir);
         fprintf('    Write volumes:          %d (%s)\n', job.output.writevol,  volstr{job.output.writevol + 1});
         fprintf('    Write surfaces:         %d (%s)\n', job.output.writesurf, reportstr{job.output.writesurf + 1});
-        fprintf('    Report:                 %d (%s)\n', job.output.report, reportstr{job.output.report});
+        fprintf('    Report:                 %d (%s)\n', job.output.report, reportstr{job.output.report + 1});
       else
-        fprintf('  Report:                   %d (%s)\n', job.output.report, reportstr{job.output.report});
+        fprintf('  Report:                   %d (%s)\n', job.output.report, reportstr{job.output.report + 1});
       end
     end
     fprintf('\n%s\n%s\n',  Theader,repmat('-',size(Theader)));  

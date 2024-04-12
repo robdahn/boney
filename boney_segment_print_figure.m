@@ -665,10 +665,10 @@ function printSurfaces(St,Si,job,out,popts)
         %end
       end
       
-      cb = cat_surf_render2('Colorbar',h{4});
-      set( cb.colourbar, 'Location','South',  'Position',[0.275 0.015 0.2 0.005] );
+      cb1 = cat_surf_render2('Colorbar',h{4});
+      set( cb1.colourbar, 'Location','South',  'Position',[0.275 0.015 0.2 0.005] );
       
-      text(0.5,0.015, 'Bone thickness', 'fontsize',popts.fontsize-1, ...
+      text(0.5,0.015, 'Bone thickness (mm)', 'fontsize',popts.fontsize-1, ...
         'FontName',popts.fontname, 'HorizontalAlignment','center', 'Parent',hCS{5}); 
   
     end
@@ -706,9 +706,9 @@ function printSurfaces(St,Si,job,out,popts)
   
       if 1
         % no bone histogram
-        cb = cat_surf_render2('Colorbar',h{4});
-        if isfield(cb,'colourbar')
-          set(cb.colourbar,'Location','South','Position',[0.5 + 0.275 0.015 0.2 0.005]);
+        cb2 = cat_surf_render2('Colorbar',h{4});
+        if isfield(cb2,'colourbar')
+          set(cb2.colourbar,'Location','South','Position',[0.5 + 0.275 0.015 0.2 0.005]);
           text(0.5,0.015,'Bonemarrow intensity','fontsize',popts.fontsize-1,'FontName',popts.fontname,...
             'HorizontalAlignment','center','Parent',hCS{5}); 
         end
@@ -744,7 +744,13 @@ function printSurfaces(St,Si,job,out,popts)
     % restore colormap?
     colormap( [ [0 0.02 0.07]; repmat([0.05 0.15 .35], round(59/(popts.crange+2)),1); ...
       repmat([ 0 .3 .6],  round(59/(popts.crange+2)), 1); jet(59 - 2*round(59/(popts.crange+2)))] );
-  
+    cb1.colourbar.Limits      = [5 20];
+    cb1.colourbar.Ticks       = 5:15/4:20;
+    cb1.colourbar.TickLabels  = 0:5:20;
+    cb2.colourbar.Limits      = [2 8];
+    cb2.colourbar.Ticks       = 2:6/2:8;
+    cb2.colourbar.TickLabels  = {'bone (0)' '~WM (4) ' 'fat (8)'};
+
   
     % final print with try to avoid crashing for unknown reasons
     try 

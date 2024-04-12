@@ -23,10 +23,10 @@
             if  ~all(isnan(out.(measure{mi}){1}(:))) && contains(Pcsv{1}{csvi},'ukb')
               % create figure
               if printfg
-                fg=10; fgh = figure(fg); clf(fg); fgh.Position(3:4) = [1400 800]; 
+                fg=10; fgh = figure(fg); clf(fg); fgh.Position(3:4) = [1400 1100]; 
                 fgh.Name = sprintf('mt%02d_%s_%s_site%d_n%d',matonly,matonlyn{matonly+1},measure{mi},si,numel(age)); 
                 ha = annotation('textbox',[0.005 0.92 0.99 0.08],'string',sprintf( ...
-                  '%d-%s: %s - site %d, N=%d, radius~%s ',matonly,matonlyn{matonly+1}, ...
+                  '%d-%s%s: %s - site %d, N=%d, radius~%s ',matonly,matonlyn{matonly+1},strrep(resdir,'_','\_'), ...
                   strrep(measure{mi},'_','\_'), si, numel(age), markname));
                 ha.FontSize             = 14;
                 ha.FontWeight           = 'bold';
@@ -50,13 +50,19 @@
                   case 7,  bmdx = ASAT;         bmdname = 'ASAT';
                   case 8,  bmdx = fatp;         bmdname = 'rFAT';
                   case 9,  bmdx = bmi;          bmdname = 'BMI';
-                  case 10, bmdx = birthweight;  bmdname = 'waist';
+                  case 10, bmdx = waist;        bmdname = 'waist';
                   % brain measures
                   case 11, bmdx = out.rGMV{1};  bmdname = 'rGMV';
                   case 12, bmdx = out.rWMV{1};  bmdname = 'rWMV';
                   case 13, bmdx = out.rCMV{1};  bmdname = 'rCMV';
                   case 14, bmdx = out.TIV{1};   bmdname = 'TIV';
-                  case 15, bmdx = sunburnchild; bmdname = 'health satisfaction';
+                  case 15, bmdx = sittingheight; bmdname = 'sittingheight';
+                  % other
+                  case 16, bmdx = birthweight;  bmdname = 'birthweight'; 
+                  case 17, bmdx = timesummer;   bmdname = 'time out summer'; 
+                  case 18, bmdx = walk;         bmdname = 'walk';
+                  case 19, bmdx = smoking;      bmdname = 'smoking'; 
+                  case 20, bmdx = alc;          bmdname = 'alcohol'; 
                   otherwise, continue
                 end
                 if all(isnan(bmdx)), bmdx = zeros(size(bmdx)); end
@@ -69,10 +75,15 @@
 
                 if printfg
                   % set up subplot position
-                  px=5; py=3; [xx,yy] = ind2sub([px,py],bmdi);
+                  px=5; py=4; [xx,yy] = ind2sub([px,py],bmdi);
                   sp = subplot('Position',[(xx-1)/px+.03, .95*(py-yy)/py+.05, 1/px*.78, 1/py*.72]);
                   if bmdi==5
-                    histogram(out.(measure{mi}){1}, max(6,min(100,round(log(numel(bmdh)) * 6 )))); 
+%                    histogram(out.(measure{mi}){1}, max(6,min(100,round(log(numel(bmdh)) * 6 )))); 
+                    hh(1)=histogram(out.(measure{mi}){1}(sex==2), max(6,min(100,round(log(numel(bmdh)) * 3 )))); hold on
+                    hh(2)=histogram(out.(measure{mi}){1}(sex==1), max(6,min(100,round(log(numel(bmdh)) * 3 )))); 
+                    hh(1).FaceColor = [ 1    0         0      ]; hh(1).FaceAlpha = .6; 
+                    hh(2).FaceColor = [ 0    0.4470    0.7410 ]; hh(2).FaceAlpha = .6; 
+                    hh(2).BinEdges  = hh(1).BinEdges; 
                     title(sprintf('Histogram %s',strrep(fname{mi},'_','\_'))); 
                     xlabel(strrep(fname{mi},'_','\_')); 
                     ylim(ylim.*[1 1.2]); grid on
@@ -102,12 +113,14 @@
                 [RHOm,PVALm] = corr(bmdx(~isnan(bmdx) & sex==1 & msk)',out.(measure{mi}){1}(~isnan(bmdx) & sex==1 & msk),'type',corrtype); 
                 [RHOf,PVALf] = corr(bmdx(~isnan(bmdx) & sex==2 & msk)',out.(measure{mi}){1}(~isnan(bmdx) & sex==2 & msk),'type',corrtype);
                 if printfg
+                  warning off
                   [f,r(3)]     = fit(bmdx( ~isnan(bmdx) &          msk)',double(out.(measure{mi}){1}(~isnan(bmdx) &          msk)),...
                     fitval2,'Normalize','on','Robust','Bisquare'); ph=plot(f); ph.Color = [0.5    0.5    0.5]; 
                   [f,r(1)]     = fit(bmdx( ~isnan(bmdx) & sex==1 & msk)',double(out.(measure{mi}){1}(~isnan(bmdx) & sex==1 & msk)),...
                     fitval2,'Normalize','on','Robust','Bisquare'); ph=plot(f); ph.Color = [0    0.4470    0.7410]; 
                   [f,r(2)]     = fit(bmdx( ~isnan(bmdx) & sex==2 & msk)',double(out.(measure{mi}){1}(~isnan(bmdx) & sex==2 & msk)),...
                     fitval2,'Normalize','on','Robust','Bisquare'); ph=plot(f); ph.Color = [1    0.0000    0.0000];  
+                  warning on
                 end
 
                 % save for other figure

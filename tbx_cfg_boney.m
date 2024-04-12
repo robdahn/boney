@@ -205,14 +205,15 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   reslim                = cfg_menu;
   reslim.tag            = 'reslim';
   reslim.name           = 'Resolution limit (expert)';
-  reslim.labels         = {'0.5 mm','1.0 mm', '1.5 mm'};
-  reslim.values         = {0.5,1,1.5};
+  reslim.labels         = {'0.5 mm','1.0 mm', '1.5 mm', '2.5 mm'};
+  reslim.values         = {0.5,1,1.5,2.5};
   reslim.val            = {1.5};
   reslim.hidden         = expertgui<1;
   reslim.help           = ... 
    {['Limit processing resolution for the whole pipeline to stabilize and speed-up the processing. ' ...
      'The limit gives the required resolution after reduction, i.e., an image of .75 would be reduced ' ...
-     'to 1.5 mm, whereas 0.8 would not be reduced. '];''};
+     'to 1.5 mm, whereas 0.8 would not be reduced. '];
+     'The 2.5 mm are only for fast tests! ';''};
   
   reduce                = cfg_menu;
   reduce.tag            = 'reduce';
@@ -275,12 +276,47 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   ctpm.val              = {1};
   ctpm.help             = {'Select TPM (Tissue Probility Map) for preprocessing. ';''};
 
+  % normalization tissue 
+  % - multiple choises possible .. this is more for our tests
+  bnorm                 = cfg_menu;
+  bnorm.tag             = 'bnorm';
+  bnorm.name            = 'Bone intensity normalization (expert)';
+  %bnorm.labels          = {'WM','GM','CSF','muscle','bone','fat','GM-WM-contrast'}; 
+  %bnorm.values          = {'WM','GM','CSF','muscle','bone','fat','GM-WM-contrast'};
+  bnorm.labels          = {'WM','muscle','fat'}; 
+  bnorm.values          = {'WM','muscle','fat'};
+  bnorm.val             = {'muscle'};
+  bnorm.hidden          = expertgui<1;
+  bnorm.help            = {
+   ['Select a tissue for intensity normalization of the bones to harmonize protocol differences. ' ...
+    'Normalization is done to the background (or minimum) intensity. ' ...
+    'For brain data, the WM presents a good default but to avoid side effects we tested also muscle and fat tissue. ' ...
+    'Muscle tissue was previous use in (Lie et. al. 2011; https://doi.org/10.1016/j.ejrad.2010.09.010) is was quite stable in our test. ' ...
+    'A fat-based normalization is maybe suited to handle protocol differences (e.g. in the Buchert dataset), but we observed also problems ' ...
+    'in case half-processing resolutions that should be only used for fast tests. ' ...
+    ];''};
+% #########
+% Extend help
+% #########
+
+  % use non-linear SPM registration 
+  % - slower but maybe a bit better
+  % - was originaly thinking about using Shooting for bones but without
+  %   clear substructure (the bone marrow is not stable enough) this is difficult
+  nlreg                 = cfg_menu;
+  nlreg.tag             = 'nlreg';
+  nlreg.name            = 'Use non-linear normalization (expert)';
+  nlreg.labels          = {'No','Yes'}; 
+  nlreg.values          = {0,1};
+  nlreg.val             = {0};
+  nlreg.hidden          = expertgui<1;
+  nlreg.help            = {'Use non-linear SPM normalization (no ready yet). ';''};
   
   % main parameter structure passed to cat_plot_boxplot
   opts                  = cfg_exbranch;
   opts.tag              = 'opts';
   opts.name             = 'Options';
-  opts.val              = { ctpm, pmethod, bmethod, classic, reslim, affreg, ...
+  opts.val              = { ctpm, pmethod, bmethod, bnorm, nlreg, classic, reslim, affreg, ...
     refine, reduce, atlas, mask, nproc, prerun, rerun, verb }; 
   opts.help             = {'Specify processing parameters and atlas/mask files. '};
 

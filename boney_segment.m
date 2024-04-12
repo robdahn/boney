@@ -85,12 +85,14 @@ function [Pout,out] = boney_segment(job)
   def.opts.rerun        = 0;        % rerun processing (0 - no load previous result if available, 1 - yes)
   def.opts.affreg       = 0;        % do affine registration based on new skull-stripping
   def.opts.bias         = 1;        % strong bias correction
+  def.opts.nlreg        = 0;        % use non-linear SPM normalization ( no ready yet )
   def.opts.reduce       = 4;        % voxel binning for surface creation
                                     % (higher values create surfaces with less vertices, i.e., details)
                                     %  - reducion factor vs. vertices in humans:
                                     %    1~120k, 2~30k, 3~13k, 4~7k, 6~3k, 8~2k
                                     %  - robust results for 1-4
   def.opts.refine       = 1;        % refine segmenation
+  def.opts.bnorm        = 'muscle'; % WM, CSF, muscle, bone, fat ..
   def.opts.normCT       = 0;        % use hard defined CT tissue thresholds for CTseg (used flag?)
   def.opts.Patlas       = {fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-regions.nii')};
   def.opts.Pmask        = {fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-mask.nii')};
@@ -100,7 +102,7 @@ function [Pout,out] = boney_segment(job)
   def.opts.expert       = 2;        % user level (0 - default, 1 - expert, 2 - developer)
   def.opts.classic      = 1;        % estimate also first prototype version
   def.output.report     = 2;        % write report
-  def.output.resdir     = 'BIDS';
+  def.output.resdir     = 'BIDS';   % result directory 
   def.output.writevol   = 1;        % write volume output
   def.output.writeseg   = 1;        % write volume output
   def.output.writesurf  = 1;        % write surface data
@@ -126,6 +128,15 @@ function [Pout,out] = boney_segment(job)
     boney_segment_preprocessing(P, out, job.opts.ctpm, job.opts.pmethod, job.opts.bias, job.opts.prerun);
   end
 
+  % Maybe the SPM segmentation error for bone marrow could be used as
+  % feature and not as bug, to classify the fat tissue more directly and
+  % just keep the healty low intensity bone!
+  %
+  % With 
+  %   Gauss = [  1  1  1-2  1-2 3-4  2  ]
+  % this maybe can be even further improved.
+  % But the issue is that this would not allow to use the easy SPM defaults.
+  % 
 
 
 
@@ -260,7 +271,6 @@ function [Pout,out] = boney_segment(job)
     if ... %cat_io_rerun(which(mfilename),out(i).P.xml) || ...
         cat_io_rerun(out(i).P.org,out(i).P.xml,0) || job.opts.rerun 
 
-
       % == GET SPM DATA ==
       %  - get and evaluate the original SPM preprocessing structure (seg8t)
       %    extract further values (tis) and voxel size
@@ -337,8 +347,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         %      Y*   .. bone/head maps for surface mapping
         %      vROI .. extracted global/regional bone/head values
         stime = cat_io_cmd('  Extract bone measures','g5','',job.opts.verb>1,stime);
-        job.bnorm = 'fat'; % wm, csf, muscle, bone
-        [Ybonepp,Ybonethick,Ybonemarrow,Yheadthick, vROI] = ...
+        [Ybonepp,Ybonethick,Ybonemarrow,Yheadthick, vROI, bnorm] = ...
           boney_segment_extractbone(Vo,Ym,Yc,Ye,Ya,Ymsk,trans,seg8t,tis,tismri,out(i),job,vx_vol,YaROIname,RES,BB);
         spm_progress_bar('Set',i - 0.4);
 
@@ -473,7 +482,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
     try
       evalc('spm_jobman(''run'',matlabbatch);');
     catch
-      cat_io_fprintf('Error:boney_segment:exprtCSV','Failed to write final CSV file! Check cat_io_xml2csv.m function.')
+      cat_io_cprintf('Error:boney_segment:exportCSV','Failed to write final CSV file! Check cat_io_xml2csv.m function.')
     end
     if job.opts.verb > 0, fprintf('% 5.0fs\n\n',etime(clock,stime)); end
   end

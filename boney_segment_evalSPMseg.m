@@ -51,13 +51,13 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
       try 
         cat_io_addwarning( [mfilename ':needSegUpdate'], ...
           sprintf('Bad SPM tissue class 5 - probably overestimated (%0.2f)', ...
-          ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) , 1, [1 1], [], 0, job.opts.verb>1);
+          ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) , 1, [1 0], [], 0, job.opts.verb>1);
       catch
         if job.opts.verb > 1 % print only for expert
           fprintf('\n');  
           cat_io_addwarning(  [mfilename ':needSegUpdate'], ...
             sprintf('Bad SPM tissue class 5 - probably overestimated (%0.2f)', ...
-            ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) );
+            ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) , 1, [1 0], [], 0, job.opts.verb>1);
         end
       end
     end
@@ -76,15 +76,19 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
 
 
   % separate fat and muscles
+  os = round( mean(.9 ./ vx_vol)); 
   if seg8t.isCTseg % CT images
-    Yfat = cat_vol_morph( Yc{5}>0.5 & Ym>-500 & Ym<0   & Ymsk>1 ,'o'); 
-    Ymus = cat_vol_morph( Yc{5}>0.5 & Ym>0    & Ym<110 & Ymsk>1 ,'o');
+    Yfat = cat_vol_morph( Yc{5}>0.5 & Ym>-500 & Ym<0   & Ymsk>.5 ,'o',os); 
+    Ymus = cat_vol_morph( Yc{5}>0.5 & Ym>0    & Ym<110 & Ymsk>.5 ,'o',os);
+    Yhd  = cat_vol_morph( Yc{5}>0.5 & Ym>-500 & Ym<110 & Ymsk>.5 ,'o',os);
   elseif tis.headFatType==2 % high bone intensity
-    Yfat = cat_vol_morph( Yc{5}>0.5 & Ym>mean(tis.seg8n(2))                               & Ymsk>1 ,'o'); 
-    Ymus = cat_vol_morph( Yc{5}>0.5 & Ym>mean(tis.seg8n([1,3])) & Ym<mean(tis.seg8n(1:2)) & Ymsk>1 ,'o');
+    Yfat = cat_vol_morph( Yc{5}>0.5 & Ym>mean(tis.seg8n(2))                               & Ymsk>.5,'o',os); 
+    Ymus = cat_vol_morph( Yc{5}>0.5 & Ym>mean(tis.seg8n([1,3])) & Ym<mean(tis.seg8n(1:2)) & Ymsk>.5,'o',os);
+    Yhd  = cat_vol_morph( Yc{5}>0.5 & Ym>mean(tis.seg8n([1,3]))                           & Ymsk>.5,'o',os); 
   else % low fat intensity fat suppression
-    Yfat = cat_vol_morph( Yc{5}>0.5 & (Ym>mean(tis.seg8n(3))     & Ym<mean(tis.seg8n(1))   |  Ym>mean(tis.seg8n(2))) & Ymsk>1 ,'o'); 
-    Ymus = cat_vol_morph( Yc{5}>0.5 &  Ym>mean(tis.seg8n([1,3])) & Ym<mean(tis.seg8n(1:2))                           & Ymsk>1 ,'o');
+    Yfat = cat_vol_morph( Yc{5}>0.5 & (Ym>mean(tis.seg8n(3))     & Ym<mean(tis.seg8n(1))   |  Ym>mean(tis.seg8n(2))) & Ymsk>.5,'o',os); 
+    Ymus = cat_vol_morph( Yc{5}>0.5 &  Ym>mean(tis.seg8n([1,3])) & Ym<mean(tis.seg8n(1:2))                           & Ymsk>.5,'o',os);
+    Yhd  = cat_vol_morph( Yc{5}>0.5 & Ym>mean(tis.seg8n([1,3]))                                                      & Ymsk>.5,'o',os); 
   end
   
 
@@ -114,8 +118,11 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
   tismri.TIV     = sum( (Yc{1}(:) + Yc{2}(:) + Yc{3}(:)) > 0.5) .* prod(vx_vol) / 1000; 
   tismri.volfat  = cat_stat_nansum( Yfat(:) ) .* prod(vx_vol) / 1000; % tissue volume 
   tismri.volmus  = cat_stat_nansum( Ymus(:) ) .* prod(vx_vol) / 1000; % tissue volume 
-  tismri.volfatr = tismri.volfat ./ tismri.TIV;
-  tismri.volmusr = tismri.volmus ./ tismri.TIV;
+  tismri.THV     = cat_stat_nansum( Yhd(:) )  .* prod(vx_vol) / 1000; % tissue volume 
+ % tismri.volfatr = tismri.volfat ./ tismri.TIV;
+ % tismri.volmusr = tismri.volmus ./ tismri.TIV;
+  tismri.volfatr = tismri.volfat ./ tismri.THV;
+  tismri.volmusr = tismri.volmus ./ tismri.THV;
   tismri.vol     = nan(1,6); tismri.volr = nan(1,6); 
   for ci = 1:6
     % estimate tissue volumes and density values
@@ -129,14 +136,14 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
       try
         cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
           sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)), ...
-          0,[1 1],0,0,job.opts.verb>1);
+          0,[1 0],0,0,job.opts.verb>1);
       catch
         % for the old function only if highly verbose
         if job.opts.verb > 1
           fprintf('\n');  
           cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
             sprintf('Bad SPM tissue class %d - probably underestimated (%0.2f)', ci, tismri.clsQC(ci)), ...
-            0,[1 1],0,0);
+            0,[1 0],0,0);
         end
       end
     end
@@ -210,7 +217,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
         Ybx = cat_vol_localstat(Ym ,Ymx,1,1,1);  
         mn  = cat_stat_kmeans(Ybx(Ymx(:)>.5),2); 
         tismri.int.head_muscle = mn(2);
-        tismri.head_muscle = mn(2);
+        tismri.head_muscle     = mn(2);
         %{
         tismri.int.head   = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
         tismri.Tth(ci)    = tismri.int.head(3);

@@ -1,4 +1,4 @@
-function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
+function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
   boney_segment_extractbone(Vo,Ym,Yc,Ye,Ya,Ymsk,trans,seg8t,tis,tismri,out,job,vx_vol,YaROIname,RES,BB)
 %% * Report: 
 %   - better an upper slice?
@@ -83,10 +83,12 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
     Ybonethick   = (Ybraindist + Yheaddistr) .* (Ybone1r>0);  % correct for voxel-size
     Ybonethick   = cat_vol_approx(Ybonethick,'rec'); 
     Ybonethick   = cat_vol_smooth3X(Ybonethick,1); 
+    Ybonecpp     = max(0,min(1,min(Yheaddistr,Ybraindist) ./ max(eps,max(Yheaddistr,Ybraindist))));  % percentage map to
     Ybonepp      = min(1,Yheaddistr ./ max(eps,Ybonethick)); Ybonepp(Ybrainr>.5) = 1; % percentage map to
     Ybonethick   = cat_vol_resize(Ybonethick,'dereduceV',res);
     Ybonepp      = cat_vol_resize(Ybonepp,'dereduceV',res);
-    clear Ybrainr Yheadr Ybone1r Ybraindist; 
+    Ybonecpp     = cat_vol_resize(Ybonecpp,'dereduceV',res);
+%    clear Ybrainr Yheadr Ybone1r Ybraindist; 
     %%
     if 0
       % head values
@@ -121,22 +123,20 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
 
   % define normalized bonemarrow 
   %Ym = (Yo - min( tis.seg8o )) / (tis.seg8o(2) - min([tis.seg8o(3),tis.seg8o(end)]));
-  Ybonemarrow = single( Ym ) .* Ybone;
   if tis.weighting >= 0
     % bonemarrow 
-    switch job.bnorm
-      case 'WM'
-      case 'CSF' 
-        Ybonemarrow = single( Ybonemarrow / tismri.CSF ); % bias intensity normalized corrected
-      case 'muscle' 
-        Ybonemarrow = single( Ybonemarrow / ( tismri.int.head_muscle / 4 ) ); % 
-      case 'bone' 
-        Ybonemarrow = single( Ybonemarrow / tismri.int.bone_cortex ); % bias intensity normalized corrected
-      case 'fat'
-        Ybonemarrow = single( Ybonemarrow / ( tismri.int.head_fat / 16 ) ); % 
+    switch job.opts.bnorm
+      case 'WM',                bnorm = 1 / 4;  % default scaling 
+      case 'GM',                bnorm = tismri.int.GM / 4; % 
+      case 'CSF',               bnorm = tis.CSF; % tismri.int.CSF was really bad
+      case 'muscle',            bnorm = tismri.int.head_muscle / 3; % was good
+      case 'bone',              bnorm = tismri.int.bone_cortex * 4; % not really good
+      case 'fat',               bnorm = tis.head;  % tismri.int.head_fat / 16 was worse
+      case 'GM-WM-contrast',    bnorm = (tismri.int.WM - tismri.int.GM) / tismri.int.WM ; 
+      case 'fat-bone-contrast', bnorm = (tismri.int.head_fat - tismri.int.head_muscle) / tismri.int.head_fat / 3; % 
     end
   end
- 
+  Ybonemarrow = single( Ym / bnorm * 2 ) .* Ybone;
 
 %% ###################
 % edge-measure ! 
@@ -144,7 +144,13 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
 % * bone / bone-marrow segmentation: 
 %   - bone marrow as outstanding maximum structure in the middle/center area
 %   
-
+if 0 % with filter
+  Ybonecortexs = cat_vol_localstat( Ybonemarrow , Ybonemarrow>0, 1, 2, round(4 * mean(vx_vol)) ); % min with about 4 mm
+  Ybonemarrows = cat_vol_localstat( Ybonemarrow , Ybonemarrow>0, 1, 3, round(4 * mean(vx_vol)) ); % max with about 4 mm
+else
+  Ybonecortexs = Ybonemarrow;
+  Ybonemarrows = Ybonemarrow; 
+end
 
   %% measures as column elements
   %  - first tested showed that mean/median works best for BMD and that SD/IQR are much worse 
@@ -163,11 +169,11 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
       else,                             vROI.boneatlas_name{1,rii} = 'full-unmasked'; 
       end
       vROI.nonnanvol(1,rii)         = sum(Ya(:)>intmax('uint16')) ./ numel(Ya(:));
-      vROI.bonemarrow(1,rii)        = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)  & Ybonemarrow(:)~=0 & Ybonepp(:)>.8 ) ); 
-      vROI.bonecortex(1,rii)        = cat_stat_nanmean(   Ybonemarrow( Ymsk(:)  & Ybonemarrow(:)~=0 ) ); 
-      vROI.bonethickness(1,rii)     = cat_stat_nanmean(   Ybonethick(  Ymsk(:)  & Ybonethick(:)~=0  ) ); 
-      vROI.head(1,rii)              = cat_stat_nanmean(   Yskull(      Ymsk(:)  & Yskull(:)~=0      ) ); 
-      vROI.headthickness(1,rii)     = cat_stat_nanmean(   Yheadthick(  Ymsk(:)  & Yheadthick(:)~=0  ) ); 
+      vROI.bonemarrow(1,rii)        = cat_stat_nanmean(   Ybonemarrows( Ymsk(:)  & Ybonemarrows(:)~=0 & Ybonecpp(:)>.5 ) ); 
+      vROI.bonecortex(1,rii)        = cat_stat_nanmean(   Ybonecortexs( Ymsk(:)  & Ybonecortexs(:)~=0 ) ); 
+      vROI.bonethickness(1,rii)     = cat_stat_nanmean(   Ybonethick(   Ymsk(:)  & Ybonethick(:)~=0  ) ); 
+      vROI.head(1,rii)              = cat_stat_nanmean(   Yskull(       Ymsk(:)  & Yskull(:)~=0      ) ); 
+      vROI.headthickness(1,rii)     = cat_stat_nanmean(   Yheadthick(   Ymsk(:)  & Yheadthick(:)~=0  ) ); 
       rii = rii + 1;
     else
       % regional values
@@ -179,11 +185,11 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI] = ...
           vROI.boneatlas_name{1,rii}  = YaROIname{rii};
         end
         vROI.nonnanvol(1,rii)       = sum(Ya(:)==ri) ./ numel(Ya(:));
-        vROI.bonemarrow(1,rii)      = cat_stat_nanmean(  Ybonemarrow( Ybonemarrow(:)~=0 & Ya(:)==ri & Ybonepp(:)>.8 ) ); 
-        vROI.bonecortex(1,rii)      = cat_stat_nanmean(  Ybonemarrow( Ybonemarrow(:)~=0 & Ya(:)==ri) ); 
-        vROI.bonethickness(1,rii)   = cat_stat_nanmean(  Ybonethick(  Ybonethick(:)~=0  & Ya(:)==ri) );
-        vROI.head(1,rii)            = cat_stat_nanmean(  Yskull(      Yskull(:)~=0      & Ya(:)==ri) ); 
-        vROI.headthickness(1,rii)   = cat_stat_nanmean(  Yheadthick(  Yheadthick(:)~=0  & Ya(:)==ri) ); 
+        vROI.bonemarrow(1,rii)      = cat_stat_nanmean(  Ybonemarrows( Ybonemarrows(:)~=0 & Ya(:)==ri & Ybonecpp(:)>.5 ) ); 
+        vROI.bonecortex(1,rii)      = cat_stat_nanmean(  Ybonemarrows( Ybonemarrows(:)~=0 & Ya(:)==ri) ); 
+        vROI.bonethickness(1,rii)   = cat_stat_nanmean(  Ybonethick(   Ybonethick(:)~=0  & Ya(:)==ri) );
+        vROI.head(1,rii)            = cat_stat_nanmean(  Yskull(       Yskull(:)~=0      & Ya(:)==ri) ); 
+        vROI.headthickness(1,rii)   = cat_stat_nanmean(  Yheadthick(   Yheadthick(:)~=0  & Ya(:)==ri) ); 
         rii = rii + 1;
       end
     end

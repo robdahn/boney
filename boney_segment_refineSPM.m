@@ -83,10 +83,13 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the transferr
     %    Important if SPM head is in the brain, e.g., 
     %    BuchertHTP_c062p074r00_scan076_SiemensEspree1.5T_t191s.nii
     %    BuchertHTP_c093p115r00_scan316_SiemensSkyra3T_t192s
-    if tis.weighting == 2 % T2
-      Ycsf =  smooth3(Yc{3}>.5 & Ym>0.8*max(tis.seg8n(1:2))*1.2); 
+    if 1
+    % brain tissue threshold may cause side effects (uncovered in a fast low-res testcase)  
+      Ycsf = smooth3(Yc{3});  
+    elseif tis.weighting == 2 % T2
+      Ycsf = smooth3(Yc{3}>.5 & Ym>0.8*max(tis.seg8n(1:2))*1.2); 
     else  
-      Ycsf =  smooth3(Yc{3}>.5 & Ym<1.2*mean([ min(tis.seg8n(1:2)), tis.seg8n(3)])); 
+      Ycsf = smooth3(Yc{3}>.5 & Ym<1.2*mean([ min(tis.seg8n(1:2)), tis.seg8n(3)])); 
     end
     [Ybr,RES] = cat_vol_resize( Yc{1} + Yc{2}*2 + Ycsf,'reduceV'  ,tis.res_vx_vol,2,16,'meanm'); % weight WM a bit more
     Ybr = smooth3(Ybr) > .5;
@@ -123,23 +126,25 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the transferr
     tth = 0.8; 
     % start with certain voxels 
     if tis.highBG == 0
-      ith  = mean([tismri.int.bone_cortex, tismri.head_muscle])/2; 
+      ith  = mean([tismri.int.bone_cortex, tismri.head_muscle]); 
     else
-      ith  = 0; 
+      ith  = 0; % don't do anything 
     end
     Ypx  = single( -3 + (Ybg>.5) );
     Ypx  = Ypx + (Ypx==-3 & ~Ybox) .* ( ...
       + 2*cat_vol_morph(Yc{5}>tth & Ym>ith & Ypp<.5,'lo',1) ...
-      + 3*(Yc{4}>.5 & Ypp>.5) ...
+      + 3*(Yc{4}>.5 & Ypp>.66) ...
       + 4*(Yc{3}>tth) + 5*(Yc{1}>tth) + 6*(Yc{2}>tth) );
     % further refinements
-    Ypx((Ybox4>0 & Ym<ith*2) | Ym==0) = -2; % defaced regions or close to image bouundaries 
-    Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.33 & Yb<.5 & (Ym<tismri.head_muscle*.8 | Ym>tismri.head_muscle*1.2 ) & (Ya<9 | Ya==12)) = 0;  
-    Ypx(Ypx==-3 & Ypt<20 & Yb<.5 & Ypp>.33 & (Ym<ith*2 | Ym>1) & (Ya<9 | Ya==12)) = 0;
-    Ypx(Ypx==-3 & Ybrd<3 & (Ym<ith*2 | Ym>1) & Ya<9) = 0;
-    Ypx(Ypx==-3 & Ypt>20 & Ybrd>1 & Ym>ith*2) = -1;
+    Ypx((Ybox4>0 & Ym<ith) | Ym==0) = -2; % defaced regions or close to image bouundaries 
+    Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.33 & Yb<.5 & (Ym<tismri.head_muscle*.8 ) & (Ya<9 | Ya==12)) = 0;  
+    Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.66 & Yb<.5 & (Ym<tismri.head_muscle*.8 | Ym>tismri.head_muscle*1.2 ) & (Ya<9 | Ya==12)) = 0;  
+    Ypx(Ypx==-3 & Ypt>20 & Ybrd>1 & Ym>tismri.head_muscle*1.2) = -1;
     Ypx(Ypx==-3 & Ypp<0.5 & Ybg<.5) = -1;
-
+    Ypx(Ypx==-3 & Ypt<20 & Yb<.5 & Ypp>.66 & (Ym<ith | Ym>tismri.head_muscle*1.2) & (Ya<9 | Ya==12)) = 0;
+  %  Ypx(Ypx==-3 & Ybrd<3 & (Ym<ith | Ym>tismri.head_muscle*1.2) & Ya<9) = 0;
+    %%
+   
   %  Ypx(Ybrd > 10  & Ym > 0.4)   = -1; % bone should have low intensity if it is far from the brain (close to the brain it could be marrow) > head
   %  Ypx(Ypp < 0.33 & Ypx >- 0.5) = -1; % close to background > more likely head
   %  Ypx(Ypp > 0.66 & Ypx <- 0.5  & ~Yb & Ybrd<5) =  0; % close to brain > more likely bone

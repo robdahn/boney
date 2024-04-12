@@ -149,10 +149,15 @@ for csvi = 1:numel(Pcsv{1})
                 sittingheight(si) = csv{id,16};
                 waist(si)         = csv{id,17};
                 smoking(si)       = csv{id,18};
+                smokingn(si)      = csv{id,26};
                 timesummer(si)    = csv{id,19};
                 timewinter(si)    = csv{id,20};
                 happyness(si)     = csv{id,21};
                 healthsat(si)     = csv{id,22};
+                walk(si)          = csv{id,23};
+                modPA(si)         = csv{id,24}; 
+                vigPA(si)         = csv{id,25}; 
+                alc(si)           = csv{id,27}; 
                 height(si)        = 1.8;
                 weight(si)        = 80; 
                 site(si)          = 8; 
@@ -174,15 +179,21 @@ for csvi = 1:numel(Pcsv{1})
                 sittingheight(si) = nan;
                 waist(si)         = nan;
                 smoking(si)       = nan;
+                smokingn(si)      = nan; 
                 timesummer(si)    = nan;
                 timewinter(si)    = nan;
                 happyness(si)     = nan;
                 healthsat(si)     = nan;
+                modPA(si)         = nan; 
+                vigPA(si)         = nan; 
+                walk(si)          = nan; 
+                alc(si)           = nan; 
                 height(si)        = 1.8;
                 weight(si)        = 80; 
                 site(si)          = 8; 
             end
         end
+        timeout = timewinter + timesummer; 
     end
     % correct some outliers
     bmi(bmi<=0 | isinf(bmi)) = 1; 
