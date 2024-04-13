@@ -302,6 +302,10 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
     out(i).P.surfpath   = fullfile(maindir{pi}, sub_ses_anat{i}, out(i).P.surfdir); 
     out(i).P.reportpath = fullfile(maindir{pi}, sub_ses_anat{i}, out(i).P.reportdir); 
 
+    out(i).P.mrirdir    = fullfile(job.output.resdir, sub_ses_anat{i}, out(i).P.mridir); 
+    out(i).P.surfrdir   = fullfile(job.output.resdir, sub_ses_anat{i}, out(i).P.surfdir); 
+    out(i).P.reportrdir = fullfile(job.output.resdir, sub_ses_anat{i}, out(i).P.reportdir); 
+
     % boney preprocessing mat file for faster reprocessing
     out(i).P.boneyPPmat  = fullfile(out(i).P.mripath, ['boneyPPmat_' ff '.mat']); 
     
