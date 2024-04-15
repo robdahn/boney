@@ -85,7 +85,7 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the transferr
     %    BuchertHTP_c093p115r00_scan316_SiemensSkyra3T_t192s
     if 1
     % brain tissue threshold may cause side effects (uncovered in a fast low-res testcase)  
-      Ycsf = smooth3(Yc{3});  
+      Ycsf = Yc{3} .* smooth3(Yc{1} + Yc{2} + Yc{3});  
     elseif tis.weighting == 2 % T2
       Ycsf = smooth3(Yc{3}>.5 & Ym>0.8*max(tis.seg8n(1:2))*1.2); 
     else  
@@ -133,12 +133,12 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the transferr
     Ypx  = single( -3 + (Ybg>.5) );
     Ypx  = Ypx + (Ypx==-3 & ~Ybox) .* ( ...
       + 2*cat_vol_morph(Yc{5}>tth & Ym>ith & Ypp<.5,'lo',1) ...
-      + 3*(Yc{4}>.5 & Ypp>.66) ...
+      + 3*(Yc{4}>.5 & Ypp>.33) ...
       + 4*(Yc{3}>tth) + 5*(Yc{1}>tth) + 6*(Yc{2}>tth) );
     % further refinements
     Ypx((Ybox4>0 & Ym<ith) | Ym==0) = -2; % defaced regions or close to image bouundaries 
-    Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.33 & Yb<.5 & (Ym<tismri.head_muscle*.8 ) & (Ya<9 | Ya==12)) = 0;  
-    Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.66 & Yb<.5 & (Ym<tismri.head_muscle*.8 | Ym>tismri.head_muscle*1.2 ) & (Ya<9 | Ya==12)) = 0;  
+    Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.33 & Yb<.5 & (Ym<tismri.head_muscle*.5 ) & (Ya<9 | Ya==12)) = 0;  
+    Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.66 & Yb<.5 & (Ym<tismri.head_muscle*.5 | Ym>tismri.head_muscle*1.2 ) & (Ya<9 | Ya==12)) = 0;  
     Ypx(Ypx==-3 & Ypt>20 & Ybrd>1 & Ym>tismri.head_muscle*1.2) = -1;
     Ypx(Ypx==-3 & Ypp<0.5 & Ybg<.5) = -1;
     Ypx(Ypx==-3 & Ypt<20 & Yb<.5 & Ypp>.66 & (Ym<ith | Ym>tismri.head_muscle*1.2) & (Ya<9 | Ya==12)) = 0;
