@@ -28,7 +28,7 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
   else
     % extract processed filenames
     Ppc = P; Ppc{1} = out(1).P.cls{1}; for i=2:numel(P), Ppc{i} = out(i).P.cls{1}; end
-    Pbc = P; Pbc{1} = out(1).P.bc;     for i=2:numel(P), Pbc{i} = out(i).P.bc{1}; end
+    Pbc = P; Pbc{1} = out(1).P.bc;     for i=2:numel(P), Pbc{i} = out(i).P.bc; end
 
     %% have to use CAT developer GUI for rerun function 
     oldexpertgui = cat_get_defaults('extopts.expertgui');
