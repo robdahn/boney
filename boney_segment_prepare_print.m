@@ -112,9 +112,9 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
       tmpstr     = {'Adult TPM','Children TPM'};
       bmethodstr = {'SPMmat8','Volume-based','Surface-based', ...
         'Volume-based (old version without refinement)','Volume-based (old version with refinement)'};
-      reportstr  = {'No','Yes - Basic','Yes - Details','Yes - Details'};
+      reportstr  = {'No','Yes - Basic','Yes - Volumes','Yes - Full'};
       volstr     = {'No','native','warped','affine','all'}; 
-      %reportstr = {'Table','Table + Volumes','Table + Volumes + Surfaces'};
+      refstr     = {'No - original SPM','Yes - morphological closing','Yes - enhanced V2', 'Yes - enhanced V3'}; 
       fprintf('  Tissue Probability Map:   %d (%s)\n', job.opts.ctpm,     tmpstr{job.opts.ctpm});
       fprintf('  Preprocessing   method:   %d (%s)\n', job.opts.pmethod,  pmethodstr{job.opts.pmethod+1});
       fprintf('  Bone processing method:   %d (%s)\n', job.opts.bmethod,  bmethodstr{job.opts.bmethod+1});
@@ -124,7 +124,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
         fprintf('  Rerun bone processing:    %d (%s)\n', job.opts.rerun,   verbosestr{job.opts.rerun   + 1});
         fprintf('  Affine registration:      %d (%s)\n', job.opts.affreg,  verbosestr{job.opts.affreg  + 1});
         fprintf('  Strong bias correction:   %d (%s)\n', job.opts.bias,    verbosestr{job.opts.bias    + 1});
-        fprintf('  Refine segmentation:      %d (%s)\n', job.opts.refine,  verbosestr{job.opts.refine  + 1});
+        fprintf('  Refine segmentation:      %d (%s)\n', job.opts.refine,  refstr{job.opts.refine  + 1});
         fprintf('  Intensity normalization:  %s \n'    , job.opts.bnorm);
         fprintf('  Use sub directories:      %d (%s)\n', job.opts.subdirs, verbosestr{job.opts.subdirs + 1});
         fprintf('  Classic measures:         %d (%s)\n', job.opts.classic, verbosestr{job.opts.classic + 1});
