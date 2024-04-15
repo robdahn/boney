@@ -133,7 +133,7 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
       case 'bone',              bnorm = tismri.int.bone_cortex * 4; % not really good
       case 'fat',               bnorm = tis.head;  % tismri.int.head_fat / 16 was worse
       case 'GM-WM-contrast',    bnorm = (tismri.int.WM - tismri.int.GM) / tismri.int.WM ; 
-      case 'fat-bone-contrast', bnorm = (tismri.int.head_fat - tismri.int.head_muscle) / tismri.int.head_fat / 3; % 
+      case 'bone-fat-contrast', bnorm = (tismri.int.head_fat - tismri.int.head_muscle) / tismri.int.head_fat / 3; % 
     end
   end
   Ybonemarrow = single( Ym / bnorm * 2 ) .* Ybone;
@@ -144,9 +144,9 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
 % * bone / bone-marrow segmentation: 
 %   - bone marrow as outstanding maximum structure in the middle/center area
 %   
-if 0 % with filter
-  Ybonecortexs = cat_vol_localstat( Ybonemarrow , Ybonemarrow>0, 1, 2, round(4 * mean(vx_vol)) ); % min with about 4 mm
-  Ybonemarrows = cat_vol_localstat( Ybonemarrow , Ybonemarrow>0, 1, 3, round(4 * mean(vx_vol)) ); % max with about 4 mm
+if job.opts.refine >= 2 % with filter
+  Ybonecortexs = cat_vol_localstat( Ybonemarrow , Ybonemarrow>0, 1, 2 ); % min with about 1 vx
+  Ybonemarrows = cat_vol_localstat( Ybonemarrow , Ybonemarrow>0, 1, 3 ); % max with about 1 vx
 else
   Ybonecortexs = Ybonemarrow;
   Ybonemarrows = Ybonemarrow; 
