@@ -52,28 +52,34 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
   if ~exist('cls'   ,'var'), cls    = 1:5; end
   if ~exist('bd'    ,'var'), bd     = 25;  end
 
-  % get bias corrected original image
-  Vo = spm_vol(P.bc);
-  Yo = single(spm_read_vols(Vo));
-
-  % load segmentation
-  Pc = cell(1,6); Yc = cell(1,6); Yc{6} = ones(Vo.dim,'single');
-  for ci = cls
-    if seg8t.isCTseg % CTseg
-      Pc{ci}  = fullfile(P.orgpp,sprintf('c%02d%s%s',ci,P.ppff(4:end),P.ee));
-    else
-      Pc{ci}  = P.cls{ci}; %fullfile(P.orgpp,sprintf('c%d%s%s',ci,P.orgff,P.ee));
+  if exist(P.boneyPPmat,'file')
+    try %#ok<TRYNC> % just standard load if not exist
+      load(P.boneyPPmat); 
     end
-    Vc(ci)  = spm_vol(Pc{ci}); %#ok<AGROW>
-    Yc{ci}  = single(spm_read_vols(Vc(ci)));
-    Yc{6}   = Yc{6} - Yc{ci};
   end
+  if ~exist('Yc','var') || ~exist('Yo','var') || ~exist('Vc','var') || ~exist('Vo','var')
+    % get bias corrected original image
+    Vo = spm_vol(P.bc);
+    Yo = single(spm_read_vols(Vo));
 
-  % SPM/CAT segmentation
-  if job.output.writeseg == 2
-    save(P.boneyPPmat,'Yc','Yo')
+    % load segmentation
+    Pc = cell(1,6); Yc = cell(1,6); Yc{6} = ones(Vo.dim,'single');
+    for ci = cls
+      if seg8t.isCTseg % CTseg
+        Pc{ci}  = fullfile(P.orgpp,sprintf('c%02d%s%s',ci,P.ppff(4:end),P.ee));
+      else
+        Pc{ci}  = P.cls{ci}; %fullfile(P.orgpp,sprintf('c%d%s%s',ci,P.orgff,P.ee));
+      end
+      Vc(ci)  = spm_vol(Pc{ci}); %#ok<AGROW>
+      Yc{ci}  = single(spm_read_vols(Vc(ci)));
+      Yc{6}   = Yc{6} - Yc{ci};
+    end
+  
+    % SPM/CAT segmentation
+    if job.output.writeseg == 2
+      save(P.boneyPPmat,'Yc','Yo','Vc','Vo')
+    end
   end
-
 
 
   % create a linear intensity normalized image

@@ -286,8 +286,9 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
         else
           [pp,ff,ee]    = spm_fileparts(P{i}); 
           out(i).P.org  = P{i};
-          out(i).P.bc = fullfile( pp , out(i).P.mridir, sprintf('%s%s%s','m',ff,ee) ); 
+          out(i).P.bc   = fullfile( pp , out(i).P.mridir, sprintf('%s%s%s','m',ff,ee) ); 
         end
+        out(i).P.y      = fullfile( pp , out(i).P.mridir, sprintf('%s%s%s','y_',ff,ee) ); 
         out(i).P.orgpp  = pp; 
         out(i).P.orgff  = ff;
         out(i).P.ee     = ee;
@@ -302,12 +303,14 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
     out(i).P.surfpath   = fullfile(maindir{pi}, sub_ses_anat{i}, out(i).P.surfdir); 
     out(i).P.reportpath = fullfile(maindir{pi}, sub_ses_anat{i}, out(i).P.reportdir); 
 
+    % output dirs for CAT volume export
     out(i).P.mrirdir    = fullfile(job.output.resdir, sub_ses_anat{i}, out(i).P.mridir); 
     out(i).P.surfrdir   = fullfile(job.output.resdir, sub_ses_anat{i}, out(i).P.surfdir); 
     out(i).P.reportrdir = fullfile(job.output.resdir, sub_ses_anat{i}, out(i).P.reportdir); 
 
     % boney preprocessing mat file for faster reprocessing
-    out(i).P.boneyPPmat  = fullfile(out(i).P.mripath, ['boneyPPmat_' ff '.mat']); 
+    PP = {'SPM12','CAT12','CTseg'}; 
+    out(i).P.boneyPPmat  = fullfile(out(i).P.mripath, ['boney' PP{job.opts.pmethod} 'PPmat_' ff '.mat']); 
     
     % create dirs if required
     if ~exist(out(i).P.mripath   ,'dir'), mkdir(out(i).P.mripath); end
@@ -316,11 +319,11 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
 
 
     % xml/mat output
-    out(i).P.report   = fullfile(out(i).P.reportpath, sprintf('%sbonereport%d_%s.jpg', job.output.prefix, job.opts.bmethod, ff));              
-    out(i).P.xml      = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.xml'  , job.output.prefix, job.opts.bmethod, ff));
-    out(i).P.mat      = fullfile(out(i).P.reportpath, sprintf('%s%d_%s.mat'  , job.output.prefix, job.opts.bmethod, ff));
+    out(i).P.report   = fullfile(out(i).P.reportpath, sprintf('%sbonereport_%s.jpg', job.output.prefix, ff));              
+    out(i).P.xml      = fullfile(out(i).P.reportpath, sprintf('%s_%s.xml'          , job.output.prefix, ff));
+    out(i).P.mat      = fullfile(out(i).P.reportpath, sprintf('%s_%s.mat'          , job.output.prefix, ff));
     
-    out(i).P.boneymat = fullfile(out(i).P.reportpath, sprintf('boney%s_%s.mat'  , pmethod, ff));
+    out(i).P.boneymat = fullfile(out(i).P.reportpath, sprintf('boney_%s.mat'    , ff));
     out(i).P.boneySPM = fullfile(out(i).P.reportpath, sprintf('boneySPM_%s.mat' , ff));
     out(i).P.boneyCAT = fullfile(out(i).P.reportpath, sprintf('boneyCAT_%s.mat' , ff));
 
@@ -332,7 +335,7 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
         prefix = {'','r'}; postfix = {'','_affine'};
         for pi = 1:numel(prefix)
           out(i).P.([prefix{pi} vols{vi} postfix{pi}]) = fullfile(out(i).P.mripath, ...
-            sprintf('%s%s%d_%s%s%s', prefix{pi}, vols{vi}, job.opts.bmethod, ff(2:end), postfix{pi}, ee));
+            sprintf('%s%s_%s%s%s', prefix{pi}, vols{vi}, ff(2:end), postfix{pi}, ee));
         end
       end
     end
@@ -340,11 +343,11 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
     
     % surfs - Are these to be writen anyway?
     if job.opts.bmethod>1 || job.output.writesurf
-      out(i).P.central   = fullfile(out(i).P.surfpath, sprintf('%s%d.central.%s.gii', 'bone', job.opts.bmethod, ff));        % central
-      out(i).P.marrow    = fullfile(out(i).P.surfpath, sprintf('%s%d.marrow.%s'     , 'bone', job.opts.bmethod, ff));        % marrow
-      out(i).P.cortex    = fullfile(out(i).P.surfpath, sprintf('%s%d.cortex.%s'     , 'bone', job.opts.bmethod, ff));        % hard bone - minimal bone values
-      out(i).P.thick     = fullfile(out(i).P.surfpath, sprintf('%s%d.thickness.%s'  , 'bone', job.opts.bmethod, ff));        % thickness bone 
-      out(i).P.headthick = fullfile(out(i).P.surfpath, sprintf('%s%d.thickness.%s'  , 'head', job.opts.bmethod, ff));        % thickness head
+      out(i).P.central   = fullfile(out(i).P.surfpath, sprintf('%s.central.%s.gii', 'bone', ff));        % central
+      out(i).P.marrow    = fullfile(out(i).P.surfpath, sprintf('%s.marrow.%s'     , 'bone', ff));        % marrow
+      out(i).P.cortex    = fullfile(out(i).P.surfpath, sprintf('%s.cortex.%s'     , 'bone', ff));        % hard bone - minimal bone values
+      out(i).P.thick     = fullfile(out(i).P.surfpath, sprintf('%s.thickness.%s'  , 'bone', ff));        % thickness bone 
+      out(i).P.headthick = fullfile(out(i).P.surfpath, sprintf('%s.thickness.%s'  , 'head', ff));        % thickness head
     end
   end
 end

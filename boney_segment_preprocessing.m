@@ -250,6 +250,6 @@ function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expertgui)
   matlabbatch{1}.spm.tools.cat.estwrite.output.las.warped     = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.output.las.dartel     = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.output.jacobianwarped = 0;
-  matlabbatch{1}.spm.tools.cat.estwrite.output.warps          = [0 0];
+  matlabbatch{1}.spm.tools.cat.estwrite.output.warps          = [1 0]; % normalization ???
   matlabbatch{1}.spm.tools.cat.estwrite.output.rmat           = 0;
 end

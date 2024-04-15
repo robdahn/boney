@@ -36,6 +36,7 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
   % load SPM/CTseg or  mat 
   if strcmp(out.P.seg8(end-2:end),'mat')
     seg8t           = load(out.P.seg8); 
+    
     trans           = getDeformation(seg8t, job_ouput_writevol >= 3 ); 
     if out.CTseg
       seg8t.dat.model.gmm = rmfield(seg8t.dat.model.gmm,{'T','Sig'});
@@ -120,6 +121,13 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
       return
     end
 
+    % load Y? image
+    if exist(out.P.y,'file')
+      trans = struct();
+    else
+      cat_io_cprintf('err','ERROR:boney.CATpperror: No non-linear deformation available. Procced with affine data.\n');
+      trans = struct(); 
+    end
   end
   
 
