@@ -306,7 +306,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         % == original measure from our prototype concept ==
         if job.opts.classic
           stime = cat_io_cmd('  Classic bone measures','g5','',job.opts.verb>1,stime);
-          out(i).classic = boney_segment_simpleBone(seg8t,Yo,Yc); % ##### use Ym ?  #########
+          out(i).classic = boney_segment_simpleBone(seg8t,Yo,Yc,job.opts.refine); % ##### use Ym ?  #########
           spm_progress_bar('Set',i - 0.75);
         end
 
@@ -321,8 +321,14 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         % == refine SPM segmentation or just prepare some maps ==
         %  - store the changes also in the output structure
         if job.opts.refine && ~out(i).CTseg
-          stime = cat_io_cmd('  Refine SPM','g5','',job.opts.verb>1,stime);
-          [Yc,Ye,Ya,out(i).boney_refine_SPM] = boney_segment_refineSPM(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri,job.opts.refine);
+          stime = cat_io_cmd(sprintf('  Refine SPM (Version %d)',job.opts.refine),'g5','',job.opts.verb>1,stime);
+          if job.opts.refine < 3
+            % Version 1 and 2 
+            [Yc,Ye,Ya,out(i).boney_refine_SPM] = boney_segment_refineSPM(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri,job.opts.refine);
+          else
+            % Version 3 
+            [Yc,Ye,Ya,out(i).boney_refine_SPM] = boney_segment_refineSPM_R3(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri,job.opts.refine);
+          end
         else
           Ye = cell(0);
         end
