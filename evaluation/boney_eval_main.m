@@ -63,7 +63,7 @@ else
     }; 
 end
 %resdir    = '_20240409_reslim1.5_ref2_muscle'; %
-resdir    = '_20240412_reslim1.5_ref2_muscle';
+resdir    = '_20240415_reslim1.5_ref3_muscle';
 resultdir = fullfile(maindirs{1},'derivatives','+Boney_result_figures',['Boney' resdir]); 
 if ~exist(resultdir,'dir'), mkdir(resultdir); end
 dname = 'aging';
@@ -79,7 +79,7 @@ opts.output.report     = 2;     % write report (0-no, 1-fast, 2-full visual that
 opts.output.volumes    = 0;     % write volume maps
 opts.opts.reduce       = 2;     % surface reduction (2-default, 4-fast) ... nearly no effect on quality but also not much faster (reslim=1.5, refine=2) 
 opts.opts.reslim       = 1.5;   % default 1.5, 2.5 for fast tests (typically 2 mm) ... lower resolution is about 3-4 times faster
-opts.opts.refine       = 2;     % use refinement (0-no (orgigin SPM), 1-default, 2-extended) ... strong effects, higher correlation with refinement, but unclear side affects for reslim=2.5
+opts.opts.refine       = 3;     % use refinement (0-no (orgigin SPM), 1-default, 2-extended) ... strong effects, higher correlation with refinement, but unclear side affects for reslim=2.5
 opts.opts.verb         = 1;     % verbose (0-none, 1-report line, 2-details)
 opts.opts.bnorm        = 'muscle';  % WM, GM, CSF, fat, muscle,'GM-WM-contrast'
 opts.opts.classic      = 1; 
