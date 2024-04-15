@@ -28,11 +28,20 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
   else
     % extract processed filenames
     Ppc = P; Ppc{1} = out(1).P.cls{1}; for i=2:numel(P), Ppc{i} = out(i).P.cls{1}; end
-    
-    % have to use CAT developer GUI for rerun function 
+    Pbc = P; Pbc{1} = out(1).P.bc;     for i=2:numel(P), Pbc{i} = out(i).P.bc{1}; end
+
+    %% have to use CAT developer GUI for rerun function 
     oldexpertgui = cat_get_defaults('extopts.expertgui');
     cat_get_defaults('extopts.expertgui',2);
-    rpc = cat_io_rerun(PC,Ppc,1) > 0; % estimate if reprocessing is required
+    rpc = cat_io_rerun(PC,Ppc,0) > 0; 
+    rbc = cat_io_rerun(PC,Pbc,0) > 0; % estimate if reprocessing is required
+    rsc = rpc | rbc;
+    cat_io_cprintf([0 .5 0],'  %d of %d SPM segmentations can be used. \n', numel(rsc) - sum(rsc), numel(rsc));
+    if sum(rsc) > 0
+        cat_io_cprintf([0.7 .2 0],'  %d of %d files need preprocessing. \n', sum(rsc), numel(rsc));
+    end
+    
+    
     cat_get_defaults('extopts.expertgui',oldexpertgui);
 
 % ################
@@ -41,7 +50,7 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
 %   the correct TPM :/
 % ################
     
-    PC  = PC(rpc); % only keep cases that need preprocessing
+    PC  = PC(rsc); % only keep cases that need preprocessing
   end
 
   %% processing
