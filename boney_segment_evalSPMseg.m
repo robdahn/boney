@@ -216,8 +216,13 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
         Ymx = smooth3( Yc{5}>.5 & Ym > tis.bonecortex * 2 & Ym<1 & Yg<.5 ) > .5 & Ybrainskulldist<60;
         Ybx = cat_vol_localstat(Ym ,Ymx,1,1,1);  
         mn  = cat_stat_kmeans(Ybx(Ymx(:)>.5),2); 
-        tismri.int.head_muscle = mn(2);
-        tismri.head_muscle     = mn(2);
+        if isnan(mn(2))
+          tismri.int.head_muscle = tis.seg8mns(1);
+          tismri.head_muscle     = tis.seg8mns(1);
+        else
+          tismri.int.head_muscle = mn(2);
+          tismri.head_muscle     = mn(2);
+        end
         %{
         tismri.int.head   = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
         tismri.Tth(ci)    = tismri.int.head(3);
