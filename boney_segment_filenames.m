@@ -24,14 +24,13 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
 
   % try to get the prefix
   P = cat_io_strrep(P,',1',''); 
-  if numel(P)==1
+  if isscalar(P)
     % if we have only one file the 'C' option of spm_str_manip is not working
     [~,ff]  = spm_fileparts(P{1});
     PC.s    = ff(1);
     PC.m{1} = ff(2:end);
-  
-    % test for other files
   else
+    % test for other files
     [~,PC]  = spm_str_manip(P,'tC'); 
     if numel(PC.s)>1 && PC.s(1)=='m'
       for mi=1:numel(PC.m)
@@ -53,50 +52,85 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
     end
   end
 
+
   for pi = 1:numel(P)
+  % figure out for each input which is its optimal directory ...
+  % - If there is a 'derivatives' directory then we (can) assume it is BIDS 
+  %   and that the original files are there.
+  % - If there is a 'sub-' directory then we (can) use this to a
+  %   derivatives directory.
+  % - We also estimate a relative director by the user results directory
+  %%
     fname    = P{pi}; 
-    ind      = max(strfind(spm_fileparts(fname),[filesep 'sub-']));
-    der      = max(strfind(spm_fileparts(fname),[filesep 'derivatives' filesep]));
-    if ~isempty(der) & ~isempty(ind) 
-      derdir{pi}       = fullpath( fileparts(fname(1:ind)) ,'derivatives');  
-    else
-      derdir{pi}       = ''; 
+    subs     = strfind(spm_fileparts(fname),[filesep 'sub-']);
+    ders     = strfind(spm_fileparts(fname),[filesep 'derivatives' filesep]);
+    sub      = min(subs); % this should not happen
+    % in case of multiple derivatives directories we take the one with sub-
+    % sibling directories
+    der      = ders; 
+    for di = 1:numel(ders)
+      dersub = cat_vol_findfiles( fileparts(fname(1:ders)), 'sub-*', struct('depth',1,'dirs',1,'oneperdir',1));
+      if ~isempty(dersub), der = ders(di); end
+    end
+    subder   = min([sub,der]);
+
+    if isempty(der) && isempty(sub) 
+    %% if no sign of BIDS at all then use the user given relative structure
+     
+      % estimation of user given relative directory 
+      maindir = spm_file(fname,'path'); % the orignal 
+      maindirr = maindir;               % this is the user specified main home directory for the relative path
+      subdirs  = strfind(job.output.resdir,['..' filesep]);  
+      sub_ses_anat{pi,1}   = ''; 
+      for si = 1:numel(subdirs)
+        [maindirr,ff,ee]   = spm_fileparts(maindirr);
+        sub_ses_anat{pi,1} = fullfile([ff ee], sub_ses_anat{pi});
+      end
+      pp_sub_ses_anat{pi,1} = sub_ses_anat{pi,1}; 
+
+      % final relative result directory
+      ppdir{pi,1}   = '';
+      resdir{pi,1}  = fullfile( maindirr, strrep(job.output.resdir,['..' filesep],'')); 
+      sdirs         = max(strfind(job.output.resdir,['..' filesep])); sdirs = sdirs + 1*(sdirs>0); % don't need last seperateor
+      outdir{pi,1}  = job.output.resdir(1:sdirs); 
+    else 
+    %% In this case we have no derivatives dir in the orignal path but we
+    %  have the sub- directory that defines it
+    
+      subinder           = max([subder , subder + min(strfind([filesep fileparts( fname(subder+1:end))],[filesep 'sub-']))]);
+      ppdir{pi,1}        = fname(subder+1:subinder-1); 
+      resdir{pi,1}       = fullfile( fileparts(fname(1:subder)) , strrep(job.output.resdir,['..' filesep],'')); 
+      sub_ses_anat{pi,1} = fileparts(fname(subinder:end)); 
+      pp_sub_ses_anat{pi,1} = fileparts(fname(subder+1:end)); 
+
+
+      %% here we have to find some relative directory discription for the data export 
+      if isempty(der) 
+        outdir{pi,1}     = ''; 
+      else
+        nsdirs           = numel( strfind( pp_sub_ses_anat{pi,1}, filesep) ); nsdirs = nsdirs + (nsdirs>0);
+        outdir{pi,1}     = repmat(['..' filesep],1,nsdirs); if numel(outdir{pi})>0, outdir{pi}(end) = []; end % don't need last seperateor
+      end
     end
 
-    sub_ses_anat{pi}   = ''; 
-    if ~isempty(ind)
-      maindir{pi}      = fileparts(fname(1:ind));  
-      sub_ses_anat{pi} = fileparts(fname(ind+1:end));  
-    else
-      % RD202403:
-      % alternative definion based on the depth of the file and is keeping 
-      % subdirectories to be more robust in case of a regular but non-BIDS
-      % structure wihtout anat directory or with similar filenames, e.g. 
-      % for ../derivatives/CAT##.#_#
-      %   testdir/subtestdir1/f1.nii
-      %   testdir/subtestdir2/f1.nii
-      % it result in 
-      %   testdir/derivatives/CAT##.#_#/subtestdir1/f1.nii
-      %   testdir/derivatives/CAT##.#_#/subtestdir1/f1.nii
-      % rather than
-      %   testdir/derivatives/CAT##.#_#/f1.nii
-      %   testdir/derivatives/CAT##.#_#/f1.nii
-      % what would cause conflicts
-  
-      %%
-      subdirs     = strfind(job.output.resdir,['..' filesep]);  
-      maindir{pi} = spm_file(fname,'path');
-  
-      for si = 1:numel(subdirs)
-        [maindir{pi},ff,ee] = spm_fileparts(maindir{pi});
-        sub_ses_anat{pi} = fullfile([ff ee], sub_ses_anat{pi});
-      end
-      maindir{pi} = fullfile( maindir{pi},strrep(job.output.resdir,['..' filesep],'')); 
+    % tests
+    if 1
+      out(pi).P.mridir     = ''; % mri
+      out(pi).P.mripath    = fullfile(resdir{pi}, sub_ses_anat{pi}, out(pi).P.mridir); 
+      out(pi).P.mrirdir    = fullfile(outdir{pi}, strrep(job.output.resdir,['..' filesep],''), sub_ses_anat{pi}, out(pi).P.mridir); 
+      out(pi).P.orgdir     = spm_file(fullfile( fname , out(pi).P.mrirdir ),'fpath'); % removes relative part
+      
+      fprintf('Dirs %d:\n%s\n',pi,sprintf('  %15s: %s\n', ...
+        'boney input',       fname, ...
+        'org. dir',          out(pi).P.orgdir, ...
+        'boney subdir',      out(pi).P.mripath , ...
+        'boney maindir',     resdir{pi}, ...
+        'rel sub path',      sub_ses_anat{pi,1}, ...
+        'rel pp-sub path',   pp_sub_ses_anat{pi,1}, ...
+        'rel pp path',       ppdir{pi})); 
     end
   end
-
-  
-
+  %%
 
   if job.opts.subdirs
     mridir    = 'mri'; 
@@ -204,128 +238,135 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
   end
 
 
+  
 
-  for i = 1:numel(P)
+
+
+  for pi = 1:numel(P)
 
     % use subdirectories 
     if job.opts.subdirs
-      out(i).P.mridir    = 'mri'; 
-      out(i).P.surfdir   = 'surf';
-      out(i).P.reportdir = 'report';
+      out(pi).P.mridir    = 'mri'; 
+      out(pi).P.surfdir   = 'surf';
+      out(pi).P.reportdir = 'report';
     else
-      out(i).P.mridir    = ''; 
-      out(i).P.surfdir   = ''; 
-      out(i).P.reportdir = ''; 
+      out(pi).P.mridir    = ''; 
+      out(pi).P.surfdir   = ''; 
+      out(pi).P.reportdir = ''; 
     end
   
     
     % get original file name based on the type of intput segmentation
     if fmethod == 0 || fmethod == 3
       % selection by processed file
-      [pp,ff,ee]      = spm_fileparts(P{i}); 
-      out(i).CTseg    = contains(ff,'_CTseg');
-      if out(i).CTseg
+      [pp,ff,ee]      = spm_fileparts(P{pi}); 
+      out(pi).CTseg    = contains(ff,'_CTseg');
+      if out(pi).CTseg
         if strcmp(ff(1:2),'c0'), ffs = 18; elseif strcmp(ff(1:2),'ss'), ffs = 4; end 
         ffe = numel(ff) - 6;
       else
         ffs = prefix1; 
         ffe = numel(ff);
       end
-      out(i).P.orgpp  = pp; 
-      out(i).P.orgff  = ff(ffs:ffe);
-      out(i).P.ppff   = ff;
-      out(i).P.ee     = ee; 
-      out(i).P.prefix = ff(1:ffs-1);
+      out(pi).P.orgpp  = pp; 
+      out(pi).P.orgff  = ff(ffs:ffe);
+      out(pi).P.ppff   = ff;
+      out(pi).P.ee     = ee; 
+      out(pi).P.prefix = ff(1:ffs-1);
    
       % input volumes
-      out(i).P.org    = fullfile(pp,[ff(ffs:ffe) ee]);
-      if out(i).CTseg
-        out(i).P.bc   = out(i).P.org;
-        out(i).P.seg8 = fullfile(pp,sprintf('mb_fit_CTseg.mat'));
+      out(pi).P.org    = fullfile(pp,[ff(ffs:ffe) ee]);
+      if out(pi).CTseg
+        out(pi).P.bc   = out(pi).P.org;
+        out(pi).P.seg8 = fullfile(pp,sprintf('mb_fit_CTseg.mat'));
         for ci = 1:5
-          out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s','c0',ci,ff(4:end),ee) ); 
+          out(pi).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s','c0',ci,ff(4:end),ee) ); 
         end
       else % SPM12 case
-        out(i).P.bc   = spm_file(out(i).P.org,'prefix','m');
-        out(i).P.seg8 = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
+        out(pi).P.bc   = spm_file(out(pi).P.org,'prefix','m');
+        out(pi).P.seg8 = fullfile(pp,sprintf('%s_seg8.mat',out(pi).P.orgff));
         for ci = 1:5
-          out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s','c',ci,out(i).P.orgff,ee) ); 
+          out(pi).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s','c',ci,out(pi).P.orgff,ee) ); 
         end
       end
-      if ~exist(out(i).P.seg8,'file')
-        cat_io_cprintf('err','Cannot process "%s" because the seg8.mat is missing. \n',P{i});
-        out(i).process = 0;
+      if ~exist(out(pi).P.seg8,'file')
+        cat_io_cprintf('err','Cannot process "%s" because the seg8.mat is missing. \n',P{pi});
+        out(pi).process = 0;
       end
 
     else 
       % selection by RAW file
-      [pp,ff,ee]      = spm_fileparts(P{i}); 
-      out(i).CTseg    = 0;
-      out(i).P.org    = P{i};
-      out(i).P.orgpp  = pp; 
-      out(i).P.orgff  = ff;
-      out(i).P.ee     = ee; 
-      out(i).P.ppff   = ['m' ff];
+      [pp,ff,ee]      = spm_fileparts(P{pi}); 
+      out(pi).CTseg    = 0;
+      out(pi).P.org    = P{pi};
+      out(pi).P.orgpp  = pp; 
+      out(pi).P.orgff  = ff;
+      out(pi).P.ee     = ee; 
+      out(pi).P.ppff   = ['m' ff];
       if job.opts.pmethod == 1
         ffx = 'c'; 
-        out(i).P.seg8   = fullfile(pp,sprintf('%s_seg8.mat',out(i).P.orgff));
-        out(i).P.bc     = fullfile( pp , sprintf('%s%s%s','m',ff,ee) ); 
+        out(pi).P.seg8   = fullfile(pp,sprintf('%s_seg8.mat',out(pi).P.orgff));
+        out(pi).P.bc     = fullfile( pp , sprintf('%s%s%s','m',ff,ee) ); 
         for ci = 1:5
-          out(i).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
+          out(pi).P.cls{ci} = fullfile( pp , sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
         end
       else
         ffx = 'p'; 
-        out(i).P.seg8   = fullfile(pp, out(i).P.reportdir, sprintf('cat_%s.xml',out(i).P.orgff));   
+        out(pi).P.seg8   = fullfile(pp, out(pi).P.reportdir, sprintf('cat_%s.xml',out(pi).P.orgff));   
         % we have to use the filename from the XML to get the original image 
         % as it could be hidden by BIDS 
-        if exist(out(i).P.seg8,'file')
-          Sxml          = cat_io_xml( out(i).P.seg8 ); 
+        if exist(out(pi).P.seg8,'file')
+          Sxml          = cat_io_xml( out(pi).P.seg8 ); 
           [pp,ff,ee]    = spm_fileparts( Sxml.filedata.fname ); 
-          out(i).P.org  = Sxml.filedata.fname;
-          out(i).P.bc   = Sxml.filedata.Fm; 
+          out(pi).P.org  = Sxml.filedata.fname;
+          out(pi).P.bc   = Sxml.filedata.Fm; 
         else
-          [pp,ff,ee]    = spm_fileparts(P{i}); 
-          out(i).P.org  = P{i};
-          out(i).P.bc   = fullfile( pp , out(i).P.mridir, sprintf('%s%s%s','m',ff,ee) ); 
+          [pp,ff,ee]    = spm_fileparts(P{pi}); 
+          out(pi).P.org  = P{pi};
+          out(pi).P.bc   = fullfile( pp , out(pi).P.mridir, sprintf('%s%s%s','m',ff,ee) ); 
         end
-        out(i).P.y      = fullfile( pp , out(i).P.mridir, sprintf('%s%s%s','y_',ff,ee) ); 
-        out(i).P.orgpp  = pp; 
-        out(i).P.orgff  = ff;
-        out(i).P.ee     = ee;
+        out(pi).P.y      = fullfile( pp , out(pi).P.mridir, sprintf('%s%s%s','y_',ff,ee) ); 
+        out(pi).P.orgpp  = pp; 
+        out(pi).P.orgff  = ff;
+        out(pi).P.ee     = ee;
         for ci = 1:5
-          out(i).P.cls{ci} = fullfile( pp , out(i).P.mridir, sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
+          out(pi).P.cls{ci} = fullfile( pp , out(pi).P.mridir, sprintf('%s%d%s%s',ffx,ci,ff,ee) ); 
         end
       end
     end
 
-    % output dirs
-    out(i).P.mripath    = fullfile(maindir{pi}, sub_ses_anat{i}, out(i).P.mridir); 
-    out(i).P.surfpath   = fullfile(maindir{pi}, sub_ses_anat{i}, out(i).P.surfdir); 
-    out(i).P.reportpath = fullfile(maindir{pi}, sub_ses_anat{i}, out(i).P.reportdir); 
+    
+    %% output dirs
+    out(pi).P.resdir     = resdir{pi};
+    out(pi).P.mripath    = fullfile(resdir{pi}, sub_ses_anat{pi}, out(pi).P.mridir); 
+    out(pi).P.surfpath   = fullfile(resdir{pi}, sub_ses_anat{pi}, out(pi).P.surfdir); 
+    out(pi).P.reportpath = fullfile(resdir{pi}, sub_ses_anat{pi}, out(pi).P.reportdir); 
 
-    % output dirs for CAT volume export
-    out(i).P.mrirdir    = fullfile(job.output.resdir, sub_ses_anat{i}, out(i).P.mridir); 
-    out(i).P.surfrdir   = fullfile(job.output.resdir, sub_ses_anat{i}, out(i).P.surfdir); 
-    out(i).P.reportrdir = fullfile(job.output.resdir, sub_ses_anat{i}, out(i).P.reportdir); 
-
-    % boney preprocessing mat file for faster reprocessing
+    % output dirs for CAT volume export fuction 
+    out(pi).P.mrirdir    = fullfile(outdir{pi}, strrep(job.output.resdir,['..' filesep],''), sub_ses_anat{pi}, out(pi).P.mridir); 
+    out(pi).P.surfrdir   = fullfile(outdir{pi}, strrep(job.output.resdir,['..' filesep],''), sub_ses_anat{pi}, out(pi).P.surfdir); 
+    out(pi).P.reportrdir = fullfile(outdir{pi}, strrep(job.output.resdir,['..' filesep],''), sub_ses_anat{pi}, out(pi).P.reportdir); 
+    out(pi).P.orgdir     = spm_file(fullfile( out(pi).P.orgpp , out(pi).P.mrirdir),'fpath'); 
+    
+    
+    %% boney preprocessing mat file for faster reprocessing
     PP = {'SPM12','CAT12','CTseg'}; 
-    out(i).P.boneyPPmat  = fullfile(out(i).P.mripath, ['boney' PP{job.opts.pmethod} 'PPmat_' ff '.mat']); 
+    out(pi).P.boneyPPmat  = fullfile(out(pi).P.mripath, ['boney' PP{job.opts.pmethod} 'PPmat_' ff '.mat']); 
     
     % create dirs if required
-    if ~exist(out(i).P.mripath   ,'dir'), mkdir(out(i).P.mripath); end
-    if ~exist(out(i).P.surfpath  ,'dir'), mkdir(out(i).P.surfpath); end
-    if ~exist(out(i).P.reportpath,'dir'), mkdir(out(i).P.reportpath); end
+    if ~exist(out(pi).P.mripath   ,'dir'), mkdir(out(pi).P.mripath); end
+    if ~exist(out(pi).P.surfpath  ,'dir'), mkdir(out(pi).P.surfpath); end
+    if ~exist(out(pi).P.reportpath,'dir'), mkdir(out(pi).P.reportpath); end
 
 
     % xml/mat output
-    out(i).P.report   = fullfile(out(i).P.reportpath, sprintf('%sbonereport_%s.jpg', job.output.prefix, ff));              
-    out(i).P.xml      = fullfile(out(i).P.reportpath, sprintf('%s_%s.xml'          , job.output.prefix, ff));
-    out(i).P.mat      = fullfile(out(i).P.reportpath, sprintf('%s_%s.mat'          , job.output.prefix, ff));
+    out(pi).P.report   = fullfile(out(pi).P.reportpath, sprintf('%sbonereport_%s.jpg', job.output.prefix, ff));              
+    out(pi).P.xml      = fullfile(out(pi).P.reportpath, sprintf('%s%s.xml'          , job.output.prefix, ff));
+    out(pi).P.mat      = fullfile(out(pi).P.reportpath, sprintf('%s%s.mat'          , job.output.prefix, ff));
     
-    out(i).P.boneymat = fullfile(out(i).P.reportpath, sprintf('boney_%s.mat'    , ff));
-    out(i).P.boneySPM = fullfile(out(i).P.reportpath, sprintf('boneySPM_%s.mat' , ff));
-    out(i).P.boneyCAT = fullfile(out(i).P.reportpath, sprintf('boneyCAT_%s.mat' , ff));
+    out(pi).P.boneymat = fullfile(out(pi).P.reportpath, sprintf('boney_%s.mat'    , ff));
+    out(pi).P.boneySPM = fullfile(out(pi).P.reportpath, sprintf('boneySPM_%s.mat' , ff));
+    out(pi).P.boneyCAT = fullfile(out(pi).P.reportpath, sprintf('boneyCAT_%s.mat' , ff));
 
     % vols
     if job.output.writevol
@@ -333,9 +374,9 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
       for vi = 1:numel(vols)
         % ... subject affine warped ... 
         prefix = {'','r'}; postfix = {'','_affine'};
-        for pi = 1:numel(prefix)
-          out(i).P.([prefix{pi} vols{vi} postfix{pi}]) = fullfile(out(i).P.mripath, ...
-            sprintf('%s%s_%s%s%s', prefix{pi}, vols{vi}, ff(2:end), postfix{pi}, ee));
+        for pri = 1:numel(prefix)
+          out(pi).P.([prefix{pri} vols{vi} postfix{pri}]) = fullfile(out(pi).P.mripath, ...
+            sprintf('%s%s_%s%s%s', prefix{pri}, vols{vi}, ff(2:end), postfix{pri}, ee));
         end
       end
     end
@@ -343,11 +384,15 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
     
     % surfs - Are these to be writen anyway?
     if job.opts.bmethod>1 || job.output.writesurf
-      out(i).P.central   = fullfile(out(i).P.surfpath, sprintf('%s.central.%s.gii', 'bone', ff));        % central
-      out(i).P.marrow    = fullfile(out(i).P.surfpath, sprintf('%s.marrow.%s'     , 'bone', ff));        % marrow
-      out(i).P.cortex    = fullfile(out(i).P.surfpath, sprintf('%s.cortex.%s'     , 'bone', ff));        % hard bone - minimal bone values
-      out(i).P.thick     = fullfile(out(i).P.surfpath, sprintf('%s.thickness.%s'  , 'bone', ff));        % thickness bone 
-      out(i).P.headthick = fullfile(out(i).P.surfpath, sprintf('%s.thickness.%s'  , 'head', ff));        % thickness head
+      out(pi).P.central   = fullfile(out(pi).P.surfpath, sprintf('%s.central.%s.gii', 'bone', ff));        % central
+      out(pi).P.marrow    = fullfile(out(pi).P.surfpath, sprintf('%s.marrow.%s'     , 'bone', ff));        % marrow
+      out(pi).P.cortex    = fullfile(out(pi).P.surfpath, sprintf('%s.cortex.%s'     , 'bone', ff));        % hard bone - minimal bone values
+      out(pi).P.thick     = fullfile(out(pi).P.surfpath, sprintf('%s.thickness.%s'  , 'bone', ff));        % thickness bone 
+      out(pi).P.headthick = fullfile(out(pi).P.surfpath, sprintf('%s.thickness.%s'  , 'head', ff));        % thickness head
     end
+  end
+
+  if 0
+    out(pi).P
   end
 end
