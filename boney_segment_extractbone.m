@@ -220,7 +220,7 @@ end
   if job.output.writevol
     
     %% see also boney_segment_get_seg8mat
-    if ~exist('trans','var')
+    if ~exist('trans','var') || isempty(trans)
       tdim = seg8t.tpm(1).dim; 
       M0   = seg8t.image.mat;          
       M1   = seg8t.tpm(1).mat;
@@ -240,11 +240,11 @@ end
       trans.rigid     = struct('odim',tdim,'mat',M1,'mat0',mat0r,'M',Mrigid ,'R',R);             % structure for cat_io_writenii
       trans.warped    = struct(); 
     end
-
+ 
     %% manual defintion of what volumes we write
     native = job.output.writevol==1 || job.output.writevol==5;
-    warped = job.output.writevol==2 || job.output.writevol==4 || job.output.writevol==5; 
-    dartel = job.output.writevol==3 || job.output.writevol==4 || job.output.writevol==5; 
+    warped = job.output.writevol==3 || job.output.writevol==4 || job.output.writevol==5; 
+    dartel = job.output.writevol==2 || job.output.writevol==4 || job.output.writevol==5; 
     job.output.bonemarrow  = struct('native',native,'warped',warped,'mod',0*warped,'dartel',2*dartel); % dartel * 3 for affine & rigid
 % ### RD20240415: write also thickness maps? improve GUI? 
     job.output.bonethick   = struct('native',0*native,'warped',0*warped,'dartel',0*dartel);
@@ -256,7 +256,7 @@ end
     %cat_io_writenii(Vo,Ybonemid,out.P.mripath,sprintf('bonemid%d_',job.opts.bmethod), ...
     %  'bone percentage position midline map','uint8',[0,1/255], ... 
     %  min([1 0 2],[job.output.position.native job.output.position.warped job.output.position.dartel]),trans); 
-    % masked map for averaging
+    %% masked map for averaging
     Vo.fname  = fullfile(out.P.orgpp, [out.P.orgff, out.P.ee]);
     cat_io_writenii(Vo,Ybonemarrow,out.P.mrirdir,'bonemarrow_', 'bone(marrow) map','uint16',[0,0.001], ... 
       min([1 1 1 3],[job.output.bonemarrow.native job.output.bonemarrow.warped job.output.bonemarrow.mod job.output.bonemarrow.dartel]),trans);

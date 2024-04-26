@@ -113,7 +113,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
       bmethodstr = {'SPMmat8','Volume-based','Surface-based', ...
         'Volume-based (old version without refinement)','Volume-based (old version with refinement)'};
       reportstr  = {'No','Yes - Basic','Yes - Volumes','Yes - Full'};
-      volstr     = {'No','native','warped','affine','all'}; 
+      volstr     = {'No','native','affine','warped','affine + warped','native + affine + warped'}; 
       refstr     = {'No - original SPM','Yes - morphological closing','Yes - enhanced V2', 'Yes - enhanced V3'}; 
       fprintf('  Tissue Probability Map:   %d (%s)\n', job.opts.ctpm,     tmpstr{job.opts.ctpm});
       fprintf('  Preprocessing   method:   %d (%s)\n', job.opts.pmethod,  pmethodstr{job.opts.pmethod+1});
