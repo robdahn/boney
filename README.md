@@ -154,7 +154,7 @@ In addition, the estimated head fat measure is supported by high correlations wi
 
 
 ## References
-You can find out more about the bone and skin-fold thickness measures in the paper [...](https://doi.org/10.1101/2024.05.22.595163)
+You can find out more about the bone and skin-fold thickness measures in our [preprint](https://doi.org/10.1101/2024.05.22.595163).
 
 
 ## Supplement
