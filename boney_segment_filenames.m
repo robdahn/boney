@@ -105,7 +105,7 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
 
 
       %% here we have to find some relative directory discription for the data export 
-      if isempty(der) 
+      if 0 %isempty(der) 
         outdir{pi,1}     = ''; 
       else
         nsdirs           = numel( strfind( pp_sub_ses_anat{pi,1}, filesep) ); nsdirs = nsdirs + (nsdirs>0);
