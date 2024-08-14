@@ -77,7 +77,8 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
 
     
     %% bone layers
-    [Ybrainr,Yheadr,Ybone1r,res] = cat_vol_resize({Ybrain,Yhead,Ybone1},'reduceV',vx_vol,2,64,'meanm');
+    lres = 1; 
+    [Ybrainr,Yheadr,Ybone1r,res] = cat_vol_resize({Ybrain,Yhead,Ybone1},'reduceV',vx_vol,lres,64,'meanm');
     Ybraindist   = vbx_dist( Ybrainr , Ybone1r>0, res.vx_volr, nvbdist, 0);
     Yheaddistr   = vbx_dist( Yheadr  , Ybone1r>0, res.vx_volr, nvbdist, 0);
     Ybonethick   = (Ybraindist + Yheaddistr) .* (Ybone1r>0);  % correct for voxel-size
@@ -109,18 +110,18 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
   %% head 
 % PK20240405: check normalization for skull - using the CSF value may lead to unwanted statistical dependencies ! 
   Yskull       = single(Ym/tis.seg8n(3)) .* (Yc{5}>.5); 
-  [Yc6,Yheadr,Ybrainr,res] = cat_vol_resize({single(Yc{6}),cat_vol_morph(single(Ybrain + Ybone),'lc'),Ybrain},'reduceV',vx_vol,2,64,'meanm');
+  [Yc6,Yheadr,Ybrainr,res] = cat_vol_resize({single(Yc{6}),cat_vol_morph(single(Ybrain + Ybone),'lc'),Ybrain},'reduceV',vx_vol,lres,64,'meanm');
   Ybgdist      = vbx_dist( Yc6 , Ybrainr<0.5, res.vx_volr, nvbdist,0);
   Ybndist      = vbx_dist( Yheadr , Yc6<.5, res.vx_volr, nvbdist,0);
   Yheadthick   = (Ybndist + Ybgdist - Yheaddistr) .* (Ybrainr<0.5 & Yc6<.5); 
-  clear Yheadr Yc6 Ybrainr Ybgdist Ybndist Yheaddistr; 
   % headthickness
   Yheadthick   = cat_vol_approx(Yheadthick,'rec');
   Yheadthick   = cat_vol_smooth3X(Yheadthick,1); 
   Yheadthick   = cat_vol_resize(Yheadthick,'dereduceV',res); clear res; 
 
 %%
-
+ clear Yheadr Yc6 Ybrainr Ybgdist Ybndist Yheaddistr; 
+ 
   % define normalized bonemarrow 
   %Ym = (Yo - min( tis.seg8o )) / (tis.seg8o(2) - min([tis.seg8o(3),tis.seg8o(end)]));
   if tis.weighting >= 0
