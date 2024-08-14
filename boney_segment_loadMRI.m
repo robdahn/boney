@@ -225,8 +225,9 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
         [size(Ym,1),size(Ym,2)],[0,NaN])); % nearest neighbor interpolation
     end
     clear Vmsk;
+    % fill zeros and select the upper part (region==1)
     [~,YD] = cat_vbdist(single(Ymsk>0),smooth3(Yc{6})<.5); Ymsk = Ymsk(YD);
-   % Ymsk = Ymsk>1.5; % this mask is limited ... ################## prepare masks ones for faster processing ! #############
+    Ymsk = Ymsk<1.5; % this mask is limited ... ################## prepare masks ones for faster processing ! #############
   else
     Ymsk = false(size(Ym));
   end
