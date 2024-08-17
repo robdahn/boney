@@ -157,41 +157,46 @@ end
   %  - first tested showed that mean/median works best for BMD and that SD/IQR are much worse 
   %  - we finally decided to keep only the mean as (i) it is more expected 
   %    and (ii) we already did some outlier correction by masking  
-  rii = 1;
-  vROI.help = [
-      'A masked image is used (if available) for global values to extract only the upper part of the skull, ' ...
-      'whereas no masking is used in case of atlas regions. '];
-  for ri = 0:max(Ya(Ya(:)<intmax('uint16')))
-    if ri == 0 || isnan(ri)
-      % global values
-      ri = 0; %#ok<FXSET> % case of failed atlas mapping given by NAN
-      vROI.boneatlas_id(1,rii)      = inf;
-      if ~isempty( job.opts.Pmask{1} ), vROI.boneatlas_name{1,rii} = 'full-masked'; 
-      else,                             vROI.boneatlas_name{1,rii} = 'full-unmasked'; 
-      end
-      vROI.nonnanvol(1,rii)         = sum(Ya(:)>intmax('uint16')) ./ numel(Ya(:));
-      vROI.bonemarrow(1,rii)        = cat_stat_nanmean(   Ybonemarrows( Ymsk(:)  & Ybonemarrows(:)~=0 & Ybonecpp(:)>.5 ) ); 
-      vROI.bonecortex(1,rii)        = cat_stat_nanmean(   Ybonecortexs( Ymsk(:)  & Ybonecortexs(:)~=0 ) ); 
-      vROI.bonethickness(1,rii)     = cat_stat_nanmean(   Ybonethick(   Ymsk(:)  & Ybonethick(:)~=0  ) ); 
-      vROI.head(1,rii)              = cat_stat_nanmean(   Yskull(       Ymsk(:)  & Yskull(:)~=0      ) ); 
-      vROI.headthickness(1,rii)     = cat_stat_nanmean(   Yheadthick(   Ymsk(:)  & Yheadthick(:)~=0  ) ); 
-      rii = rii + 1;
-    else
-      % regional values
-      if sum(Ya(:)==ri)~=0
-        vROI.boneatlas_id(1,rii)    = ri;  
-        if isempty(YaROIname) %|| numel(YaROIname)>max(Ya(Ya(:)<intmax('uint16')))
-          vROI.boneatlas_name{1,rii}  = sprintf('ROI%d',ri); 
-        else
-          vROI.boneatlas_name{1,rii}  = YaROIname{rii};
+  for ai = 1:numel(Ya)
+    rii = 1;
+    vROI(ai).file = job.opts.Patlas{ai}; %#ok<*AGROW>
+    vROI(ai).help = [
+        'A masked image is used (if available) for global values to extract only the upper part of the skull, ' ...
+        'whereas no masking is used in case of atlas regions. '];
+    for ri = 0:max(Ya{ai}(Ya{ai}(:)<intmax('uint16')))
+      if ri == 0 || isnan(ri)
+        % global values
+        ri = 0; %#ok<FXSET> % case of failed atlas mapping given by NAN
+        vROI(ai).boneatlas_id(1,rii)      = inf;
+        if ~isempty( job.opts.Pmask{1} ), vROI(ai).boneatlas_name{1,rii} = 'full-masked'; 
+        else,                             vROI(ai).boneatlas_name{1,rii} = 'full-unmasked'; 
         end
-        vROI.nonnanvol(1,rii)       = sum(Ya(:)==ri) ./ numel(Ya(:));
-        vROI.bonemarrow(1,rii)      = cat_stat_nanmean(  Ybonemarrows( Ybonemarrows(:)~=0 & Ya(:)==ri & Ybonecpp(:)>.5 ) ); 
-        vROI.bonecortex(1,rii)      = cat_stat_nanmean(  Ybonemarrows( Ybonemarrows(:)~=0 & Ya(:)==ri) ); 
-        vROI.bonethickness(1,rii)   = cat_stat_nanmean(  Ybonethick(   Ybonethick(:)~=0  & Ya(:)==ri) );
-        vROI.head(1,rii)            = cat_stat_nanmean(  Yskull(       Yskull(:)~=0      & Ya(:)==ri) ); 
-        vROI.headthickness(1,rii)   = cat_stat_nanmean(  Yheadthick(   Yheadthick(:)~=0  & Ya(:)==ri) ); 
+        vROI(ai).nonnanvol(1,rii)         = sum(Ya{ai}(:)>intmax('uint16')) ./ numel(Ya{ai}(:));
+        vROI(ai).bonemarrow(1,rii)        = cat_stat_nanmean(   Ybonemarrows( Ymsk(:)  & Ybonemarrows(:)~=0 & Ybonecpp(:)>.5 ) ); 
+        vROI(ai).bonecortex(1,rii)        = cat_stat_nanmean(   Ybonecortexs( Ymsk(:)  & Ybonecortexs(:)~=0 ) ); 
+        vROI(ai).bonethickness(1,rii)     = cat_stat_nanmean(   Ybonethick(   Ymsk(:)  & Ybonethick(:)~=0  ) ); 
+        vROI(ai).head(1,rii)              = cat_stat_nanmean(   Yskull(       Ymsk(:)  & Yskull(:)~=0      ) ); 
+        vROI(ai).headthickness(1,rii)     = cat_stat_nanmean(   Yheadthick(   Ymsk(:)  & Yheadthick(:)~=0  ) ); 
         rii = rii + 1;
+      else
+        % regional values
+        if sum(Ya{ai}(:)==ri)~=0
+          vROI(ai).boneatlas_id(1,rii)    = ri;  
+          if isempty(YaROIname{ai}) && isempty(YaROIname{ai}{ri}) %|| numel(YaROIname)>max(Ya(Ya(:)<intmax('uint16')))
+            vROI(ai).boneatlas_name{1,rii}  = sprintf('ROI%d',ri); 
+          elseif rii-1 <= numel(YaROIname{ai})
+            vROI(ai).boneatlas_name{1,rii}  = YaROIname{ai}{rii-1};
+          else
+            vROI(ai).boneatlas_name{1,rii}  = sprintf('ROI%d',ri); 
+          end
+          vROI(ai).nonnanvol(1,rii)       = sum(Ya{ai}(:)==ri) ./ numel(Ya{ai}(:));
+          vROI(ai).bonemarrow(1,rii)      = cat_stat_nanmean(  Ybonemarrows( Ybonemarrows(:)~=0 & Ya{ai}(:)==ri & Ybonecpp(:)>.5 ) ); 
+          vROI(ai).bonecortex(1,rii)      = cat_stat_nanmean(  Ybonemarrows( Ybonemarrows(:)~=0 & Ya{ai}(:)==ri) ); 
+          vROI(ai).bonethickness(1,rii)   = cat_stat_nanmean(  Ybonethick(   Ybonethick(:)~=0   & Ya{ai}(:)==ri) );
+          vROI(ai).head(1,rii)            = cat_stat_nanmean(  Yskull(       Yskull(:)~=0       & Ya{ai}(:)==ri) ); 
+          vROI(ai).headthickness(1,rii)   = cat_stat_nanmean(  Yheadthick(   Yheadthick(:)~=0   & Ya{ai}(:)==ri) ); 
+          rii = rii + 1;
+        end
       end
     end
   end
