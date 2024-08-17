@@ -359,9 +359,13 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
 
 
         % == restore resolution & boundary box ==
-        Ym             = cat_vol_resize( Ym            ,'dereduceV'    ,RES);
-        [Ya, Ymsk]     = cat_vol_resize({Ya, Ymsk}     ,'dereduceV'    ,RES,'nearest');
-        [Ym, Ymsk, Ya] = cat_vol_resize({Ym, Ymsk, Ya} ,'dereduceBrain',BB);
+        Ym         = cat_vol_resize( Ym         ,'dereduceV'    ,RES);
+        Ymsk       = cat_vol_resize( Ymsk       ,'dereduceV'    ,RES,'nearest');
+        [Ym, Ymsk] = cat_vol_resize( {Ym, Ymsk} ,'dereduceBrain',BB);
+        for ai = 1:numel(Ya)
+          Ya{ai} = cat_vol_resize( Ya{ai}  ,'dereduceV'    ,RES);
+          Ya{ai} = cat_vol_resize( Ya{ai}  ,'dereduceBrain',BB);
+        end
         for ci = 1:numel(Yc)
           Yc{ci} = cat_vol_resize( Yc{ci}  ,'dereduceV'    ,RES);
           Yc{ci} = cat_vol_resize( Yc{ci}  ,'dereduceBrain',BB);
@@ -416,11 +420,15 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
       %  * [v|s]BMDH have to use the inverted measure as the increased  
       %    intensity of fatty marrow results in weaker bones (lower BMD) 
       %    with H for the UKB BMD head measure
-      if exist('vROI','var')
-        out(i).main.vBMDH = -out(i).vROI.bonecortex(3);
+      if exist('vROI','var') && numel(out(i).vROI(1).bonecortex)>2
+        out(i).main.vBMDH = -out(i).vROI(1).bonecortex(3);
+      else
+        out(i).main.vBMDH = -out(i).vROI(1).bonecortex(end);
       end
-      if exist('sROI','var')
-        out(i).main.sBMDH = -out(i).sROI.bonecortex(3);
+      if exist('sROI','var') && numel(out(i).sROI(1).bonecortex)>2
+        out(i).main.sBMDH = -out(i).sROI(1).bonecortex(3);
+      else
+        out(i).main.sBMDH = -out(i).sROI(1).bonecortex(end);
       end
 
 
