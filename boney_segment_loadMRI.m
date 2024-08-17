@@ -193,26 +193,35 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
 % ##########
 
   % load atlas in individual space by applying the affine transformation
-  if ~isempty(job.opts.Patlas{1})
-    Va = spm_vol(job.opts.Patlas{1});
-    Ya = zeros(size(Ym),'single');
-    for zi = 1:size(Ym,3)
-      Ya(:,:,zi) = single(spm_slice_vol( Va , ...
-        (Va.mat \ Affine * Vo.mat) * spm_matrix([0 0 zi]), ... % apply affine transformation
-        [size(Ym,1), size(Ym,2)],[0,NaN])); % nearest neighbor interpolation
-    end
-    clear Va;
-    [~,YD] = cat_vbdist(single(Ya>0),smooth3(Yc{6})<.5); Ya = Ya(YD);
-    Pacsv = spm_file(job.opts.Patlas{1},'ext','.csv');
-    if exist(Pacsv,'file')
-      csv = cat_io_csv(Pacsv);
-      YaROIname = ['background';csv(2:end,2)];
-    else
-      YaROIname = unique(Ya(:));
+  if ~isempty(job.opts.Patlas)
+    for ai = 1:numel( job.opts.Patlas )
+      if ~isempty(job.opts.Patlas{1})
+        Va     = spm_vol(job.opts.Patlas{ai});
+        Ya{ai} = zeros(size(Ym),'single');
+        for zi = 1:size(Ym,3)
+          Ya{ai}(:,:,zi) = single(spm_slice_vol( Va , ...
+            (Va.mat \ Affine * Vo.mat) * spm_matrix([0 0 zi]), ... % apply affine transformation
+            [size(Ym,1), size(Ym,2)],[0,NaN])); % nearest neighbor interpolation
+        end
+        if max(Ya{ai}(:))==1, Ya{ai} = Ya{ai} + 1; Yareset(ai) = 1; else, Yareset(ai) = 0; end
+        Ya{ai}(isnan(Ya{ai}(:))) = 0; 
+        clear Va;
+        [~,YD] = cat_vbdist(single(Ya{ai}>0.5),smooth3(Yc{6})<.5); Ya{ai} = Ya{ai}(YD);
+        Pacsv{ai} = spm_file(job.opts.Patlas{ai},'ext','.csv');
+        if exist(Pacsv{ai},'file')
+          csv = cat_io_csv(Pacsv{ai});
+          YaROIname{ai} = ['background';csv(2:end,2)];
+        else
+          YaROIname{ai} = unique(Ya{ai}(:));
+        end
+      else
+        Ya{ai}        = zeros(size(Ym),'single');
+        YaROIname{ai} = 0;
+      end
     end
   else
-    Ya        = zeros(size(Ym),'single');
-    YaROIname = 0;
+    Ya{ai}        = zeros(size(Ym),'single');
+    YaROIname{ai} = 0;
   end
 
   % load mask in individual space by applying the affine transformation
@@ -234,20 +243,26 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
 
   % extend atlas to all voxels
   if ~isempty(job.opts.Patlas{1}) || ~isempty(job.opts.Pmask)
-    [~,YI] = cat_vbdist(single(Ya>0)); Ya = Ya(YI);
+    [~,YI] = cat_vbdist(single(Ya{ai}>0)); Ya{ai} = Ya{ai}(YI);
   end
+  if Yareset(ai), Ya{ai} = Ya{ai} - 1; end
 
 
   % limit boundary box
   Yb  = ( Yc{1} + Yc{2} + Yc{3} ) >.5;
-  [Yo,Ym,Ya,Ymsk,BB] = cat_vol_resize({Yo,Ym,Ya,Ymsk} ,'reduceBrain',tis.res_vx_vol,bd,Yb);
+  [Yo,Ym,Ymsk,BB] = cat_vol_resize({Yo,Ym,Ymsk} ,'reduceBrain',tis.res_vx_vol,bd,Yb);
+  for ai = 1:numel(Ya)
+    Ya{ai} = cat_vol_resize(Ya{ai} ,'reduceBrain',tis.res_vx_vol,bd,Yb);
+  end
   for ci = 1:numel(Yc)
     Yc{ci} = cat_vol_resize(Yc{ci} ,'reduceBrain',tis.res_vx_vol,bd,Yb);
   end
 
   % limit resolution
   [Yo,Ym,RES] = cat_vol_resize({Yo,Ym} ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'meanm');
-  Ya          = cat_vol_resize(Ya      ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'nearest');
+  for ai = 1:numel(Ya)
+    Ya{ai}    = cat_vol_resize(Ya{ai}  ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'nearest');
+  end
   Ymsk        = cat_vol_resize(Ymsk    ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'meanm') > 0.5;
   Ysum        = zeros(size(Ym),'single'); 
   for ci = 1:numel(Yc)
