@@ -29,14 +29,19 @@ function boney_segment_cmdline(job,out,i,stime2,rerunstr)
     %% create one line for the output table depending on the MAfn defintion
     for fni = 1:size(MA,1)
       if isfield( out(i) , MA{fni,2}) && isfield( out(i).(MA{fni,2}) , MA{fni,3} ) 
-        if ischar( out(i).(MA{fni,2}).(MA{fni,3}) )
-          matm{i,fni}  = out(i).(MA{fni,2}).(MA{fni,3});
-          mmatm(i,fni) = 1; %mmatm(i,fni) = out(i).(MA{fni,2}).(MA{fni,3});
-        elseif isnumeric( out(i).(MA{fni,2}).(MA{fni,3})(MA{fni,4}) )
-          matm{i,fni}  = out(i).(MA{fni,2}).(MA{fni,3})(MA{fni,4});
-          mmatm(i,fni) = out(i).(MA{fni,2}).(MA{fni,3})(MA{fni,4});
-        else
-          mmatm(i,fni) = 1; 
+        try
+          if ischar( out(i).(MA{fni,2})(1).(MA{fni,3}) )
+            matm{i,fni}  = out(i).(MA{fni,2})(1).(MA{fni,3});
+            mmatm(i,fni) = 1; %mmatm(i,fni) = out(i).(MA{fni,2}).(MA{fni,3});
+          elseif isnumeric( out(i).(MA{fni,2})(1).(MA{fni,3})(MA{fni,4}) )
+            matm{i,fni}  = out(i).(MA{fni,2})(1).(MA{fni,3})(MA{fni,4});
+            mmatm(i,fni) = out(i).(MA{fni,2})(1).(MA{fni,3})(MA{fni,4});
+          else
+            mmatm(i,fni) = 1; 
+          end
+        catch
+          matm{i,fni}  = nan; 
+          mmatm(i,fni) = nan; 
         end
       end
     end
