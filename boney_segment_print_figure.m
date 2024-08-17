@@ -292,14 +292,18 @@ function printMainTable(job,out,popts,Si,St)
     text(0.01,0.64 - (fnj-1)*0.12 - popts.table1offset,repmat(' ',1,1000 + 120),... 
       'BackgroundColor',[0.94 0.94 .94],'Parent',popts.ax,'FontSize',popts.fontsize*.6); 
     for fni = numel(FN{fnj}):-1:1
-      if isfield(out, FNf{fnj}{fni}) && isfield(out.(FNf{fnj}{fni}), FN{fnj}{fni})
+      if isfield(out, FNf{fnj}{fni}) && isfield(out.(FNf{fnj}{fni})(1), FN{fnj}{fni})
         segtext(fni,lkpi)   = text(0.04 + 0.075*(fni-1), 0.64-(fnj-1)*0.12-popts.table1offset-(0.00) , ...
           sprintf('\\bf%s',FNn{fnj}{fni}) ,'Fontname',popts.fontname,'FontSize',...
           popts.fontsize,'color',popts.fontcolor,'Interpreter','tex','Parent',popts.ax, ...
           'FontWeight','bold','HorizontalAlignment','center');
         if ~isempty( FNt{fnj}{fni} )
-          if isnumeric( out.(FNf{fnj}{fni}).(FN{fnj}{fni}) ) && numel(  out.(FNf{fnj}{fni}).(FN{fnj}{fni}) )>1
-            val =  out.(FNf{fnj}{fni}).(FN{fnj}{fni})(FNi{fnj}{fni}); 
+          if isnumeric( out.(FNf{fnj}{fni})(1).(FN{fnj}{fni}) ) && numel(  out.(FNf{fnj}{fni})(1).(FN{fnj}{fni}) )>1
+            try
+              val = out.(FNf{fnj}{fni})(1).(FN{fnj}{fni})(FNi{fnj}{fni});
+            catch
+              val = nan; 
+            end
           else
             val =  out.(FNf{fnj}{fni}).(FN{fnj}{fni}); 
           end
