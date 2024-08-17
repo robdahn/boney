@@ -137,11 +137,19 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the transferr
       + 4*(Yc{3}>tth) + 5*(Yc{1}>tth) + 6*(Yc{2}>tth) );
     % further refinements
     Ypx((Ybox4>0 & Ym<ith) | Ym==0) = -2; % defaced regions or close to image bouundaries 
-    Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.33 & Yb<.5 & (Ym<tismri.head_muscle*.5 ) & (Ya<9 | Ya==12)) = 0;  
-    Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.66 & Yb<.5 & (Ym<tismri.head_muscle*.5 | Ym>tismri.head_muscle*1.2 ) & (Ya<9 | Ya==12)) = 0;  
-    Ypx(Ypx==-3 & Ypt>20 & Ybrd>1 & Ym>tismri.head_muscle*1.2) = -1;
-    Ypx(Ypx==-3 & Ypp<0.5 & Ybg<.5) = -1;
-    Ypx(Ypx==-3 & Ypt<20 & Yb<.5 & Ypp>.66 & (Ym<ith | Ym>tismri.head_muscle*1.2) & (Ya<9 | Ya==12)) = 0;
+    if ~isempty(Ya) && max(Ya{1}(:))>1
+      Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.33 & Yb<.5 & (Ym<tismri.head_muscle*.5 ) & (Ya{1}<9 | Ya{1}==12)) = 0;  
+      Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.66 & Yb<.5 & (Ym<tismri.head_muscle*.5 | Ym>tismri.head_muscle*1.2 ) & (Ya<9 | Ya==12)) = 0;  
+      Ypx(Ypx==-3 & Ypt>20 & Ybrd>1 & Ym>tismri.head_muscle*1.2) = -1;
+      Ypx(Ypx==-3 & Ypp<0.5 & Ybg<.5) = -1;
+      Ypx(Ypx==-3 & Ypt<20 & Yb<.5 & Ypp>.66 & (Ym<ith | Ym>tismri.head_muscle*1.2) & (Ya{1}<9 | Ya{1}==12)) = 0;
+    else
+      %Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.33 & Yb<.5 & (Ym<tismri.head_muscle*.5 ) ) = 0;  
+      %Ypx(Ypx==-3 & Ypt<20 & smooth3(Yc{4} .* Ypp)>0.01 & Ypp>.66 & Yb<.5 & (Ym<tismri.head_muscle*.5 | Ym>tismri.head_muscle*1.2 )) = 0;  
+      Ypx(Ypx==-3 & Ypt>20 & Ybrd>1 & Ym>tismri.head_muscle*1.2) = -1;
+      Ypx(Ypx==-3 & Ypp<0.5 & Ybg<.5) = -1;
+      %Ypx(Ypx==-3 & Ypt<20 & Yb<.5 & Ypp>.66 & (Ym<ith | Ym>tismri.head_muscle*1.2)) = 0;
+    end
   %  Ypx(Ypx==-3 & Ybrd<3 & (Ym<ith | Ym>tismri.head_muscle*1.2) & Ya<9) = 0;
     %%
    
@@ -366,8 +374,8 @@ clscor.help = 'Boney refinement of SPM tissue classes described by the transferr
   if 0 
     Ymg = cat_vol_div( Ym .* cat_vol_smooth3X(Yc{4}>.5,1));
     Ymg = cat_vol_smooth3X( Ymg ./ mean(Ymg(Ymg(:)<-0.1)) , 4) ;
-    Yag = cat_vol_grad(Ya);
-    Ya2 = Ya .* (cat_vbdist(Yag,Yhead<1,vx_vol)>20 & Yc{4}>.5); 
+    Yag = cat_vol_grad(Ya{1});
+    Ya2 = Ya{1} .* (cat_vbdist(Yag,Yhead<1,vx_vol)>20 & Yc{4}>.5); 
     Ya2(Ya2==0 & Yc{4}<.1) = nan; 
     %
     Yx = cat_vol_smooth3X(Yc{4},2) .* Ymg; 

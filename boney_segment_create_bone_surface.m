@@ -106,9 +106,11 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   end
 
   % get atlas information
-  Satlas = cat_surf_fun('isocolors',Ya, CBS, matlab_mm,'nearest');
-  Si.facevertexcdata = single(Si.facevertexcdata .* (Satlas>0));
-  cat_io_FreeSurfer('write_surf_data',out.P.thick,Si.facevertexcdata);
+  for ai = 1 %:numel(Ya)
+    Satlas{ai} = cat_surf_fun('isocolors',Ya{ai}, CBS, matlab_mm,'nearest');
+    Si.facevertexcdata = single(Si.facevertexcdata .* (Satlas{ai}>0));
+    cat_io_FreeSurfer('write_surf_data',out.P.thick,Si.facevertexcdata);
+  end
 
   if 0 %#ok<*UNRCH>
     %% only for debugging and tests!
@@ -121,7 +123,9 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   %% get peak bone threshold
   % -use of nan for unwanted rois ?
   Si.vertices = CBS.vertices; Si.faces = single(CBS.faces); St = Si; Stm = Si; Sth = Si;
-  S.atlas     = cat_surf_fun('isocolors',Ya          , CBS, matlab_mm, 'nearest');
+  for ai = 1:numel(Ya)
+    S.atlas{ai} = cat_surf_fun('isocolors',Ya{ai}      , CBS, matlab_mm, 'nearest');
+  end
   S.mask      = cat_surf_fun('isocolors',single(Ymsk), CBS, matlab_mm) > .5;
   S.thick     = cat_surf_fun('isocolors',Ybonethick  , CBS, matlab_mm);
   S.hdthick   = cat_surf_fun('isocolors',Yheadthick  , CBS, matlab_mm);
@@ -129,7 +133,7 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   Sth.facevertexcdata = S.hdthick;
 
   % thickess with atlas borders
-  Stm.facevertexcdata = S.thick .* cat_surf_fun('isocolors',max(.1,1 - (cat_vol_grad(Ya*1000)>0.1) * .9 ),CBS, matlab_mm);
+  Stm.facevertexcdata = S.thick .* cat_surf_fun('isocolors',max(.1,1 - (cat_vol_grad(Ya{1}*1000)>0.1) * .9 ),CBS, matlab_mm);
 
 
 
@@ -137,39 +141,46 @@ function [Si, Stm, sROI] = boney_segment_create_bone_surface ...
   %  ----------------------------------------------------------------------
   %  - similar to the volume measures we also focus here on the global/
   %    regional mean values and ignore median, std, and iqr
-  rii = 1;
-  sROI.help = [
-      'A masked image is used for global values to extract only the upper part of the skull, ' ...
-      'whereas no masking is used in case of atlas regions. '];
-  for ri = 0:max(Ya(Ya(:)<intmax('uint16'))) % region ri==0 is the global value
-    if ri == 0 || isnan(ri)
-      ri = 0; %#ok<FXSET> % case of failed atlas mapping
-      sROI.boneatlas_id(1,rii)       = inf;
-      sROI.nonnanvol(1,rii)          = sum(S.atlas>intmax('uint16')) ./ numel(S.atlas);
-      if ~isempty( job.opts.Pmask{1} ), sROI.boneatlas_name{1,rii} = 'full-masked';
-      else,                             sROI.boneatlas_name{1,rii} = 'full-unmasked';
-      end
-      sROI.bonemarrow(1,rii)         = cat_stat_nanmean(Si.facevertexcdata(S.mask));
-      sROI.bonemarrowmax(1,rii)      = cat_stat_nanmean(marrowmax(S.mask));
-      sROI.bonecortex(1,rii)         = cat_stat_nanmean(cortex(S.mask));
-      sROI.bonethickness(1,rii)      = cat_stat_nanmean(S.thick(S.mask));
-      sROI.headthickness(1,rii)      = cat_stat_nanmean(S.hdthick(S.mask));
-      rii = rii + 1;
-    else
-      if sum(S.atlas==ri)>0
-        sROI.boneatlas_id(1,rii)     = ri;
-        if isempty(YaROIname) %|| numel(YaROIname)>max(Ya(Ya(:)<intmax('uint16')))
-          sROI.boneatlas_name{1,rii} = sprintf('ROI%d',ri);
-        else
-          sROI.boneatlas_name{1,rii} = YaROIname{rii};
+  for ai = 1:numel(Ya)
+    rii = 1;
+    sROI(ai).file = '';
+    sROI(ai).help = [
+        'A masked image is used for global values to extract only the upper part of the skull, ' ...
+        'whereas no masking is used in case of atlas regions. '];
+    for ri = 0:max(Ya{ai}(Ya{ai}(:)<intmax('uint16'))) % region ri==0 is the global value
+      if ri == 0 || isnan(ri)
+        ri = 0; %#ok<FXSET> % case of failed atlas mapping
+        sROI(ai).boneatlas_id(1,rii)       = inf;
+        sROI(ai).nonnanvol(1,rii)          = sum(S.atlas{ai}>intmax('uint16')) ./ numel(S.atlas{ai});
+        if ~isempty( job.opts.Pmask{1} ),    sROI(ai).boneatlas_name{1,rii} = 'full-masked';
+        else,                                sROI(ai).boneatlas_name{1,rii} = 'full-unmasked';
         end
-        sROI.nonnanvol(1,rii)        = sum(S.atlas==ri) ./ numel(S.atlas);
-        sROI.bonemarrow(1,rii)       = cat_stat_nanmean(Si.facevertexcdata(S.atlas==ri));
-        sROI.bonemarrowmax(1,rii)    = cat_stat_nanmean(marrowmax(S.atlas==ri));
-        sROI.bonecortex(1,rii)       = cat_stat_nanmean(cortex(S.atlas==ri));
-        sROI.bonethickness(1,rii)    = cat_stat_nanmean(S.thick(S.atlas==ri));
-        sROI.headthickness(1,rii)    = cat_stat_nanmean(S.hdthick(S.atlas==ri));
+        sROI(ai).bonemarrow(1,rii)         = cat_stat_nanmean(Si.facevertexcdata(S.mask));
+        sROI(ai).bonemarrowmax(1,rii)      = cat_stat_nanmean(marrowmax(S.mask));
+        sROI(ai).bonecortex(1,rii)         = cat_stat_nanmean(cortex(S.mask));
+        sROI(ai).bonethickness(1,rii)      = cat_stat_nanmean(S.thick(S.mask));
+        sROI(ai).headthickness(1,rii)      = cat_stat_nanmean(S.hdthick(S.mask));
         rii = rii + 1;
+      else
+        if sum(S.atlas{ai}==ri)>0
+          sROI(ai).boneatlas_id(1,rii)     = ri;
+          if isempty(YaROIname) && isempty(YaROIname{ai}) %|| numel(YaROIname)>max(Ya(Ya(:)<intmax('uint16')))
+            sROI(ai).boneatlas_name{1,rii} = sprintf('ROI%d',ri);
+          else
+            if rii <= numel(YaROIname{ai})
+              sROI(ai).boneatlas_name{1,rii} = YaROIname{ai}{rii - 1};
+            else
+              sROI(ai).boneatlas_name{1,rii} = nan;
+            end
+          end
+          sROI(ai).nonnanvol(1,rii)        = sum(S.atlas{ai}==ri) ./ numel(S.atlas{ai});
+          sROI(ai).bonemarrow(1,rii)       = cat_stat_nanmean(Si.facevertexcdata(S.atlas{ai}==ri));
+          sROI(ai).bonemarrowmax(1,rii)    = cat_stat_nanmean(marrowmax(S.atlas{ai}==ri));
+          sROI(ai).bonecortex(1,rii)       = cat_stat_nanmean(cortex(S.atlas{ai}==ri));
+          sROI(ai).bonethickness(1,rii)    = cat_stat_nanmean(S.thick(S.atlas{ai}==ri));
+          sROI(ai).headthickness(1,rii)    = cat_stat_nanmean(S.hdthick(S.atlas{ai}==ri));
+          rii = rii + 1;
+        end
       end
     end
   end
