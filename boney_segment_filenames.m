@@ -114,7 +114,7 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
     end
 
     % tests
-    if 1
+    if 0
       out(pi).P.mridir     = ''; % mri
       out(pi).P.mripath    = fullfile(resdir{pi}, sub_ses_anat{pi}, out(pi).P.mridir); 
       out(pi).P.mrirdir    = fullfile(outdir{pi}, strrep(job.output.resdir,['..' filesep],''), sub_ses_anat{pi}, out(pi).P.mridir); 
