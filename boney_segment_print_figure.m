@@ -107,8 +107,10 @@ function popts = prepareReport(fname,resdir)
 
   % main text report box with header (filename)
   popts.ax = axes('Position',[0.01 0.75 0.98 0.245],'Visible','off','Parent',popts.fig);
-  [pp,ff,ee] = spm_fileparts( spm_str_manip( fname ,sprintf('k%d',80 - numel(resdir))) ); 
+  [pp,ff,ee] = spm_fileparts( fname ); 
+  pp = spm_fileparts( spm_str_manip( pp ,sprintf('k%d',max(0,80 - numel(resdir)))) ); 
   pp = strrep( strrep( pp ,'\','\\'), '_','\_'); ff = strrep( strrep( ff ,'\','\\'), '_','\_');
+  resdir  = spm_str_manip( resdir , sprintf('k%d',max(0,80 - numel(ff))));
   resdir2 = strrep( strrep( spm_str_manip( [filesep resdir filesep]),'\','\\'), '_','\_');
   fname2 = [pp '\color[rgb]{0,0.5,1}' resdir2 '\color[rgb]{0,0,0}' ff ee]; 
   text(0,0.99, ['Bone marrow extraction: ' fname2 '       '],...
