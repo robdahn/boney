@@ -58,7 +58,7 @@ function spm_boney(expertgui)
   rev = '0.1';
   
   % skull: Human skull drawing, medical vintage illustration psd. Free public domain CC0 image.
-  Pposter = fullfile( spm('Dir'), 'toolbox', 'boney', 'docs', 'Kalc-HBM2023-Scull.jpg'); 
+  Pposter = fullfile( spm('Dir'), 'toolbox', 'boney', 'docs', 'Kalc-HBM2023-Skull.jpg'); 
   Pinter  = fullfile( spm('Dir'), 'toolbox', 'boney', 'images', 'SPM_progress_skullsm.png'); 
   Phelp   = fullfile( spm('Dir'), 'toolbox', 'boney', 'README.html'); 
   mode = {' ',' Expert mode',' Developer mode'}; 
