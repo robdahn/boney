@@ -43,10 +43,13 @@ function spm_boney(expertgui)
       restart = 0;
     end
     boned.expertgui = expertgui; 
+  elseif cat_get_defaults('extopts.expertgui') 
+    %cat_io_cprintf([1 0 0],'\n  Currently we are all boney developer if not stated otherwise!\n\n');
+    restart         = 0;
+    boned.expertgui = cat_get_defaults('extopts.expertgui'); 
   else
-    cat_io_cprintf([1 0 0],'\n  Currently we are all boney developer if not stated otherwise!\n\n');
-    restart = 0;
-    boned.expertgui = 2; 
+    restart         = 0;
+    boned.expertgui = 0; 
   end
   
   if restart

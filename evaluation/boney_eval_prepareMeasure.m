@@ -102,6 +102,8 @@ switch matonly
           'sROI_bonecortex3'      1   % final bone-cortex intensity measure
           'sROI_bonethickness3'   0   % final bone thickness measure
           'sROI_ibonethickness3'  1   % final bone thickness measure
+          'sROI_ibonethickness5'  1   % final bone thickness measure
+          'sROI_ibonethickness6'  0   % final bone thickness measure
           'sROI_BMDH'             0   % final combined measure
            ...
           ... 2) Head measures
@@ -137,6 +139,8 @@ switch matonly
           'sROI_bonecortex4'      0
           ... 1.5) Bone thickness
           'sROI_ibonecortex3'     1
+          'sROI_ibonecortex5'     0   % final bone thickness measure
+          'sROI_ibonecortex6'     0   % final bone thickness measure
           %'sROI_bonethickness1'   1  
           %'sROI_bonethickness2'   0  
           'sROI_bonethickness3'   0  
