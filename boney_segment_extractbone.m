@@ -77,7 +77,10 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
 
     
     %% bone layers
-    lres = 1; 
+    % RD20240826:  Test showed that reproducabilty was higher for lres = 1 
+    %              in OASIS3 for different protocols but worse for the fat 
+    %              measures in the UKB (and it is also a bit faster). 
+    lres = 2; 
     [Ybrainr,Yheadr,Ybone1r,res] = cat_vol_resize({Ybrain,Yhead,Ybone1},'reduceV',vx_vol,lres,64,'meanm');
     Ybraindist   = vbx_dist( Ybrainr , Ybone1r>0, res.vx_volr, nvbdist, 0);
     Yheaddistr   = vbx_dist( Yheadr  , Ybone1r>0, res.vx_volr, nvbdist, 0);
