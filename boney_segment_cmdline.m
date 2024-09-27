@@ -60,7 +60,19 @@ function boney_segment_cmdline(job,out,i,stime2,rerunstr)
           ... spm_str_manip(P{i},['a' num2str(job.snspace(1) - 14)])),'link',sprintf('spm_display(''%s'');',P{i})), ...
           matm{i,:},etime(clock,stime2)));
     else    
-      cat_io_cprintf( job.opts.MarkColor( min(size(job.opts.MarkColor,1),max(1,floor( matm{i,end-2} * 3 / 9.5 * ...
+%%
+      % bone marrow based colors
+      Bid = []; 
+      %Bid = find( cat_io_contains(MA(:,1),'sBmar') );                   Bidfac = [0.5 2]; 
+      %if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'vBmar') ); Bidfac = [1.5 4]; end
+      %if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'Tbmar') ); Bidfac = [1.5 7]; end
+      % bone cortex based colors
+      if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'sBcor') ); Bidfac = [0.5 6]; end
+      if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'vBcor') ); Bidfac = [0.5 8]; end
+      if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'Tbone') ); Bidfac = [0.05 30]; end
+      if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'Tbcor') ); Bidfac = [0.05 60]; end
+
+      cat_io_cprintf( job.opts.MarkColor( min(size(job.opts.MarkColor,1),max(1,floor( (matm{i,Bid} - Bidfac(1)) * Bidfac(2) / 9.5 * ...
         size(job.opts.MarkColor,1)))),:),sprintf( Tline,i,...
           sprintf( sprintf('%%%ds',job.opts.snspace(1)-8) , spm_str_manip(job.files{i},['a' num2str(job.opts.snspace(1) - 14)])), ...
           ... spm_file( sprintf( sprintf('%%%ds',job.snspace(1)-8) , ....

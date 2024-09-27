@@ -38,7 +38,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
 % ############# RD202308: We have updated the entries and namings with the finally selected most relevant measures.   
   
   global boned %#ok<GVMIS> 
-  ex  = boned.expertgui>0;  % show expert values
+  ex  = boned.expertgui;  % show expert values
   exc = job.opts.bmethod>0 & job.opts.classic;   % show classic 
   exm = job.opts.bmethod;   % show vol and/or surface results
   MA  = {
@@ -55,11 +55,11 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
     'Tgm'     'tis'     'GM'            1    'f'  0   ex>1
     'Thead'   'tis'     'head'          1    'f'  0   ex>1
     ...
-    'vBcor'   'vROI'    'bonecortex'    4    'f'  1   exm>=1 
-    'vBmar'   'vROI'    'bonemarrow'    3    'f'  0   exm>=1
-    'vBth'    'vROI'    'bonethickness' 3    'f'  0   exm>=1
-    'vHth'    'vROI'    'headthickness' 4    'f'  0   exm>=1 
-    'vHmed'   'vROI'    'head'          1    'f'  0   exm>=1 
+    'vBcor'   'vROI'    'bonecortex'    4    'f'  1   exm==1 | (exm>1 & ex>1)
+    'vBmar'   'vROI'    'bonemarrow'    3    'f'  0   exm==1 | (exm>1 & ex>1)
+    'vBth'    'vROI'    'bonethickness' 3    'f'  0   exm==1 | (exm>1 & ex>1)
+    'vHth'    'vROI'    'headthickness' 4    'f'  0   exm==1 | (exm>1 & ex>1)
+    'vHmed'   'vROI'    'head'          1    'f'  0   exm==1 | (exm>1 & ex>1)
     ...
     'sBcor'   'sROI'    'bonecortex'    4    'f'  1   exm==2
     'sBmar'   'sROI'    'bonemarrow'    3    'f'  0   exm==2
@@ -67,10 +67,12 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
     'sHth'    'sROI'    'headthickness' 4    'f'  0   exm==2 
     'sHmed'   'vROI'    'head'          1    'f'  0   exm==2 
     ...
+    'Bmed'    'tismri'  'bone_med'      1    'f'  1   exc
+    'Bmedc'   'classic' 'bone_med'      1    'f'  0   exc & ex>1
+    ...
     'Tbcor'   'tis'     'bonecortex'    1    'f'  1   1
     'Tbmar'   'tis'     'bonemarrow'    1    'f'  0   1
-    'Bmed'    'tismri'  'bone_med'      1    'f'  1   exm==0
-    'Bmedc'   'classic' 'bone_med'      1    'f'  0   exc
+    'Tbone'   'tis'     'bone'          1    'f'  0   1
     };
   MA( [MA{:,7}]<1 , : ) = [];
 
@@ -105,7 +107,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
 
   % print title
   if job.opts.verb
-    fprintf('\nBone Preprocessing:\n');
+    fprintf('\nBone Preprocessing Parameters:\n');
     if job.opts.verb 
       verbosestr = {'No','Yes','Yes - Details'};
       pmethodstr = {'previous','SPM','CAT','CTseg'};
@@ -119,7 +121,7 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
       fprintf('  Preprocessing   method:   %d (%s)\n', job.opts.pmethod,  pmethodstr{job.opts.pmethod+1});
       fprintf('  Bone processing method:   %d (%s)\n', job.opts.bmethod,  bmethodstr{job.opts.bmethod+1});
       fprintf('  Verbose processing:       %d (%s)\n', job.opts.verb,     verbosestr{job.opts.verb + 1});
-      if ex
+      if ex>0
         fprintf('  Rerun preprocessing:      %d (%s)\n', job.opts.prerun,  verbosestr{job.opts.prerun  + 1});
         fprintf('  Rerun bone processing:    %d (%s)\n', job.opts.rerun,   verbosestr{job.opts.rerun   + 1});
         fprintf('  Affine registration:      %d (%s)\n', job.opts.affreg,  verbosestr{job.opts.affreg  + 1});

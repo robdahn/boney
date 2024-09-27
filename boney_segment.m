@@ -249,13 +249,14 @@ function [Pout,out] = boney_segment(job)
   %
   % =======================================================================
 
+  %#ok<*CLOCK,*DETIM>
 
   % == create table elements for the in-line report ==
   %  - just give some short overview about the processing request and parameters
   %  - Feature (visual):  one line progress >> first name, then progress + processing dots/stars ...
   %  - Feature (expert):  print additional parameters
-  boney_segment_prepare_print(P,job);
-  stime3 = clock; i = 1; %#ok<NASGU>
+  Theader = boney_segment_prepare_print(P,job);
+  stime3 = clock; i = 1; %#ok<*NASGU>
 
 
 
@@ -354,7 +355,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         %      Y*   .. bone/head maps for surface mapping
         %      vROI .. extracted global/regional bone/head values
         stime = cat_io_cmd('  Extract bone measures','g5','',job.opts.verb>1,stime);
-        [Ybonepp,Ybonethick,Ybonemarrow,Yheadthick, vROI, bnorm] = ...
+        [Ybonepp,Ybonethick,Ybonemarrow,Yheadthick, vROI] = ...
           boney_segment_extractbone(Vo,Ym,Yc,Ye,Ya,Ymsk,trans,seg8t,tis,tismri,out(i),job,vx_vol,YaROIname,RES,BB);
         spm_progress_bar('Set',i - 0.4);
 
@@ -412,7 +413,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
       out(i).tis     = tis;
       out(i).tismri  = tismri;
       out(i).opts    = job.opts;
-      out(i).date    = datestr(stime3,'YYYYmmDD-HHMMSS');
+      out(i).date    = datestr(stime3,'YYYYmmDD-HHMMSS'); %#ok<*DATST>
       if exist('vROI','var'), out(i).vROI = vROI;   end
       if exist('sROI','var'), out(i).sROI = sROI;   end
 
@@ -423,12 +424,12 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
       %    with H for the UKB BMD head measure
       if exist('vROI','var') && numel(out(i).vROI(1).bonecortex)>2
         out(i).main.vBMDH = -out(i).vROI(1).bonecortex(3);
-      else
+      elseif exist('vROI','var')
         out(i).main.vBMDH = -out(i).vROI(1).bonecortex(end);
       end
       if exist('sROI','var') && numel(out(i).sROI(1).bonecortex)>2
         out(i).main.sBMDH = -out(i).sROI(1).bonecortex(3);
-      else
+      elseif exist('sROI','var')
         out(i).main.sBMDH = -out(i).sROI(1).bonecortex(end);
       end
 
@@ -443,7 +444,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         stime = cat_io_cmd('  Create report','g5','',job.opts.verb>1,stime);
         boney_segment_print_figure(Vo, Ym, Yc, Ybonemarrow, Si, Stm, out(i), job, Affine);
       end
-      if job.opts.verb>1, fprintf('% 5.0fs\n',etime(clock,stime)); end
+      if job.opts.verb>1, fprintf('% 5.0fs\n',etime(clock,stime)); end 
       spm_progress_bar('Set',i - 0.1);
       rerunstr = '';
 
@@ -473,7 +474,10 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
   end
 
   % final print and cleanup
-  if job.opts.verb > 0, fprintf('Boney main processing done.\n\n'); end
+  if job.opts.verb > 0
+    fprintf('%s\n',repmat('-',size(Theader)));
+    fprintf('Boney main processing done.\n\n'); 
+  end
   spm_progress_bar('Clear');
 
 

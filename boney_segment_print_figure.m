@@ -259,40 +259,27 @@ function printMainTable(job,out,popts,Si,St)
 %  * better definition of low fat intensity rating 
 %  * do QC with CNR rating? 
 % ################################# 
-  FN{1}  = {'weightingn', 'res_RES' , 'highBGn' , 'headFatTypen', 'headBoneTypen', 'bonecortex', 'bonemarrow' , 'bonedensity' }; 
-  FNf{1} = {'tis'       , 'tis'     , 'tis'     , 'tis'         , 'tis'          , 'tis'       , 'tis'        , 'tis'         };
-  FNn{1} = {'Tw'        , 'Tres'    , 'Tbg'     , 'Tfat'        , 'Tbone'        , 'Tbcor'     , 'Tbmar'      , 'Tbdns'       };
-  FNt{1} = {'%s'        , '%0.2f'   , '%s'      , '%s'          , '%s'           , '%0.3f'     , '%0.3f'      , '%0.3f'       }; 
+  FN{1}  = {'weightingn', 'res_RES' , 'highBGn' , 'headFatTypen', 'bonecortex', 'bonemarrow' , 'bone'      , 'bonedensity' }; 
+  FNf{1} = {'tis'       , 'tis'     , 'tis'     , 'tis'         , 'tis'       , 'tis'        , 'tis'       , 'tis'         };
+  FNn{1} = {'Tw'        , 'Tres'    , 'Tbg'     , 'Tfat'        , 'Tbcor'     , 'Tbmar'      , 'Tbone'     , 'Tbdns'       };
+  FNt{1} = {'%s'        , '%0.2f'   , '%s'      , '%s'          , '%0.3f'     , '%0.3f'      , '%0.3f'     , '%0.3f'       }; 
   
   
   mgid = find(out.spm8.mg > 2/numel(out.spm8.lkp));
   lkpi = numel(mgid);
-  % - the SPM measures minbone and maxBone are not good but medbone is ok > (1) medBoneS 
-  % - the classic > (2) medBoneC ( correction option only internal test ) and (3) fst_vol4 (masked?)  
-  % - the new     > (3) OccBone
-  if 0 %out.spm8.isCTseg 
-    out.tis.minBone = out.tismri.iBonemn3(1);
-    out.tis.medBone = out.tismri.iBonemn3(2);
-    out.tis.maxBone = out.tismri.iBonemn3(3);
-    FN{2}  = {'minBone'   , 'medBone' , 'maxBone' , 'thBone'  , 'headthickness'};
-    FNf{2} = {'tismri'    , 'tismri'  , 'tismri'  , 'tismri'  , 'tismri'};
-    FNn{2} = {'lBone*'    , 'mBone*'  , 'hBone*'  , 'BthBone' , 'thhead'};
-    FNt{2} = {'%0.0f'     , '%0.0f'   , '%0.0f'   , '%0.1f mm', '%0.1f mm'};
-    FNi{2} = {1           , 1         , 1         , 1         , 1         };
-  else
-    %%
-    if job.opts.bmethod==1, xr = 'v'; else, xr = 's'; end
-    if job.opts.bmethod==1, bmf = 'classic'; else; bmf = 'tismri'; end
-    FN{2}  = {'bone_med' , 'bonecortex' , 'bonemarrow' , 'bonethickness' , 'headthickness' , 'head'      };
-    FNf{2} = {bmf        , [xr 'ROI']   , [xr 'ROI']   , [xr 'ROI']      , [xr 'ROI']      , [xr 'ROI']  };
-    FNn{2} = {'boneMed'  , [xr 'Bcor']  , [xr 'Bmar']  , [xr 'Bth']      , [xr 'Hth']      , [xr 'Hmed'] };
-    FNt{2} = {'%0.3f'    , '%0.3f'      , '%0.3f'      , '%0.3f'         , '%0.3f'         , '%0.3f'     };
-    FNi{2} = {1          , 3            , 4            , 1               , 1               , 1           };
-  end
+  if job.opts.bmethod==1, xr = 'v'; else, xr = 's'; end
+  if job.opts.bmethod==0, bmf = 'classic'; else; bmf = 'tismri'; end
+  FN{2}  = {'bone_med' , 'bonecortex' , 'bonemarrow' , 'bonethickness' , 'headthickness' , 'head'      };
+  FNf{2} = {bmf        , [xr 'ROI']   , [xr 'ROI']   , [xr 'ROI']      , [xr 'ROI']      , 'vROI'      };
+  FNn{2} = {'boneMed'  , [xr 'Bcor']  , [xr 'Bmar']  , [xr 'Bth']      , [xr 'Hth']      , 'vHmed'     };
+  FNt{2} = {'%0.3f'    , '%0.3f'      , '%0.3f'      , '%0.3f'         , '%0.3f'         , '%0.3f'     };
+  FNi{2} = {1          , 3            , 4            , 1               , 1               , 1           };
   %%
   for fnj = 1:2
-    text(0.01,0.64 - (fnj-1)*0.12 - popts.table1offset,repmat(' ',1,1000 + 120),... 
-      'BackgroundColor',[0.94 0.94 .94],'Parent',popts.ax,'FontSize',popts.fontsize*.6); 
+    if job.opts.bmethod || (job.opts.bmethod==0 && fnj==1)
+      text(0.01,0.64 - (fnj-1)*0.12 - popts.table1offset,repmat(' ',1,1000 + 120),... 
+        'BackgroundColor',[0.94 0.94 .94],'Parent',popts.ax,'FontSize',popts.fontsize*.6); 
+    end
     for fni = numel(FN{fnj}):-1:1
       if isfield(out, FNf{fnj}{fni}) && isfield(out.(FNf{fnj}{fni})(1), FN{fnj}{fni})
         segtext(fni,lkpi)   = text(0.04 + 0.075*(fni-1), 0.64-(fnj-1)*0.12-popts.table1offset-(0.00) , ...
@@ -316,14 +303,15 @@ function printMainTable(job,out,popts,Si,St)
         else
           val =  out.(FNf{fnj}{fni}).(FN{fnj}{fni});
         end
-        if fni==2
-          try
-            set( segtext(fni,lkpi+1), 'Color', ...
-              popts.mrkcol( max(1,min(100,round( 100 * (val+1) / 4 ))) , :)); 
-          end
-        end % RES
         if fnj == 1
-          if fni >2 && fni < 6
+          if fni==2
+            try % table2 - row1 resolution color
+              set( segtext(fni,lkpi+1), 'Color', ...
+                popts.mrkcol( max(1,min(100,round( 100 * (val+1) / 4 ))) , :)); 
+            end
+          end % RES
+          % table2 - row1 colors for strings
+          if fni >2 && fni < 5
             switch get(segtext(fni,lkpi+1),'String')
               case 'low',  set(segtext(fni,lkpi+1),'Color',[ .0 .0 1.0]); 
               case 'mid',  set(segtext(fni,lkpi+1),'Color',[ .6 .3  .0]); 
@@ -758,7 +746,7 @@ function printSurfaces(St,Si,job,out,popts)
     cb1.colourbar.TickLabels  = 0:5:20;
     cb2.colourbar.Limits      = [2 8];
     cb2.colourbar.Ticks       = 2:6/2:8;
-    cb2.colourbar.TickLabels  = {'bone (0)' '~WM (4) ' 'fat (8)'};
+    cb2.colourbar.TickLabels  = {'bone (0)' '~WM (1) ' 'fat (2)'};
 
   
     % final print with try to avoid crashing for unknown reasons
