@@ -36,6 +36,7 @@ function spm_boney(expertgui)
       case {2,'developer'}, expertgui = 2; 
       otherwise 
         expertgui = 0; 
+        boned.expertgui = expertgui; 
     end
     if isfield(boned,'expertgui') && boned.expertgui ~= expertgui
       restart = 1; 
@@ -43,10 +44,12 @@ function spm_boney(expertgui)
       restart = 0;
     end
     boned.expertgui = expertgui; 
-  elseif cat_get_defaults('extopts.expertgui') 
-    %cat_io_cprintf([1 0 0],'\n  Currently we are all boney developer if not stated otherwise!\n\n');
-    restart         = 0;
-    boned.expertgui = cat_get_defaults('extopts.expertgui'); 
+ % RD20240927: This case was not so useful as we a using different CAT12 
+ %             expertgui settings to run the lazy processing etc. and
+ %             it is better just to start as default user
+ % elseif cat_get_defaults('extopts.expertgui') 
+ %   restart         = 0;
+ %   boned.expertgui = cat_get_defaults('extopts.expertgui'); 
   else
     restart         = 0;
     boned.expertgui = 0; 
@@ -58,7 +61,7 @@ function spm_boney(expertgui)
   end
     
   addpath(fullfile(spm('dir'),'toolbox','boney'));
-  rev = '0.1';
+  rev = '0.2';
   
   % skull: Human skull drawing, medical vintage illustration psd. Free public domain CC0 image.
   Pposter = fullfile( spm('Dir'), 'toolbox', 'boney', 'docs', 'Kalc-HBM2023-Skull.jpg'); 

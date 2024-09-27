@@ -296,9 +296,14 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   bnorm                 = cfg_menu;
   bnorm.tag             = 'bnorm';
   bnorm.name            = 'Bone intensity normalization (expert)';
-  bnorm.labels          = {'WM','muscle','fat','(GM)','(CSF)','(bone)','(GM-WM-contrast)','(bone-fat-contrast)'}; 
-  bnorm.values          = {'WM','muscle','fat','GM','CSF','bone','GM-WM-contrast','bone-fat-contrast'};
-  bnorm.val             = {'muscle'};
+  if expert > 1
+    bnorm.labels        = {'WM','muscle','fat','(GM)','(CSF)','(bone)','(GM-WM-contrast)','(bone-fat-contrast)'}; 
+    bnorm.values        = {'WM','muscle','fat','GM','CSF','bone','GM-WM-contrast','bone-fat-contrast'};
+  else
+    bnorm.labels        = {'WM','muscle','fat'}; 
+    bnorm.values        = {'WM','muscle','fat'};
+  end
+  bnorm.val             = {'WM'};
   bnorm.hidden          = expertgui<1;
   bnorm.help            = {
    ['Select a tissue for intensity normalization of the bones to harmonize protocol differences. ' ...
@@ -355,7 +360,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   resdir.strtype        = 's';
   resdir.num            = [0 Inf];
   resdir.val            = {'../derivatives/boney'};
-  resdir.hidden         = expertgui<1;
+  %resdir.hidden         = expertgui<1;
   resdir.help           = {
    ['Use relative directory structure to store data, even if it does not conform to BIDS.  ' ...
     'This alternative definion, based on the depth of the file and controlled here by the repetition of "../", ' ...
