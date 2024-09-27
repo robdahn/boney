@@ -12,7 +12,7 @@ function boney = tbx_cfg_boney
   if isfield(boned,'expertgui')
     expertgui = boned.expertgui; 
   else
-    expertgui = 2; 
+    expertgui = 0; 
   end
   
   addpath(fileparts(which(mfilename)));

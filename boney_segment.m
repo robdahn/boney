@@ -72,6 +72,7 @@ function [Pout,out] = boney_segment(job)
 
 
   % RD202403: currently force expert setting for rerun/lazy settings
+  oldexpert = cat_get_defaults('extopts.expertgui'); 
   cat_get_defaults('extopts.expertgui',2)
 
 
@@ -500,5 +501,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
     end
     if job.opts.verb > 0, fprintf('% 5.0fs\n\n',etime(clock,stime)); end
   end
+
+  cat_get_defaults('extopts.expertgui',oldexpert)
 
 end

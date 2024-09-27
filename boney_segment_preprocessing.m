@@ -36,12 +36,10 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
     rpc = cat_io_rerun(PC,Ppc,0) > 0; 
     rbc = cat_io_rerun(PC,Pbc,0) > 0; % estimate if reprocessing is required
     rsc = rpc | rbc;
-    cat_io_cprintf([0 .5 0],'  %d of %d SPM segmentations can be used. \n', numel(rsc) - sum(rsc), numel(rsc));
+    cat_io_cprintf([0 .5 0],'  %d of %d SPM/CAT segmentations can be used. \n', numel(rsc) - sum(rsc), numel(rsc));
     if sum(rsc) > 0
         cat_io_cprintf([0.7 .2 0],'  %d of %d files need preprocessing. \n', sum(rsc), numel(rsc));
     end
-    
-    
     cat_get_defaults('extopts.expertgui',oldexpertgui);
 
 % ################
@@ -62,10 +60,12 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
     switch pmethod
       case {1,'spm'}
         matlabbatch = SPM_preprocessing(PC, Ptpm, bias);
-      case {2,'cat'} % not working
+      case {2,'cat'} 
         expertgui = cat_get_defaults('extopts.expertgui');
-        if expertgui < 1, cat12('expert'); end % need expert/developer batch to write class 4 to 6
+        guinames  = {'default','expert','developer'}; 
+        if expertgui < 1, oldexpertgui = expertgui; cat12('expert'); end % need expert/developer batch to write class 4 to 6
         matlabbatch = CAT_preprocessing(PC, Ptpm, bias, expertgui); 
+        if exist('oldexpertgui','var'), cat12(guinames{oldexpertgui+1}); end
       case {3,'CT_seg'}
         if exist(fullfile(spm('dir'),'toolbox','CTseg'),'dir')
           fprintf('CTseg is not working')
@@ -133,15 +133,15 @@ function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expertgui)
     matlabbatch{1}.spm.tools.cat.estwrite.opts.ngaus                      = [1 1 2 3 4 2];
     matlabbatch{1}.spm.tools.cat.estwrite.opts.warpreg                    = [0 0.001 0.5 0.05 0.2];
     matlabbatch{1}.spm.tools.cat.estwrite.opts.redspmres                  = 0;
+  else
+    matlabbatch{1}.spm.tools.cat.estwrite.opts.biasstr                    = 0.5 + 0.5*bias;
+    matlabbatch{1}.spm.tools.cat.estwrite.opts.accstr                     = 0.5;
   end
-  matlabbatch{1}.spm.tools.cat.estwrite.opts.biasstr                      = 0.5 + 0.5*bias;
-  matlabbatch{1}.spm.tools.cat.estwrite.opts.accstr                       = 0.5;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.restypes.optimal = [1 0.3];
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.setCOM       = 1;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.APP          = 1070;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.affmod       = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.NCstr        = .5; % faster? - no, better robust 
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.spm_kamap    = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.LASstr       = 0.5;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.LASmyostr    = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.segmentation.gcutstr      = 2;
@@ -172,7 +172,6 @@ function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expertgui)
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.surface.pbtres            = 0.5;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.surface.pbtmethod         = 'pbt2x';
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.surface.SRP               = 30;
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.surface.reduce_mesh       = 1;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.surface.vdist             = 2;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.surface.scale_cortex      = 0.7;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.surface.add_parahipp      = 0.1;
@@ -182,7 +181,7 @@ function matlabbatch = CAT_preprocessing(P, Ptmp, bias, expertgui)
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.admin.lazy                = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.admin.ignoreErrors        = 1; %
   matlabbatch{1}.spm.tools.cat.estwrite.extopts.admin.verb                = 2;
-  matlabbatch{1}.spm.tools.cat.estwrite.extopts.admin.print               = 0;
+  matlabbatch{1}.spm.tools.cat.estwrite.extopts.admin.print               = 2;
   matlabbatch{1}.spm.tools.cat.estwrite.output.BIDS.BIDSno                = 1;
   matlabbatch{1}.spm.tools.cat.estwrite.output.surface                    = 0;
   matlabbatch{1}.spm.tools.cat.estwrite.output.surf_measures              = 0;
