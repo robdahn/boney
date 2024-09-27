@@ -296,7 +296,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   bnorm                 = cfg_menu;
   bnorm.tag             = 'bnorm';
   bnorm.name            = 'Bone intensity normalization (expert)';
-  if expert > 1
+  if expertgui > 1
     bnorm.labels        = {'WM','muscle','fat','(GM)','(CSF)','(bone)','(GM-WM-contrast)','(bone-fat-contrast)'}; 
     bnorm.values        = {'WM','muscle','fat','GM','CSF','bone','GM-WM-contrast','bone-fat-contrast'};
   else
