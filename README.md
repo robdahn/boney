@@ -26,23 +26,13 @@ Open the bone processing batch:
 
 ![Image of the Boney menu and the bone-processing-batch](images/Boney_toolbox.png "Shown is the bone-processing batch that can be used to extract processed bone measures into a CSV table.")
 
-and select the structural images that should be processed. Adapt relevant parameters (see paragraph Parameters and SPM batch help) and start the processing. Voilà! 
+and select the structural images that should be processed (currently supported are only T1-weighted images *without* fat suppression). Adapt relevant parameters (see paragraph Parameters and SPM batch help) and start the processing. Voilà! 
 
 After the processing has finished, you can use the XML2CSV batch to extract the estimated (bone) values for further analyses.
 
 
 
 ## Parameters
-You can select different predefined SPM and CAT segmentation routines with various predefined settings. 
-SPM's routine is faster but may fail in some cases, often because of the inital affine registration problems. 
-
-In addition, you can select between different advanced processing routines for the bone measures (e.g., *SPMmat*, *volume*, *surface*).  
-SPMmat focuses on the tissue values estimated within the unified segmenation process and is therefore pretty fast (+5 seconds). 
-The *volume* option further refines the bone tissue segment (high bone marrow intensities within the diploë were often misclassified as head tissue) and estimates (regional) intensity and thickness of the bone class (+50 seconds). 
-The *surface* pipeline creates a central bone surface that is used to extract intensity- and thickness values for (i) the bone cortex by mapping the *minimum* intensity along the surface normals, and (ii) the bone marrow by using the weighted average intensity (+10 seconds).   
-(We would advise the use of the refined measure, which is robust to the exclusion of the parts within the diploë.)
-
-
 Furthermore, you can specify which output files to write, e.g., the short bone-report (as a JPG), or the processed NIFTI volumes or GIFTI surfaces that are also shown in the bone-report.
 
 ![Image of the bone atlas and mask](images/KADA_regions_mask.png "Shown is the bone atlas and the bone mask.")
@@ -130,7 +120,7 @@ Table: Detailed XML report fields:
 
 
 
-![Bonereport](images/boney_bonereport2_OASIS131.jpg "Shown is the bone report with ... Oups, this report need an update for the histogram...")
+![Bonereport](images/boney_bonereport2_OASIS131.jpg "Shown is the bone report with ... Oops, this report needs an update for the histogram...")
 Figure: Bonereport with (1) Table 1 with the tissue intensities and absolute/relative volumes, (2) Table 2 with specific bone and head values (see abbreviations for details, (3) a histogram with the major values, (4) two volumes (i) the orignal image with bone and fat overlay and (ii) the normalized bone intensities with GM, WM and head (HD) segment for orientation, and (5) two surface sets (i) with bone thickness (and atlas boundaries) and (ii) the bone marrow intensity.  
 Abbreviations: 
 Table 1: GM = grey matter, WM = white matter, CSF = cerebrospinal fluid, BG = background, TPM = tissue probability map, Norm. Med. Int. = normalized median intensity.
@@ -138,8 +128,8 @@ Table 2: Tw = image weighting, Tres = root mean square resolution rating, Tbg = 
 
 
 ## Validation
-*RD: Show only the main measures for BMD and FAT linked with the processing routines*
 
+*for the updated validation see the [preprint](https://doi.org/10.1101/2024.05.22.595163)
 
 The figure shows the results for the selected bone measures estimated on a UKB subsample created by the evaluation scripts.
 The most relevant regional bone measures are (i) the occipital surface-based bone cortex estimate *sROI_bonecortex3*, (ii) the occipital volume-based bone marrow estimate *vROI_bonemarrow3*, and the *bone mineral density estimate* (BMD) that show a high correlation to the UKB BMD measures.
@@ -154,7 +144,7 @@ In addition, the estimated head fat measure is supported by high correlations wi
 
 
 ## References
-You can find out more about the bone and skin-fold thickness measures in our [preprint](https://doi.org/10.1101/2024.05.22.595163).
+You can find out more about the bone and adiposity-related measures in our [preprint](https://doi.org/10.1101/2024.05.22.595163).
 
 
 ## Supplement
@@ -197,4 +187,4 @@ Table of Boney functions with **important** subfunctions and variables ***vars**
 
 
 
-![](images/AdobeStock_375705917_Preview.jpg "Just a bone pile - Did you know that ...")
+![](images/AdobeStock_375705917_Preview.jpg "Just a pile of bones")
