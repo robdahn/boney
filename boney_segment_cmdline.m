@@ -63,12 +63,17 @@ function boney_segment_cmdline(job,out,i,stime2,rerunstr)
 %%
       % bone marrow based colors
       Bid = []; 
+      warn = cat_io_addwarning(1); 
       %Bid = find( cat_io_contains(MA(:,1),'sBmar') );                   Bidfac = [0.5 2]; 
       %if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'vBmar') ); Bidfac = [1.5 4]; end
       %if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'Tbmar') ); Bidfac = [1.5 7]; end
       % bone cortex based colors
-      if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'sBcor') ); Bidfac = [0.5 6]; end
-      if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'vBcor') ); Bidfac = [0.5 8]; end
+      if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'sBcor') ); Bidfac = [0.5 6]; end 
+      % RD20241008: in low-res data it would be nice to show the values but this is not so easy      
+      if isempty(Bid) || (isnan(matm{i,Bid}) && numel(warn)>0)
+        matm{i,cat_io_contains(MA(:,1),'sHmed')} = nan; 
+        Bid = find( cat_io_contains(MA(:,1),'vBcor') ); Bidfac = [0.5 8];
+      end % && lowres issue  
       if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'Tbone') ); Bidfac = [0.05 30]; end
       if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'Tbcor') ); Bidfac = [0.05 60]; end
 
@@ -84,6 +89,8 @@ function boney_segment_cmdline(job,out,i,stime2,rerunstr)
   
     warn = cat_io_addwarning(1); if numel(warn)>0, cat_io_cprintf('warn',sprintf(' %dW',numel(warn))); end
     errn = cat_io_addwarning(2); if numel(errn)>0, cat_io_cprintf('err' ,sprintf(' %dE',numel(errn))); end
+    if numel(warn)>0 && cat_io_contains([warn.identifier],'Warning:TooLowResForRef'), cat_io_cprintf('warn',' - lowResNoRef'); end
+    if numel(warn)>0 && cat_io_contains([warn.identifier],'Warning:TooLowResForSurf'), cat_io_cprintf('warn',' - lowResNoSurfUseVol'); end
     fprintf('\n');
 
   end

@@ -286,7 +286,7 @@ function [Pout,out] = boney_segment(job)
       end
       job.reslim = max(job.opts.reslim,mean(vx_vol)); % limit processing resolution
 
-
+      
       % == major branch for bone method ==
       %  0 only SPM values (i.e., super fast)
       %  1 use MRI
@@ -322,14 +322,20 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
 
         % == refine SPM segmentation or just prepare some maps ==
         %  - store the changes also in the output structure
-        if job.opts.refine && ~out(i).CTseg
-          stime = cat_io_cmd(sprintf('  Refine SPM (Version %d)',job.opts.refine),'g5','',job.opts.verb>1,stime);
-          if job.opts.refine < 3
-            % Version 1 and 2 
-            [Yc,Ye,Ya,out(i).boney_refine_SPM] = boney_segment_refineSPM(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri,job.opts.refine);
+        if job.opts.refine && ~out(i).CTseg 
+          if all(tis.res_vx_vol < 1.5)
+            stime = cat_io_cmd(sprintf('  Refine SPM (Version %d)',job.opts.refine),'g5','',job.opts.verb>1,stime);
+            if job.opts.refine < 3
+              % Version 1 and 2 
+              [Yc,Ye,Ya,out(i).boney_refine_SPM] = boney_segment_refineSPM(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri,job.opts.refine);
+            else
+              % Version 3 
+              [Yc,Ye,Ya,out(i).boney_refine_SPM] = boney_segment_refineSPM_R3(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri,job.opts.refine);
+            end
           else
-            % Version 3 
-            [Yc,Ye,Ya,out(i).boney_refine_SPM] = boney_segment_refineSPM_R3(Yo,Ym,Yc,Ya,Ybraindist0,tis,tismri,job.opts.refine);
+            stime = cat_io_cmd(sprintf('  No refinement because of low (slice) resolution!',job.opts.refine),'g5','',job.opts.verb>1,stime);
+            cat_io_addwarning('Warning:TooLowResForRef','No refinement because of too low resolutions!',1,[1 1],{},0,job.opts.verb>1);
+            Ye = cell(0);
           end
         else
           Ye = cell(0);
@@ -382,9 +388,16 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         %      sROI   .. extracted global/regional bone/head surface values
         %  - although the surfaces can be saved, it does not suport surface
         %    registration now!
-        if job.opts.bmethod>1
-          stime = cat_io_cmd('  Extract bone surfaces','g5','',job.opts.verb>1,stime);
-          [Si, Stm, sROI] = boney_segment_create_bone_surface(Vo, Ybonepp, Ybonemarrow, Ybonethick, Yheadthick, Ya, Ymsk, YaROIname, out(i), job);
+        %  - only useful for not too low resolutions, i.e. slice res < 2.1 and slice thickness < 5.1
+        if job.opts.bmethod>1  
+          if  sum(vx_vol <= 2.1)>1  &&  all(vx_vol < 5.1) 
+            stime = cat_io_cmd('  Extract bone surfaces','g5','',job.opts.verb>1,stime);
+            [Si, Stm, sROI] = boney_segment_create_bone_surface(Vo, Ybonepp, Ybonemarrow, Ybonethick, Yheadthick, Ya, Ymsk, YaROIname, out(i), job);
+          else
+            Si = ''; Stm = '';
+            cat_io_addwarning('Warning:TooLowResForSurf', ['No surface processing because of too low resolutions, i.e. \\n' ...
+               'slice resolution < 2.1 and slice thickness < 5.1, use volume measures!'],1,[1 1],{},0,job.opts.verb>1);
+          end
         else
           Si = ''; Stm = '';
         end
@@ -444,7 +457,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
         stime = cat_io_cmd('  Create report','g5','',job.opts.verb>1,stime);
         boney_segment_print_figure(Vo, Ym, Yc, Ybonemarrow, Si, Stm, out(i), job, Affine);
       end
-      if job.opts.verb>1, fprintf('% 5.0fs\n',etime(clock,stime)); end 
+      if job.opts.verb>1, fprintf('% 5.0fs \n',etime(clock,stime)); end 
       spm_progress_bar('Set',i - 0.1);
       rerunstr = '';
 
@@ -470,7 +483,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
     % == print command line report ==
     boney_segment_cmdline(job,out,i,stime2,rerunstr);
     spm_progress_bar('Set',i);
-
+    
   end
 
   % final print and cleanup
