@@ -163,7 +163,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   refine.name           = 'Refine preprocessing (expert)';
   refine.labels         = {'No','Yes - enhanced (1)','Yes - enhanced (2)', 'Yes - enhanced (3)'};
   refine.values         = {0,1,2,3};
-  refine.val            = {1};
+  refine.val            = {3};
   refine.hidden         = expertgui<1;
   refine.help           = { ...
    ['Without fat supression, the bone marrow can have high intensities that can be mislabed as head. ' ...
