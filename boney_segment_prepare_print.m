@@ -38,6 +38,11 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
 % ############# RD202308: We have updated the entries and namings with the finally selected most relevant measures.   
   
   global boned %#ok<GVMIS> 
+
+  if isempty(boned)
+    boned.expertgui = 0;
+  end
+
   ex  = boned.expertgui;  % show expert values
   exc = job.opts.bmethod>0 & job.opts.classic;   % show classic 
   exm = job.opts.bmethod;   % show vol and/or surface results
