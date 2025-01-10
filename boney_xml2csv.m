@@ -70,7 +70,7 @@ function varagout = boney_xml2csv(job)
         'classic';
         } ]; 
     case {'all'}
-      xml   = cat_io_xml(job.files(1));
+      xml   = cat_io_xml(job.files);
       xmlfn = getFN(xml); 
       xmlfn( ~cellfun('isempty',strfind(xmlfn,'help')) ) = []; 
       job.fieldnames = unique( [ job.fieldnames; xmlfn ] ); 
@@ -399,7 +399,12 @@ function FNS = getFN(SS,dimlim)
     S   = SS(1);
     FN  = fieldnames(S);
     FNS = {};
+
     for fni = 1:numel(FN)
+      for si = 1:numel(SS)
+        if ~isempty(S.(FN{fni})), continue; else, S = SS(si); end
+      end
+
       % need this for useful order of fields
       acc = num2str( 1 + round( log10( numel( S.(FN{fni}) ))) );
 
