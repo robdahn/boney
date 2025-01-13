@@ -24,11 +24,18 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
 
   % try to get the prefix
   P = cat_io_strrep(P,',1',''); 
+  
   if isscalar(P)
     % if we have only one file the 'C' option of spm_str_manip is not working
-    [~,ff]  = spm_fileparts(P{1});
-    PC.s    = ff(1);
-    PC.m{1} = ff(2:end);
+    [pp,ff]  = spm_fileparts(P{1});
+    % test for prefix ...
+    if exist(fullfile(pp,ff(2:end)),'file') || exist(fullfile(pp,ff(3:end)),'file')
+      PC.s    = ff(1:2);
+      PC.m{1} = ff(3:end);
+    else
+      PC.s    = '';
+      PC.m{1} = ff(3:end);
+    end  
   else
     % test for other files
     [~,PC]  = spm_str_manip(P,'tC'); 
@@ -115,6 +122,7 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
 
     % tests
     if 0
+      %%
       out(pi).P.mridir     = ''; % mri
       out(pi).P.mripath    = fullfile(resdir{pi}, sub_ses_anat{pi}, out(pi).P.mridir); 
       out(pi).P.mrirdir    = fullfile(outdir{pi}, strrep(job.output.resdir,['..' filesep],''), sub_ses_anat{pi}, out(pi).P.mridir); 
@@ -143,7 +151,8 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
   % - no new preprocessing is done, i.e., missing files have to create errors
   % - CAT supports BIDS that makes it complicated
   fmethod = 0; out = [];  
-  if ~isempty(PC.s) && ( strcmp(PC.s(1),'m') || strcmp(PC.s(1),'c') || strcmp(PC.s(1),'p') ) 
+  if ~isempty(PC.s) && ( strcmp(PC.s(1),'m') || strcmp(PC.s(1),'c') || strcmp(PC.s(1),'p') ) && ...
+    ( (strcmp(PC.s(1),'c') || strcmp(PC.s(1),'p') ) && numel(PC.s)==2 && any('01'==PC.s(2)) ) 
     if strcmp(PC.s(1),'m')
       % try to handle the m-file input by updating the pmethod 
       prefix1 = 2; 
