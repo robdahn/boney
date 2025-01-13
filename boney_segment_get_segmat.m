@@ -93,7 +93,12 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
         seg8t.mg(seg8t.lkp == i,1) = 1 / sum(seg8t.lkp == i); 
       end
     end
-    seg8t.image   = spm_vol( Sxml.filedata.fname ); 
+    if exist(Sxml.filedata.fname,'file')
+      seg8t.image = spm_vol( Sxml.filedata.fname ); 
+    else
+      seg8t.image = spm_vol( Sxml.filedata.Fm ); 
+      seg8t.image.fname = Sxml.filedata.fname; 
+    end
     seg8t.isCTseg = 0; 
     seg8t.help    = struct( ...
       'main'   , 'The main field "seg8t" includes single values from the SPM preprocessing used by SPM12, CAT12, or CTseg.', ...

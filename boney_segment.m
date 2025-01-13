@@ -126,7 +126,11 @@ function [Pout,out] = boney_segment(job)
 
   if job.opts.fmethod
     % call SPM/CAT preprocessing if raw images are used
-    boney_segment_preprocessing(P, out, job.opts.ctpm, job.opts.pmethod, job.opts.bias, job.opts.prerun);
+    P = boney_segment_preprocessing(P, out, job.opts.ctpm, job.opts.pmethod, job.opts.bias, job.opts.prerun);
+ 
+    % update for gz files
+    job.files = P; 
+    [out,job.opts.fmethod,job.opts.pmethod] = boney_segment_filenames(P,job);
   end
 
   % Maybe the SPM segmentation error for bone marrow could be used as

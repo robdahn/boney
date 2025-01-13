@@ -58,8 +58,8 @@ function boney = tbx_cfg_boney
   files.tag           = 'files';
   files.name          = 'Images';
   files.help          = {'Select images that should be processed or select the bias-corrected processed images "m*.nii".'};
-  files.filter        = 'image';
-  files.ufilter       = '.*';
+  files.filter        = ''; % not images as we want to get niftis.gz too
+  files.filter        = {'image','.*\.(nii.gz)$'};
   files.num           = [1 Inf];
    
   verb                = cfg_menu;

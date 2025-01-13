@@ -29,16 +29,22 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
     % extract processed filenames
     Ppc = P; Ppc{1} = out(1).P.cls{1}; for i=2:numel(P), Ppc{i} = out(i).P.cls{1}; end
     Pbc = P; Pbc{1} = out(1).P.bc;     for i=2:numel(P), Pbc{i} = out(i).P.bc; end
-
+    Ppc = cat_io_strrep(Ppc,'.nii.gz','.nii'); 
+    Pbc = cat_io_strrep(Pbc,'.nii.gz','.nii'); 
+    
     %% have to use CAT developer GUI for rerun function 
     oldexpertgui = cat_get_defaults('extopts.expertgui');
     cat_get_defaults('extopts.expertgui',2);
     rpc = cat_io_rerun(PC,Ppc,0) > 0; 
     rbc = cat_io_rerun(PC,Pbc,0) > 0; % estimate if reprocessing is required
     rsc = rpc | rbc;
-    cat_io_cprintf([0 .5 0],'  %d of %d SPM/CAT segmentations can be used. \n', numel(rsc) - sum(rsc), numel(rsc));
-    if sum(rsc) > 0
-        cat_io_cprintf([0.7 .2 0],'  %d of %d files need preprocessing. \n', sum(rsc), numel(rsc));
+    if all(rsc)
+      cat_io_cprintf([0 0 1],'  SPM/CAT segmentations is required. \n');
+    elseif any(rsc) 
+      cat_io_cprintf([0   .5 0],'  %d of %d SPM/CAT segmentations can be used. \n', numel(rsc) - sum(rsc), numel(rsc));
+      cat_io_cprintf([0.7 .2 0],'  %d of %d files need preprocessing. \n', sum(rsc), numel(rsc));
+    else
+      cat_io_cprintf([0 .5 0],'  All SPM/CAT segmentations can be used. \n');
     end
     cat_get_defaults('extopts.expertgui',oldexpertgui);
 
@@ -52,6 +58,7 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
   end
 
   %% processing
+  delunzipped = zeros(size(PC)); 
   if ~isempty(PC)
     switch ctpm
       case 1, Ptpm = fullfile(spm('dir'),'tpm',sprintf('TPM.nii')); 
@@ -59,7 +66,17 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
     end
     switch pmethod
       case {1,'spm'}
-        matlabbatch = SPM_preprocessing(PC, Ptpm, bias);
+        %%
+        PCS = PC; 
+        for pi = 1:numel(PC)
+          [pp,ff,ee] = spm_fileparts(PC{pi}); 
+          if strcmp(ee,'.gz') && ~exist(fullfile(pp,[ff '.nii']),'file') 
+            delunzipped(pi) = 1; 
+            gunzip(PC{pi}); 
+            PCS{pi} = fullfile(pp,ff); 
+          end
+        end
+        matlabbatch = SPM_preprocessing(PCS, Ptpm, bias);
       case {2,'cat'} 
         expertgui = cat_get_defaults('extopts.expertgui');
         guinames  = {'default','expert','developer'}; 
@@ -89,6 +106,18 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
     spm_jobman('run',matlabbatch);
     warning on; 
 
+    for pi = 1:numel(PC)
+      if delunzipped(pi), delete( PCS{pi} ); end
+    end
+      
+  end
+
+  % update in case of gz files
+  for pi = 1:numel(P)
+    [~,~,ee] = spm_fileparts(P{pi}); 
+    if strcmp(ee,'.gz')
+      P{pi} = spm_file(P{pi},'ext',''); 
+    end
   end
 
 
