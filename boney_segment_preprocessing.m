@@ -29,6 +29,7 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
     % extract processed filenames
     Ppc = P; Ppc{1} = out(1).P.cls{1}; for i=2:numel(P), Ppc{i} = out(i).P.cls{1}; end
     Pbc = P; Pbc{1} = out(1).P.bc;     for i=2:numel(P), Pbc{i} = out(i).P.bc; end
+    Ps8 = P; Ps8{1} = out(1).P.seg8;   for i=2:numel(P), Ps8{i} = out(i).P.seg8; end   
     Ppc = cat_io_strrep(Ppc,'.nii.gz','.nii'); 
     Pbc = cat_io_strrep(Pbc,'.nii.gz','.nii'); 
     
@@ -37,7 +38,8 @@ function P = boney_segment_preprocessing(P,out,ctpm,pmethod,bias,rerun)
     cat_get_defaults('extopts.expertgui',2);
     rpc = cat_io_rerun(PC,Ppc,0) > 0; 
     rbc = cat_io_rerun(PC,Pbc,0) > 0; % estimate if reprocessing is required
-    rsc = rpc | rbc;
+    rs8 = cat_io_rerun(PC,Ps8,0) > 0 & pmethod==1;
+    rsc = rpc | rbc | rs8;
     if all(rsc)
       cat_io_cprintf([0 0 1],'  SPM/CAT segmentations is required. \n');
     elseif any(rsc) 

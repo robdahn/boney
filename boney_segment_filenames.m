@@ -226,6 +226,10 @@ function [out,fmethod,pmethod] = boney_segment_filenames(P,job)
         cat_io_cprintf('err',sprintf('  Oops, miss SPM/CAT m-file of subject %d.\n',si))
         deleteP(si) = true; 
       end
+      if job.opts.pmethod==1 && ~exist( fullfile(fileparts(P{si}), sprintf('%s_seg8.mat',PC.m{si})),'file')
+        cat_io_cprintf('err',sprintf('  Oops, miss SPM seg8.mat-file of subject %d.\n',si))
+        deleteP(si) = true; 
+      end
       for ci = 1:5
         if ~exist( fullfile(fileparts(P{si}), sprintf('%s%i%s.nii',sprefix,  ci, PC.m{si})),'file')
           cat_io_cprintf('err',sprintf('  Oops, miss %s-%s%d segmentation file of subject %d.\n', ...
