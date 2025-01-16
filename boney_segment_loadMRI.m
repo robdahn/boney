@@ -115,8 +115,9 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, RES, BB] = ...
     if tis.weighting == 2 % MT
       Ym = (Yo - min([-.5 tis.intnorm(1) ])) / ( tis.intnorm(2) - min([-.5 tis.intnorm(1) ]));
     elseif tis.weighting == -1 % CT
-      if job.opts.normCT
-        Ym = (Yo - min( tis.seg8o )) / max(tis.seg8o(:) - min(tis.seg8o(:)));
+      if job.opts.normCT %|| ~seg8t.isCTseg
+        Ym = tis.fnormCT(Yo); 
+        Yo = Ym; 
       else
         Ym = Yo;
       end

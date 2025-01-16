@@ -94,7 +94,7 @@ function [Pout,out] = boney_segment(job)
                                     %  - robust results for 1-4
   def.opts.refine       = 1;        % refine segmenation
   def.opts.bnorm        = 'muscle'; % WM, CSF, muscle, bone, fat ..
-  def.opts.normCT       = 0;        % use hard defined CT tissue thresholds for CTseg (used flag?)
+  def.opts.normCT       = 0;        % use hard defined CT tissue thresholds for CTseg (used flag?) - RD20250116 - true is not working!
   def.opts.Patlas       = {fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-regions.nii')};
   def.opts.Pmask        = {fullfile(spm('dir'),'toolbox','boney','boney_KADA_bone-mask.nii')};
   def.opts.snspace      = [80,7,2];                      % cmd print format - only internal
@@ -281,7 +281,7 @@ function [Pout,out] = boney_segment(job)
       %  - get and evaluate the original SPM preprocessing structure (seg8t)
       %    extract further values (tis) and voxel size
       stime = cat_io_cmd('  Load SPM','g5','',job.opts.verb>1);
-      [ seg8t , tis , vx_vol , trans ] = boney_segment_get_segmat( out(i), job.output.writevol, job.opts.verb );
+      [ seg8t , tis , vx_vol , trans ] = boney_segment_get_segmat( out(i), job.output.writevol, job.opts.normCT, job.opts.verb );
       if isempty(vx_vol) || numel(fieldnames(tis))==0
         % in case of problems export the (empty) XML and go on with the next subject 
 % ##### here was maybe a bug or other problem #######        
@@ -303,7 +303,7 @@ function [Pout,out] = boney_segment(job)
         %  - show images for debugging:
         %      ds('d2sm','',vx_vol,Ym .* (0.5 + 0.5*Ybone) ,Ya,90)
         stime = cat_io_cmd('  Load MRIs','g5','',job.opts.verb>1,stime);
-if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it later
+if out(i).CTseg || tis.weighting<0, job.affreg = -1; end % this is not optimal here - replace it later
         [Vo,Yo,Yc,Ya,Ymsk,Ym, Affine, YaROIname, RES, BB] = ...
           boney_segment_loadMRI( out(i).P, job, seg8t, tis, 1:5, 25); % CT rand issue
         spm_progress_bar('Set',i - 0.8); vx_vol = RES.vx_volr;
@@ -326,7 +326,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
 
         % == refine SPM segmentation or just prepare some maps ==
         %  - store the changes also in the output structure
-        if job.opts.refine && ~out(i).CTseg 
+        if job.opts.refine && ~out(i).CTseg && tis.weighting >= 0 % ~CT
           if all(tis.res_vx_vol < 1.5)
             stime = cat_io_cmd(sprintf('  Refine SPM (Version %d)',job.opts.refine),'g5','',job.opts.verb>1,stime);
             if job.opts.refine < 3
@@ -400,7 +400,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
           else
             Si = ''; Stm = '';
             cat_io_addwarning('Warning:TooLowResForSurf', ['No surface processing because of too low resolutions, i.e. \\n' ...
-               'slice resolution < 2.1 and slice thickness < 5.1, use volume measures!'],1,[1 1],{},0,job.opts.verb>1);
+               'slice resolution < 2.1 and slice thickness < 5.1, use volume measures!'],2,[1 1],{},0,job.opts.verb>1);
           end
         else
           Si = ''; Stm = '';
@@ -485,6 +485,7 @@ if out(i).CTseg, job.affreg = -1; end % this is not optimal here - replace it la
 
 
     % == print command line report ==
+    % ************* Update CT value format if not scaled 
     boney_segment_cmdline(job,out,i,stime2,rerunstr);
     spm_progress_bar('Set',i);
     

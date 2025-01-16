@@ -22,14 +22,26 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
     Ybrain0      = cat_vol_morph(cat_vol_morph((Yc{1} + Yc{2} + Yc{3})>.5,'lc',1,vx_vol),'lo',3,vx_vol); % remove 
     Ybraindist1  = cat_vbdist( single(Ybrain0>0.5) , (Yc{4} + Yc{5})>0 , vx_vol);
     Yhead        = Yc{1} + Yc{2} + Yc{3} + Yc{4}; Yhead(cat_vol_morph(Yhead>.5,'ldc',2)) = 1; 
+   
     Ybone        = Yc{4};
     Ybrain       = (Yhead - Ybone) .* cat_vol_morph(Yhead>.5,'e') .* (Ybraindist1<4); % .* Ybrain;
+%{ 
+    Ybrain       = Ybrain .* cat_vol_morph(cat_vol_morph( Ybrain>.5 , 'o'),'d');
     Ybraindist   = vbx_dist( single(Ybrain>0.5) , Ybone>.5, vx_vol, 1) .* (Ybone>0.5);
     Yheaddist    = vbx_dist( single(Yhead<0.5)  , Ybone>.5, vx_vol, 1) .* (Ybone>0.5);
     Ybonethick   = Ybraindist  + Yheaddist;  % correct for voxel-size
+    Ybonethick   = cat_vol_approx(Ybonethick,'rec');
+    Ybonethick   = cat_vol_smooth3X(Ybonethick,1); 
     Ybonepp      = min(1,Yheaddist  ./ max(eps,Ybonethick));  Ybonepp(Ybrain>.5) = 1; % percentage map to
-    Ybonemarrow  = Ym;
+    %Ybonemarrow  = Ym;
+%}
+   
+    % update
+    Yhead       = single(Yc{5} + Yc{6});
+    Ybone1      = 1 - Ybrain - Yhead; 
 
+    
+    
   else
   % MRI images
     if 0
@@ -72,9 +84,8 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
     Ybrain = cat_vol_smooth3X( Ybrain , 1)>.5; 
     Yhead  = cat_vol_smooth3X( Yhead  , 1)>.5; 
     Ybone1 = 1 - Ybrain - Yhead; 
-    
   
-
+  end
     
     %% bone layers
     % RD20240826:  Test showed that reproducabilty was higher for lres = 1 
@@ -82,11 +93,12 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
     %              measures in the UKB (and it is also a bit faster). 
     lres = 2; 
     [Ybrainr,Yheadr,Ybone1r,res] = cat_vol_resize({Ybrain,Yhead,Ybone1},'reduceV',vx_vol,lres,64,'meanm');
-    Ybraindist   = vbx_dist( Ybrainr , Ybone1r>0, res.vx_volr, nvbdist, 0);
-    Yheaddistr   = vbx_dist( Yheadr  , Ybone1r>0, res.vx_volr, nvbdist, 0);
-    Ybonethick   = (Ybraindist + Yheaddistr) .* (Ybone1r>0);  % correct for voxel-size
+    Ybraindist   = vbx_dist( Ybrainr , Ybone1r>.1, res.vx_volr, nvbdist, 0);
+    Yheaddistr   = vbx_dist( Yheadr  , Ybone1r>.1, res.vx_volr, nvbdist, 0);
+    Ybonethick   = (Ybraindist + Yheaddistr) .* (Ybone1r>.1);  % correct for voxel-size
+    Ybonethick   = cat_vol_localstat(Ybonethick,Ybonethick>0,1,1,4); 
     Ybonethick   = cat_vol_approx(Ybonethick,'rec'); 
-    Ybonethick   = cat_vol_smooth3X(Ybonethick,1); 
+    Ybonethick   = cat_vol_smooth3X(Ybonethick,2); 
     Ybonecpp     = max(0,min(1,min(Yheaddistr,Ybraindist) ./ max(eps,max(Yheaddistr,Ybraindist))));  % percentage map to
     Ybonepp      = min(1,Yheaddistr ./ max(eps,Ybonethick)); Ybonepp(Ybrainr>.5) = 1; % percentage map to
     Ybonethick   = cat_vol_resize(Ybonethick,'dereduceV',res);
@@ -107,7 +119,7 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
     end
     clear braindist Ybonedist
     
-  end 
+   
 
 
   %% head 
@@ -118,7 +130,7 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
   Ybndist      = vbx_dist( Yheadr , Yc6<.5, res.vx_volr, nvbdist,0);
   Yheadthick   = (Ybndist + Ybgdist - Yheaddistr) .* (Ybrainr<0.5 & Yc6<.5); 
   % headthickness
-  Yheadthick   = cat_vol_approx(Yheadthick,'rec');
+  Yheadthick   = cat_vol_approx(Yheadthick,'rec'); 
   Yheadthick   = cat_vol_smooth3X(Yheadthick,1); 
   Yheadthick   = cat_vol_resize(Yheadthick,'dereduceV',res); clear res; 
 
@@ -139,8 +151,16 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
       case 'GM-WM-contrast',    bnorm = (tismri.int.WM - tismri.int.GM) / tismri.int.WM ; 
       case 'bone-fat-contrast', bnorm = (tismri.int.head_fat - tismri.int.head_muscle) / tismri.int.head_fat / 3; % 
     end
+  else
+    bnorm = 1; 
   end
-  Ybonemarrow = single( Ym / bnorm * 2 ) .* Ybone;
+  
+  if tis.weighting < 0  &&  job.opts.normCT 
+    % rescaleling
+    Ybonemarrow = max(0,3 - Ym*2) .* Ybone;
+  else
+    Ybonemarrow = single( Ym / bnorm * 2 ) .* Ybone;
+  end
 
 %% ###################
 % edge-measure ! 

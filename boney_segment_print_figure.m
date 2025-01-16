@@ -54,7 +54,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow, Si,St, out,job,Affine)
 
   % == error messages ==
   %  - show only in case of no refinement or as note?
-  % printErrors
+  printErrors
  
 
  
@@ -356,7 +356,7 @@ function printHistogram(Ym,Yc,Ybonemarrow,job,out,popts)
     % print histogram
     %plot([1 1],[0 max(ylim)],'--','Color',[.7 .7 .7],'LineWidth',1.5);
     clsi = numel(Yc):-1:1; clsi( flip(cellfun('isempty',Yc)) ) = []; 
-    if out.spm8.isCTseg && ~job.opts.normCT 
+    if out.tis.weighting < 0 && ~job.opts.normCT 
       % CT case
       for ci = clsi
         if ~strcmpi(spm_check_version,'octave') 
@@ -390,6 +390,10 @@ function printHistogram(Ym,Yc,Ybonemarrow,job,out,popts)
       set(ax2,'FontSize',popts.fontsize * 0.85, 'XTickLabelRotation', 0, ... 
         'XTickLabel', {'0','','','0.5','','','1','','','1.5','','','2'});
       xlabel('normalized intensities with normalized SPM classes'); 
+    elseif 0% ~out.spm8.isCTseg && job.opts.normCT
+      set(ax2,'FontSize',popts.fontsize * 0.85, 'XTickLabelRotation', 0, ... 
+        'XTickLabel', {'0','','','0.5','','','1','','','1.5','','','2'});
+      xlabel('normalized intensities'); 
     else
       xlabel('CT intensities of SPM classes'); 
     end
@@ -466,12 +470,20 @@ function printVolumes(Po,Vo,Ym,Yc,Ybonemarrow,St,job,out,popts)
     spm_orthviews('Reset')
     pos = {[0.008 0.375 0.486 0.35]; [0.506 0.375 0.486 0.35]};
     % T1 + SPM segmentation
-    if out.tis.weighting < 0 
+    if out.tis.weighting < 0  &&  out.spm8.isCTseg
       colormap( [[0 0.02 0.07]; repmat([0.05 0.15 .35],round(59/(popts.crange+2)),1); ...
         repmat([ 0 .3 .6],round(59/(popts.crange+2)),1); jet(59 - 2*round(59/(popts.crange+2)))]);
       V0 = Vo; V0.dat(:,:,:) = single(.3*Yc{3} + .75*Yc{1} + 1*Yc{2} + 1.2*Yc{4} + 0.5*Yc{5} ); V0.dt(1) = 16;
       V0.pinfo  = repmat([1;0],1,size(Ym,3));
-    elseif job.opts.bmethod == 0
+    elseif out.tis.weighting < 0 
+      colormap gray; 
+      if job.opts.normCT % normalized CT
+        V0      = Vo; V0.dat(:,:,:) = single(Ym) * .6; V0.dt(1) = 16;
+      else
+        V0      = Vo; V0.dat(:,:,:) = single((1000 + Ym)/2300); V0.dt(1) = 16;
+      end
+      V0.pinfo  = repmat([1;0],1,size(Ym,3));
+    elseif job.opts.bmethod == 0 % normalized SPM bone segmentation 
       colormap gray; 
       V0       = out.spm8.image;
       Vc4      = spm_vol(spm_file(out.spm8.image.fname,'prefix','c4'));
@@ -489,8 +501,10 @@ function printVolumes(Po,Vo,Ym,Yc,Ybonemarrow,St,job,out,popts)
     spm_orthviews('BB', [-85 -120 -90; 85 95 105]); % this has to be set in the low-resolution image
     hh0       = spm_orthviews('Image',V0,pos{1}); % add correct image after the other settings! 
     spm_orthviews('Reposition',[-25 0 0]);
-    if out.tis.weighting < 0 
+    if out.tis.weighting < 0  &&  out.spm8.isCTseg
       spm_orthviews('Caption',hh0,sprintf('%s','CTseg'));
+    elseif out.tis.weighting < 0 
+      spm_orthviews('Caption',hh0,sprintf('%s','CT'));
     else
       spm_orthviews('Caption',hh0,sprintf('%s',out.tis.weightingn));
     end
@@ -547,9 +561,16 @@ function printVolumes(Po,Vo,Ym,Yc,Ybonemarrow,St,job,out,popts)
       end
    end
   
-    % print bone marrow
-    if out.tis.weighting < 0
-      V1 = Vo; V1.dat(:,:,:) = single((1000 + Ym)/2300); V1.dt(1) = 16;
+    %% print bone marrow
+    if out.tis.weighting < 0 
+      if out.spm8.isCTseg
+        V1 = Vo; V1.dat(:,:,:) = single((1000 + Ym)/2300);
+      else
+        %Ybonemarrow2 = single((1000 + Ybonemarrow)/2300); Ybonemarrow2(isnan(Ybonemarrow2)) = 0; 
+        Ybonemarrow2 = Ybonemarrow/400; Ybonemarrow2(isnan(Ybonemarrow2)) = 0; % ######## unclear scaling
+        V1 = Vo; V1.dat(:,:,:) = min(popts.crange,Ybonemarrow2) + 2*(Ybonemarrow2>0) + ...
+          single(Yc{1}>.5) + single(Yc{5}>.5) + 2*single(Yc{2}>0.5);        
+      end
     else
       Ybonemarrow2 = Ybonemarrow; Ybonemarrow2(isnan(Ybonemarrow2)) = 0; 
       V1 = Vo; V1.dat(:,:,:) = min(popts.crange,Ybonemarrow2) + 2*(Ybonemarrow2>0) + ...
@@ -560,7 +581,7 @@ function printVolumes(Po,Vo,Ym,Yc,Ybonemarrow,St,job,out,popts)
     V1.dt(1)  = 16;
     hh1       = spm_orthviews('Image',V1,pos{2}); 
     spm_orthviews('Interp',1);
-    if out.tis.weighting < 0
+    if out.tis.weighting < 0  &&  out.spm8.isCTseg
       spm_orthviews('window',hh1,[0 1.2]);
       spm_orthviews('Caption',hh1,sprintf('%s',out.tis.weightingn));
     else
@@ -569,7 +590,7 @@ function printVolumes(Po,Vo,Ym,Yc,Ybonemarrow,St,job,out,popts)
     end
     spm_orthviews('Reposition',[-25 0 0]); pause(0.01)
     
-    % this is replaced by spm_orthviews('redraw');
+    %% this is replaced by spm_orthviews('redraw');
     spm_orthviews('redraw');
     orthviewlegend = get(findobj(get(get(st.vols{1}.ax{1}.ax,'parent'),'children'), ...
       'Type','Image','Tag',''),'parent');

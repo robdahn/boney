@@ -1,4 +1,4 @@
-function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_writevol,verb)   
+function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_writevol,normCT,verb)   
 %boney_segment_get_segmat. Get and evaluate SPM preprocessing structure.
 %
 %  [seg8t, tis, vx_vol] = get_spm8(P)
@@ -192,7 +192,7 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
     tis.seg8nv        = [40 30 20 1024 0 -1024];
     tis.seg8con       = nan; 
     tis.seg8conr      = nan; 
-    tis.seg8CNR       = min( seg8t.vr( seg8t.lkp(:)==2 | seg8t.lkp(:)==3  | seg8t.lkp(:)==6) ) * 10e7; 
+    tis.seg8CNR       = 10 / min( seg8t.vr( seg8t.lkp(:)==2 | seg8t.lkp(:)==3  | seg8t.lkp(:)==6) ); 
   else
     tis.WMth          = tis.seg8o(2);
     tis.seg8n         = tis.seg8o  ./ tis.WMth; % normalized by WM
@@ -226,6 +226,33 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
     elseif tis.seg8o(6) > tis.seg8o(2) && tis.seg8nv(6) < .3                 % high int - low var
       tis.weighting  = 4;
       tis.weightingn = 'IRw'; % inverse recovery
+    elseif all( tis.seg8o(1:6) < [100 45 25 1000   10  -200] )  &&  ...        % CT: [40 30 20 1024 0 -1024];
+           all( tis.seg8o(1:6) > [ 45 25 10 100  -200 -2000] ) 
+      tis.weighting  = -1;
+      tis.weightingn = 'CT';
+      % update
+      %fnormCT = @(x) log10(max(0,x / 100 + 10)); 
+      tis.fnormCT = @(Y)max(0,2.048-max(0,2048./max(eps,Y+2048)));
+      if normCT
+        tis.WMth          = tis.fnormCT(40); 
+        tis.seg8o         = tis.fnormCT([40 30 20 1024 0 -1024]);
+        tis.seg8n         = tis.fnormCT([40 30 20 1024 0 -1024]);
+        tis.seg8nv        = tis.fnormCT([40 30 20 1024 0 -1024]);
+        tis.seg8con       = tis.fnormCT(10); 
+        tis.seg8conr      = tis.fnormCT(10/1000); 
+        tis.seg8CNR       = tis.fnormCT(10) / min( seg8t.vr( seg8t.lkp(:)==2 | seg8t.lkp(:)==3  | seg8t.lkp(:)==6) ); 
+
+        seg8t.mn = tis.fnormCT(seg8t.mn); 
+        seg8t.vr = tis.fnormCT(seg8t.vr); 
+      else
+        tis.WMth          = 40; 
+        tis.seg8o         = [40 30 20 1024 0 -1024];
+        tis.seg8n         = [40 30 20 1024 0 -1024] / 2000 +1;
+        tis.seg8nv        = [40 30 20 1024 0 -1024];
+        tis.seg8con       = nan; 
+        tis.seg8conr      = nan; 
+        tis.seg8CNR       = 10 / min( seg8t.vr( seg8t.lkp(:)==2 | seg8t.lkp(:)==3  | seg8t.lkp(:)==6) ); 
+      end    
     else
       tis.weighting  = 0; 
       tis.weightingn = 'PDw';

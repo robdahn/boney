@@ -44,7 +44,7 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
 
   % test if the head-class has a lot of very low intensity values
   % the correction is done later if the refinement is selected
-  if ~seg8t.isCTseg 
+  if ~seg8t.isCTseg && tis.weighting < 0
     tismri.warning.clsUpdate = (sum( Yc{5}(:)>.5 & Ym(:)<.3 & Ybraindist0(:)<50 ) / sum( Yc{5}(:)>.5 & Ybraindist0(:)<50 ) ) > .2; 
     if tismri.warning.clsUpdate && 0 % ###### INACTIVE ######
       % create a (silent) warning
@@ -77,10 +77,15 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
 
   % separate fat and muscles
   os = round( mean(.9 ./ vx_vol)); 
-  if seg8t.isCTseg % CT images
+  if seg8t.isCTseg %|| tis.weighting < 0% CT images
     Yfat = cat_vol_morph( Yc{5}>0.5 & Ym>-500 & Ym<0   & Ymsk>.5 ,'o',os); 
     Ymus = cat_vol_morph( Yc{5}>0.5 & Ym>0    & Ym<110 & Ymsk>.5 ,'o',os);
     Yhd  = cat_vol_morph( Yc{5}>0.5 & Ym>-500 & Ym<110 & Ymsk>.5 ,'o',os);
+  elseif tis.weighting < 0% CT images
+    %%
+    Yhd  = cat_vol_morph((Yc{1} + Yc{2} + Yc{3} + Yc{4} + Yc{5})>.5 & Ym>-500,'ldo',2); 
+    Yfat = Yc{5}>0.5 & Ym>-500 & Ym<-10 & Yhd; 
+    Ymus = Yc{5}>0.5 & Ym>-10  & Ym<100  & Yhd;
   elseif tis.headFatType==2 % high bone intensity
     Yfat = cat_vol_morph( Yc{5}>0.5 & Ym>mean(tis.seg8n(2))                               & Ymsk>.5,'o',os); 
     Ymus = cat_vol_morph( Yc{5}>0.5 & Ym>mean(tis.seg8n([1,3])) & Ym<mean(tis.seg8n(1:2)) & Ymsk>.5,'o',os);
@@ -177,9 +182,12 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
         clear Yw;
       case 4
         % ################### needs refinement depending on number ###########
-        if seg8t.isCTseg 
-          tismri.int.bone = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.5,'e')),2); 
-          tismri.Tth(ci)  = mean(tismri.int.bone);
+        if seg8t.isCTseg || tis.weighting < 0
+          tismri.int.bone         = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.5,'e')),2); 
+          tismri.int.bone_cortex  = tismri.int.bone(2);
+          tismri.int.bone_marrow  = tismri.int.bone(1);
+
+          tismri.Tth(ci)          = mean(tismri.int.bone);
         else
           %%
           Ymx = Yc{4}>.25 & Ym<.5;
