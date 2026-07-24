@@ -387,8 +387,8 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   writeseg.name         = 'Keep SPM/CAT segmentation (expert)';
   writeseg.labels       = {'No','Yes (original NIFTIs)','Yes (compressed as .mat)'};
   writeseg.values       = {0,1,2};
-  writeseg.val          = {0}; %expertgui};  
-  writeseg.hidden       = expertgui<1;
+  writeseg.val          = {0}; 
+  %writeseg.hidden       = expertgui<1;
   writeseg.help         = { ...
    ['Do not delete the native SPM/CAT segmentation files c# mri/p# to support faster processing. ' ....
     'The compressed option saved the optimized volumes in a .mat file to save disk space and loading speed. '];''};
@@ -401,7 +401,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   writevol.labels       = {'No','Native','Affine','Warped','Affine + Warped','Native + Affine + Warped'};
   writevol.values       = {0,1,2,3,4,5};
   writevol.val          = {0};
-  writevol.hidden       = expertgui<1;
+  %writevol.hidden       = expertgui<1;
   writevol.help         = {'Write refined bone segment volumes used for extraction into a "vol" subdirectory.';''};
  
   % - here we have the general registration issue 
