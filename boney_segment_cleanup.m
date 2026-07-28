@@ -17,12 +17,20 @@ function Pout = boney_segment_cleanup(Pout,out,job,i)
     for ci = 1:5
       Pout.cls{ci}{i}    = out(i).P.cls{ci}; 
     end
-  elseif 0
+  else %if 0
     % delete preprocessing segments
     for ci = 1:5
       if exist( out(i).P.cls{ci} , 'file')
         delete( out(i).P.cls{ci} );
       end
+    end
+    % delete bias corrected
+    if exist( out(i).P.bc , 'file')
+      delete( out(i).P.bc );
+    end
+    % delete SPM mat
+    if exist( out(i).P.seg8 , 'file')
+      delete( out(i).P.seg8 );
     end
   end
 

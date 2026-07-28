@@ -71,7 +71,8 @@ function boney_segment_cmdline(job,out,i,stime2,rerunstr)
       if isempty(Bid),  Bid = find( cat_io_contains(MA(:,1),'sBcor') ); Bidfac = [0.5 6]; end 
       % RD20241008: in low-res data it would be nice to show the values but this is not so easy      
       if (isempty(Bid) || (isnan(matm{i,Bid}) && numel(warn)>0)) && job.opts.bmethod > 1
-        matm{i,cat_io_contains(MA(:,1),'sHmed')} = nan; 
+        tmp = cat_io_contains(MA(:,1),'sHmed'); 
+        if ~isempty(tmp), matm{i,tmp} = nan; end 
         Bid = find( cat_io_contains(MA(:,1),'vBcor') ); Bidfac = [0.5 8];
       else
         Bid = find( cat_io_contains(MA(:,1),'vBcor') ); Bidfac = [0.5 8];
