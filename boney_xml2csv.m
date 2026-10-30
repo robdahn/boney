@@ -1,8 +1,9 @@
-function varagout = boney_xml2csv(job)
+function varargout = boney_xml2csv(job)
 %boney_xml2csv(job). Wrapper to call cat_io_xml2csv for boney structure. 
 % See cat_io_xml2csv.
 %
-%  varagout = boney_xml2csv(job)
+%  out = boney_xml2csv(job)
+%  out.csv .. filename of the CSV file (for SPM dependencies)
 % 
 %  report 
 %   'boney_default' .. only the most relevant fields
@@ -37,8 +38,10 @@ function varagout = boney_xml2csv(job)
     'opts.pmethod'; 'opts.bmethod';
     'date'; 
     ... SPM image parameter
-    'tis.weightingn'; 'tis.highBGn';    'tis.headFatTypen'; 'tis.boneIntTypen';         % basic information about the image
-    'tis.bonecortex'; 'tis.bonemarrow'; 'tis.bonedensity';  'tis.bone'; 'tis.head';   
+    'tis.weightingn'; 'tis.highBGn';    'tis.headFatTypen'; 'tis.headBoneTypen';        % basic information about the image
+    'tis.bonecortex'; 'tis.bonemarrow'; 'tis.bone'; 'tis.head';   
+    ... quality control flags 
+    'qc.flags'; 'qc.tpmsel';
     ... volume measurements
     'tismri.TIV'; 
     'tismri.volr(01)'; 'tismri.volr(02)'; 'tismri.volr(03)'; ... 'tismri.volr(04)'; 'tismri.volr(05)';
@@ -47,7 +50,7 @@ function varagout = boney_xml2csv(job)
     'main';
     }];
   job.avoidfields = [job.avoidfields; 
-    {'tis.headBoneType'; 'tis_headFatType'; 'tismri.warning'}]; % head is not unique
+    {'tismri.warning'}]; 
 
  
   % add extra expert/developer fields
@@ -58,8 +61,9 @@ function varagout = boney_xml2csv(job)
         'vROI.bonecortex(03)';    'vROI.bonemarrow(04)';    'vROI.bonemarrow(05)'; 
         'vROI.bonethickness(03)'; 'vROI.bonethickness(04)'; 'vROI.bonethickness(05)';
         'vROI.headthickness(03)'; 'vROI.headthickness(04)'; 'vROI.headthickness(05)';
+        'vROI.headfat(01)';       'vROI.headfatthickness(01)'; 
         ... surface-based measurements
-        'sROI.bonecortex(03)';    'sROI.bonemarrow(04)';    'sROI.bonecortex(05)'; 
+        'sROI.bonecortex(03)';    'sROI.bonemarrow(04)';    'sROI.bonemarrow(05)'; 
         'sROI.bonethickness(03)'; 'sROI.bonethickness(04)'; 'sROI.bonethickness(05)';
         'sROI.headthickness(03)'; 'sROI.headthickness(04)'; 'sROI.headthickness(05)';
         ... absolute tissue volumes
@@ -80,7 +84,8 @@ function varagout = boney_xml2csv(job)
     case {'boney_expert','boney_developer'}
       job.fieldnames = [job.fieldnames; {
         'vROI.bonemarrow';'vROI.bonecortex';'vROI.bonethickness';'vROI.headthickness';'vROI.head';
-        'sROI.bonecortex';'sROI.bonecortex';'sROI.bonethickness';'sROI.headthickness';'sROI.head';
+        'sROI.bonecortex';'sROI.bonemarrow';'sROI.bonethickness';'sROI.headthickness';
+        'vROI.headfat';'vROI.headfatthickness';
         ...
         'tismri'; % all tismri Boney measures 
         'tis';    % all tis SPM measures
@@ -89,7 +94,7 @@ function varagout = boney_xml2csv(job)
   switch job.report
     case {'boney_developer'}
       job.fieldnames = [job.fieldnames; {
-        'tis.clsQC';
+        'tismri.clsQC';
         } ]; 
   end
 
@@ -97,7 +102,14 @@ function varagout = boney_xml2csv(job)
   job.fname = strrep(job.fname,'DATE',datestr(clock,'YYYYmmDD-HHMMSS'));
   job.fname = strrep(job.fname,'REPORT',job.report);
 
-  varagout{1} = cat_io_xml2csv_boney(job);
+  cat_io_xml2csv_boney(job);
+  if nargout > 0
+    if isempty(job.outdir) || isempty(job.outdir{1})
+      varargout{1}.csv = {fullfile(pwd,job.fname)};
+    else
+      varargout{1}.csv = {fullfile(job.outdir{1},job.fname)};
+    end
+  end
 
 end
 % RD20230929: We just keep the updated cat_io_xml2csv here as the official CAT 
@@ -416,10 +428,10 @@ function FNS = getFN(SS,dimlim)
             FNI{fnii} = [FN{fni} '.' FNI{fnii}]; 
           end
         else
-          FNI = {};
-          for fnii = 1:numel(FNI)
+          FNIs = FNI; FNI = {};
+          for fnii = 1:numel(FNIs)
             for sii = 1:numel(S.(FN{fni}))
-              FNI = [FNI; sprintf(['%s(%0' acc 'd).%s'], FN{fni}, sii, FNI{fnii})]; %#ok<AGROW> 
+              FNI = [FNI; sprintf(['%s(%0' acc 'd).%s'], FN{fni}, sii, FNIs{fnii})]; %#ok<AGROW> 
             end
           end
         end

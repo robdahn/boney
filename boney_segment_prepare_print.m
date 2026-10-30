@@ -60,16 +60,16 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
     'Tgm'     'tis'     'GM'            1    'f'  0   ex>1
     'Thead'   'tis'     'head'          1    'f'  0   ex>1
     ...
-    'vBcor'   'vROI'    'bonecortex'    4    'f'  1   exm==1 | (exm>1 & ex>1)
+    'vBcor'   'vROI'    'bonecortex'    3    'f'  1   exm==1 | (exm>1 & ex>1)
     'vBmar'   'vROI'    'bonemarrow'    3    'f'  0   exm==1 | (exm>1 & ex>1)
     'vBth'    'vROI'    'bonethickness' 3    'f'  0   exm==1 | (exm>1 & ex>1)
-    'vHth'    'vROI'    'headthickness' 4    'f'  0   exm==1 | (exm>1 & ex>1)
+    'vHth'    'vROI'    'headthickness' 3    'f'  0   exm==1 | (exm>1 & ex>1)
     'vHmed'   'vROI'    'head'          1    'f'  0   exm==1 | (exm>1 & ex>1)
     ...
-    'sBcor'   'sROI'    'bonecortex'    4    'f'  1   exm==2
+    'sBcor'   'sROI'    'bonecortex'    3    'f'  1   exm==2
     'sBmar'   'sROI'    'bonemarrow'    3    'f'  0   exm==2
     'sBth'    'sROI'    'bonethickness' 3    'f'  0   exm==2
-    'sHth'    'sROI'    'headthickness' 4    'f'  0   exm==2 
+    'sHth'    'sROI'    'headthickness' 3    'f'  0   exm==2
     'sHmed'   'vROI'    'head'          1    'f'  0   exm==2 
     ...
     'Bmed'    'tismri'  'bone_med'      1    'f'  1   exc
@@ -116,22 +116,27 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
     if job.opts.verb 
       verbosestr = {'No','Yes','Yes - Details'};
       pmethodstr = {'previous','SPM','CAT','CTseg'};
-      tmpstr     = {'Adult TPM','Children TPM'};
-      bmethodstr = {'SPMmat8','Volume-based','Surface-based', ...
-        'Volume-based (old version without refinement)','Volume-based (old version with refinement)'};
+      tmpstr     = {'automatic','Adult TPM','Children TPM','BlaiottaTPM','TPM7blr'};
+      bmethodstr = {'SPMmat8','Volume-based','Surface-based'};
+      prerunstr  = {'No - ask/warn if SPM parameters differ','Yes - always','No - use existing','No - rerun if SPM parameters differ'};
+      affregstr  = {'No','Yes','Yes - COM','Yes - identity'};
       reportstr  = {'No','Yes - Basic','Yes - Volumes','Yes - Full'};
       volstr     = {'No','native','affine','warped','affine + warped','native + affine + warped'}; 
-      refstr     = {'No - original SPM','Yes - morphological closing','Yes - enhanced V2', 'Yes - enhanced V3'}; 
-      fprintf('  Tissue Probability Map:   %d (%s)\n', job.opts.ctpm,     tmpstr{job.opts.ctpm});
+      refstr     = {'No - original SPM','Yes'}; 
+      if ~isempty(job.opts.spm.tpm)
+        fprintf('  Tissue Probability Map:   %s\n', job.opts.spm.tpm);
+      else
+        fprintf('  Tissue Probability Map:   %d (%s)\n', job.opts.ctpm,     tmpstr{job.opts.ctpm+1});
+      end
       fprintf('  Preprocessing   method:   %d (%s)\n', job.opts.pmethod,  pmethodstr{job.opts.pmethod+1});
       fprintf('  Bone processing method:   %d (%s)\n', job.opts.bmethod,  bmethodstr{job.opts.bmethod+1});
       fprintf('  Verbose processing:       %d (%s)\n', job.opts.verb,     verbosestr{job.opts.verb + 1});
       if ex>0
-        fprintf('  Rerun preprocessing:      %d (%s)\n', job.opts.prerun,  verbosestr{job.opts.prerun  + 1});
+        fprintf('  Rerun preprocessing:      %d (%s)\n', job.opts.prerun,  prerunstr{job.opts.prerun  + 1});
         fprintf('  Rerun bone processing:    %d (%s)\n', job.opts.rerun,   verbosestr{job.opts.rerun   + 1});
-        fprintf('  Affine registration:      %d (%s)\n', job.opts.affreg,  verbosestr{job.opts.affreg  + 1});
+        fprintf('  Affine registration:      %d (%s)\n', job.opts.affreg,  affregstr{abs(job.opts.affreg) + 1});
         fprintf('  Strong bias correction:   %d (%s)\n', job.opts.bias,    verbosestr{job.opts.bias    + 1});
-        fprintf('  Refine segmentation:      %d (%s)\n', job.opts.refine,  refstr{job.opts.refine  + 1});
+        fprintf('  Refine segmentation:      %d (%s)\n', job.opts.refine,  refstr{(job.opts.refine>0) + 1});
         fprintf('  Intensity normalization:  %s \n'    , job.opts.bnorm);
         fprintf('  Use sub directories:      %d (%s)\n', job.opts.subdirs, verbosestr{job.opts.subdirs + 1});
         fprintf('  Classic measures:         %d (%s)\n', job.opts.classic, verbosestr{job.opts.classic + 1});
@@ -139,12 +144,12 @@ function [Theader,Tline,Tavg, Cheader, MA, matm, mmatm] = ...
         if job.opts.bmethod>1
           fprintf('  Reduce-factor:            %dx (1-org,2-half,...) \n', job.opts.reduce);
         end
-        fprintf('  Bone atlas:               %s\n'     , job.opts.Patlas{1} );
-        fprintf('  Bone mask:                %s\n'     , job.opts.Pmask{1} );
+        if ~isempty(job.opts.Patlas), fprintf('  Bone atlas:               %s\n', job.opts.Patlas{1} ); end
+        if ~isempty(job.opts.Pmask),  fprintf('  Bone mask:                %s\n', job.opts.Pmask{1} );  end
         fprintf('  Write ouput: \n');
         fprintf('    Report:                 %s\n'     , job.output.resdir);
         fprintf('    Write volumes:          %d (%s)\n', job.output.writevol,  volstr{job.output.writevol + 1});
-        fprintf('    Write surfaces:         %d (%s)\n', job.output.writesurf, reportstr{job.output.writesurf + 1});
+        fprintf('    Write surfaces:         %d (%s)\n', job.output.writesurf, verbosestr{(job.output.writesurf>0) + 1});
         fprintf('    Report:                 %d (%s)\n', job.output.report, reportstr{job.output.report + 1});
       else
         fprintf('  Report:                   %d (%s)\n', job.output.report, reportstr{job.output.report + 1});

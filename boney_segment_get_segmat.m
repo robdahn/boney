@@ -37,7 +37,6 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
   if strcmp(out.P.seg8(end-2:end),'mat')
     seg8t           = load(out.P.seg8); 
     
-    trans           = getDeformation(seg8t, job_ouput_writevol >= 3 ); 
     if out.CTseg
       seg8t.dat.model.gmm = rmfield(seg8t.dat.model.gmm,{'T','Sig'});
       % #### this is not fully working and the classes values are strange ...
@@ -52,12 +51,22 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
       seg8t.Affine  = eye(4);
       seg8t.image   = spm_vol(out.P.org);
       seg8t.isCTseg = 1; 
+      seg8t.ntpm    = 6; 
       seg8t         = rmfield(seg8t,'dat');
       seg8t.sett    = rmfield(seg8t.sett,'B');
+      trans         = getDeformation(seg8t, job_ouput_writevol >= 3 ); 
     else
-      seg8t         = rmfield(seg8t,{'Twarp','Tbias','MT'}); % store this one for later 
-      seg8t.isCTseg = 0; 
-      
+      trans         = getDeformation(seg8t, job_ouput_writevol >= 3 ); 
+      seg8t         = rmfield(seg8t,{'Twarp','Tbias','MT'}); % store this one for later
+      seg8t.isCTseg = 0;
+
+      % BlaiottaTPM: map the 7 head classes to the 6 SPM TPM classes before
+      % any tissue intensity is estimated
+      seg8t.ntpm    = max(seg8t.lkp); % original number of TPM classes 
+      if seg8t.ntpm == 7
+        seg8t = mapBlaiottaClasses(seg8t);
+      end
+
       if numel( seg8t.image ) > 1
         iid         = contains(out.P.org,{seg8t.image.fname}); 
         seg8t.image = seg8t.image(iid);
@@ -100,6 +109,7 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
       seg8t.image.fname = Sxml.filedata.fname; 
     end
     seg8t.isCTseg = 0; 
+    seg8t.ntpm    = 6; 
     seg8t.help    = struct( ...
       'main'   , 'The main field "seg8t" includes single values from the SPM preprocessing used by SPM12, CAT12, or CTseg.', ...
       'Affine' , 'Affine transformation matrix from individual to (MNI) template space.', ...
@@ -120,18 +130,13 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
 % ###################
 
     %% check for problems and skip in the worst case
+    % (CAT does not provide the SPM deformation, i.e., only the native 
+    % space output is supported)
+    trans = []; 
     if ~isfield(Sxml,'error') && max(seg8t.lkp) ~= 6 
       tis = struct(); 
       cat_io_cprintf('err','ERROR:boney.SPMpperror: Only 6 class models are supported yet! Continue with next subject\n');
       return
-    end
-
-    % load Y? image
-    if exist(out.P.y,'file')
-      trans = struct();
-    else
-      cat_io_cprintf('err','ERROR:boney.CATpperror: No non-linear deformation available. Procced with affine data.\n');
-      trans = struct(); 
     end
   end
   
@@ -148,13 +153,13 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
   % SPM main tissue thresholds
   tis.help.main       = ['The main "tis" structure inlcudes SPM-based measures (seg8*,WMth), ' ...
                          'image resolution (res_*) and major image class values (WM,GM,CSF,bone[cortex|marrow],head,background).'];
-  tis.help.seg8o      = 'SPM seg8 main tissue intensity (mn of max mg in lkp).';
-  tis.help.seg8ov     = 'SPM seg8 main tissue variance (vr of max mg in lkp).';
-  tis.help.seg8n      = 'SPM main tissue intensity (mn of max mg in lkp) normalized by the WM.'; % normalized by WM
-  tis.help.seg8nv     = 'SPM main tissue variance (vr of max mg in lkp) normalized by the WM.';
+  tis.help.seg8o      = 'SPM seg8 main tissue intensity (mg-weighted average of mn in lkp).';
+  tis.help.seg8ov     = 'SPM seg8 main tissue variance (mg-weighted average of vr in lkp).';
+  tis.help.seg8n      = 'SPM main tissue intensity (mg-weighted average of mn in lkp) normalized by the WM.'; % normalized by WM
+  tis.help.seg8nv     = 'SPM main tissue variance (mg-weighted average of vr in lkp) normalized by the WM.';
   tis.help.seg8con    = 'Minimum brain tissue contrast in SPM seg8t.'; 
   tis.help.seg8conn   = 'Minimum brain tissue contrast in SPM seg8t normalized by the WM.'; 
-  tis.help.seg8CNR    = 'Noise estimate as minimum of the WM and CSF variance in percent (similar to BWP).';
+  tis.help.seg8CNR    = 'Noise estimate as standard deviation of the WM in percent of the WM intensity (similar to BWP).';
   % ---
   tis.help.WMth       = 'SPM WM tissue intensity.'; 
   tis.help.res_vx_vol = 'Image voxel resolution in mm.'; 
@@ -177,8 +182,9 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
       % intensities in bone(marrow) and the proportion of fat then (weighted)  
       % averaging should be fine (will depend on a subject and protocol).
       % To only use the strongest value is less stable (eg. for the 2-class CSF)
-      tis.seg8o(ci)     = mean(seg8t.mg(seg8t.lkp==ci)' .* seg8t.mn(seg8t.lkp==ci),2);
-      tis.seg8ov(ci)    = mean(seg8t.mg(seg8t.lkp==ci)' .* shiftdim(seg8t.vr(seg8t.lkp==ci),4),2);
+      % As the mg of a class sum up to 1, the weighted average is the sum.
+      tis.seg8o(ci)     = sum(seg8t.mg(seg8t.lkp==ci)' .* seg8t.mn(seg8t.lkp==ci),2);
+      tis.seg8ov(ci)    = sum(seg8t.mg(seg8t.lkp==ci)' .* shiftdim(seg8t.vr(seg8t.lkp==ci),4),2);
     end
   end
 
@@ -199,8 +205,9 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
     tis.seg8nv        = tis.seg8ov ./ tis.WMth;
     tis.seg8con       = min(abs(diff(tis.seg8o)));
     tis.seg8conr      = min(abs(diff(tis.seg8n)));
-    tis.seg8CNR       = min( seg8t.vr(:) ./ tis.WMth ./ ...
-      (seg8t.lkp(:)==2 | seg8t.lkp(:)==3  | seg8t.lkp(:)==6) ) .* tis.seg8conr * 3; 
+    % noise as standard deviation of the WM Gaussian in percent of the WM intensity
+    % (CSF is not used as its Gaussians include partial volume effects)
+    tis.seg8CNR       = 100 * min( sqrt( seg8t.vr( seg8t.lkp(:)==2 ) ) ) ./ tis.WMth;
   end
 
   % resolution measures
@@ -220,14 +227,16 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
     elseif tis.seg8n(3) > tis.seg8n(1)  &&  tis.seg8n(1) > tis.seg8n(2)      % T2: CSF > GM > WM
       tis.weighting  = 2;
       tis.weightingn = 'T2w';
-    elseif tis.seg8o(3) < 0  && is.seg8o(2) < 2                              % MT: negative CSF values and not too high WM values
+    elseif tis.seg8o(3) < 0  && tis.seg8o(2) < 2                             % MT: negative CSF values and not too high WM values
       tis.weighting  = 3;
       tis.weightingn = 'MTw';
-    elseif tis.seg8o(6) > tis.seg8o(2) && tis.seg8nv(6) < .3                 % high int - low var
+    elseif tis.seg8o(6) > tis.seg8o(2) && tis.seg8nv(6) < .6                 % high int - low var
       tis.weighting  = 4;
       tis.weightingn = 'IRw'; % inverse recovery
-    elseif all( tis.seg8o(1:6) < [100 45 25 1000   10  -200] )  &&  ...        % CT: [40 30 20 1024 0 -1024];
-           all( tis.seg8o(1:6) > [ 45 25 10 100  -200 -2000] ) 
+    % The limits were defined for the averages that were divided by the
+    % number of Gaussians [1 1 2 3 4 2] and are scaled to keep the decision.
+    elseif all( tis.seg8o(1:6) < [100 45 25 1000   10  -200] .* [1 1 2 3 4 2] )  &&  ...  % CT: [40 30 20 1024 0 -1024];
+           all( tis.seg8o(1:6) > [ 45 25 10 100  -200 -2000] .* [1 1 2 3 4 2] )
       tis.weighting  = -1;
       tis.weightingn = 'CT';
       % update
@@ -263,10 +272,11 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
   % background types 
   tis.help.highBG = ['Intensity of the background based on the SPM seg8t intensities ' ...
     '(0=low,classical MRI; 1=high int low var, e.g. MP2Rage; 2=high int low var, e.g. IR; 3=mid int high var, e.g. MT)'];
-  if     tis.seg8o(6) > tis.seg8o(2) && tis.seg8nv(6) > .3 % high int - high var
+  % (the variance limit was .3 for the variance divided by the 2 background Gaussians)
+  if     tis.seg8o(6) > tis.seg8o(2) && tis.seg8nv(6) > .6 % high int - high var
     tis.highBG     = 1;
     tis.highBGn    = 'high'; % intensity, high variance background (e.g. uncorrected MP2Rage)';
-  elseif tis.seg8o(6) > tis.seg8o(2) && tis.seg8nv(6) < .3 % high int - low var
+  elseif tis.seg8o(6) > tis.seg8o(2) && tis.seg8nv(6) < .6 % high int - low var
     tis.highBG     = 2;
     tis.highBGn    = 'high2'; % intensity, low variance background (e.g. inverse recovery)';
   elseif tis.seg8o(6) < tis.seg8o(3) 
@@ -343,9 +353,9 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
                           % refined ( min in T1w, otherwise max )  
   tis.help.bonecortex = 'Cortical bone intensity, i.e. "min( seg8.mn( seg8t.lkp==4) )".';  
   tis.help.bonemarrow = 'Spongy bone intensity, i.e. "max( seg8.mn( seg8t.lkp==4) )".'; 
-  tis.help.bone       = 'Weighted average of the SPM bone intensities, i.e. "mean(seg8t.mg(seg8t.lkp==4)'' .* seg8t.mn(seg8t.lkp==4),2)".';
-  tis.help.head       = 'Weighted average of the SPM head intensities, i.e. "mean(seg8t.mg(seg8t.lkp==5)'' .* seg8t.mn(seg8t.lkp==5),2)".';
-  tis.help.background = 'Averaged SPM background intensity.';
+  tis.help.bone       = 'Weighted average of the SPM bone intensities, i.e. "sum(seg8t.mg(seg8t.lkp==4)'' .* seg8t.mn(seg8t.lkp==4),2)".';
+  tis.help.head       = 'Weighted average of the SPM head intensities, i.e. "sum(seg8t.mg(seg8t.lkp==5)'' .* seg8t.mn(seg8t.lkp==5),2)".';
+  tis.help.background = 'Weighted average of the SPM background intensities.';
   % not so easy to extract the values from the typical 4 peaks 
   %tis.help.muscle     = 'Normalized protocol-selected values of tis.*Head.'; 
   %tis.help.fat        = 'Normalized protocol-selected values of tis.*Head.'; 
@@ -394,6 +404,27 @@ function [ seg8t, tis, vx_vol, trans] = boney_segment_get_segmat(out,job_ouput_w
      
   end
 
+end
+function seg8t = mapBlaiottaClasses(seg8t)
+%mapBlaiottaClasses. Map the Gaussians of the 7 BlaiottaTPM classes to the
+% 6 SPM TPM classes, i.e., 1-3 brain tissues, 4-soft tissue and 5-fat to
+% 5-head, 6-skull to 4-bone, and 7-background to 6-background (see also
+% the BlaiottaTPM block in boney_segment). The Gaussian weights mg of the
+% merged classes are weighted by the class proportions wp and renormalized.
+  cmap = [1 2 3 5 5 4 6];
+  if isfield(seg8t,'wp') && numel(seg8t.wp) == 7
+    wp = seg8t.wp;
+    seg8t.wp = accumarray(cmap(:), wp(:))';
+  else
+    wp = ones(1,7);
+  end
+  mg   = seg8t.mg(:) .* reshape(wp(seg8t.lkp),[],1);
+  lkp  = cmap(seg8t.lkp);
+  for ci = 1:max(cmap)
+    mg(lkp==ci) = mg(lkp==ci) / sum(mg(lkp==ci));
+  end
+  seg8t.mg  = reshape(mg,size(seg8t.mg));
+  seg8t.lkp = lkp;
 end
 function trans = getDeformation(seg8t, dodefs)
 %% relevant lines from spm_preproc_write8 and cat_main_registration

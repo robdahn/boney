@@ -41,14 +41,14 @@ function boney = tbx_cfg_boney
   nproc.strtype = 'w';
   nproc.val     = {numcores};
   nproc.num     = [1 1];
-  nproc.hidden  = true; 
+  nproc.hidden  = false;
   nproc.help    = {
-     ['NOT YET IMPLEMENTED: ' ...
-      'In order to use multi-threading jobs with multiple subjects processing can be split into separate processes that run in the background. ' ...
-      'You can even close Matlab, which will not affect the processes that will run in the background without GUI. ' ...
+     ['In order to use multi-threading jobs with multiple subjects processing can be split into separate processes that run in the background. ' ...
+      'The main process waits for the background processes and finally loads all results to write one CSV file and to support dependencies. ' ...
+      'If you close Matlab, the background processes will continue but the final CSV file will not be written. ' ...
       'If you do not want to run processes in the background then set this value to 0. ' ]
       ''
-      'Please note that no additional modules in the batch can be run. Any dependencies will be broken for subsequent modules.'
+      'Please note that each process requires about 2-3 GB of memory for the SPM segmentation.'
     };
   
   
@@ -155,37 +155,27 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   affreg.labels         = {'No','Yes'};
   affreg.values         = {0,1};
   affreg.val            = {0};
-  affreg.hidden         = expertgui<3; % ########### not implemented yet
+  affreg.hidden         = expertgui<3; % developer option
   affreg.help           = {'Apply bone-focused affine registration.';''};
 
   refine                = cfg_menu;
   refine.tag            = 'refine';
   refine.name           = 'Refine preprocessing (expert)';
-  refine.labels         = {'No','Yes - enhanced (1)','Yes - enhanced (2)', 'Yes - enhanced (3)'};
-  refine.values         = {0,1,2,3};
-  refine.val            = {3};
+  refine.labels         = {'No','Yes'};
+  refine.values         = {0,1};
+  refine.val            = {1};
   refine.hidden         = expertgui<1;
   refine.help           = { ...
    ['Without fat supression, the bone marrow can have high intensities that can be mislabed as head. ' ...
     'This can be seen as large local underestimations of bone thickness and bone intensity - ' ...
-    'typically well visible on the skull surface. ' ...
-    'Morphological operations were used to close such holes and obtain a more complete skull segment. '];
+    'typically well visible on the skull surface. '];
     '';
-   ['The enhanced version made a precorrection of the background and brainmask to estimate a distance-based refinement based on atlas regions. ' ...
-    'The simplified assumption is that the head and skull have a 50:50 relationship in thinner regions of the skull, which would be covered by a hat, to correct severe outliers. '];
+   ['The refinement makes a precorrection of the background and brainmask to estimate a distance-based refinement based on atlas regions. ' ...
+    'The simplified assumption is that the head and skull have a 50:50 relationship in thinner regions of the skull, which would be covered by a hat, to correct severe outliers. ' ...
+    'In addition, minimum/maximum filters are used to estimate the bone cortex and bone marrow intensity. '];
     '';
-   ['Although the enhanced refined support further improvements it is still not optimal and we tried further improventments in a second enhanced version. ' ...
-    'The first refinement often includes too much head tissue, what is bad for volume-based evaluation but ok for surface-based. ' ...
-    'By adding another distance based relationships and try to make more conservative changes we tried to overcome some issues. ' ...
-    'However, there are still a lot of problems and overcorrection can reduce sensetivity of the measure. '];
-    ''; 
-   ['Another issue seems to be that the BMD correlation was better in worste segmentations that include too much head information, ' ...
-    'and that we have to find some compromise betweeen corrected segmenation and high correlation. '];
-    '';
-   ['To conclude, no refinement misses fatty bone marrow and BMD correlation is a bit lower, ' ...
-    'refinement version 1 corrects the segmentation partially by morphological closing of missed bone-marrow, ' ...
-    'what works only if the marrow is surrounded by sufficent amount of bone-cortex, whereaas ' ...
-    'version 2 and 3 tried to overcome this by further assumptions that are not optimal write now. '];
+   ['Without refinement fatty bone marrow is often missed and the BMD correlation is a bit lower. ' ...
+    'The former refinement versions 1-3 were replaced by the (former) version 3. '];
     '';
    };
   
@@ -196,13 +186,20 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   prerun                = cfg_menu;
   prerun.tag            = 'prerun';
   prerun.name           = 'Rerun SPM/CAT preprocessing (expert)';
-  prerun.labels         = {'No','Yes'};
-  prerun.values         = {0,1};
+  prerun.labels         = {'No - ask if SPM parameters differ','Yes - always','No - use existing segmentation','Rerun if SPM parameters differ'};
+  prerun.values         = {0,1,2,3};
   prerun.val            = {0};
   prerun.hidden         = expertgui<1;
   prerun.help           = { ...
     ['Run SPM/CAT processing even if the output already exists. ' ...
-     'As preprocessing is considered to be stable, reprocessing is generally not required. '];''};
+     'As preprocessing is considered to be stable, reprocessing is generally not required. ' ...
+     'However, reusing existing segmentations is risky if they were processed with other SPM parameters. ' ...
+     'Boney compares the TPM, the number of Gaussians, the bias FWHM, and the sampling distance of existing ' ...
+     'SPM segmentations (seg8.mat) with the current setting and reports differences. '];
+    '';
+    ['In the default setting, the user is asked how to proceed (use existing segmentation, rerun the segmentation, ' ...
+     'or stop processing, e.g., to use another result directory), whereas without GUI the existing segmentation is used. '];
+    ''};
 
   rerun                 = cfg_menu;
   rerun.tag             = 'rerun';
@@ -286,10 +283,28 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   ctpm                  = cfg_menu;
   ctpm.tag              = 'ctpm';
   ctpm.name             = 'TPM';
-  ctpm.labels           = {'Adults','Childen'}; % some additional small-child template would be nice 
-  ctpm.values           = {1,2};
-  ctpm.val              = {1};
-  ctpm.help             = {'Select TPM (Tissue Probility Map) for preprocessing. ';''};
+  ctpm.labels           = {'Automatic','Adults (SPM TPM)','Children (CAT TPM_Age11.5)','BlaiottaTPM'}; % some additional small-child template would be nice 
+  ctpm.values           = {0,1,2,3};
+  ctpm.val              = {0};
+  ctpm.help             = {
+    'Select TPM (Tissue Probility Map) for preprocessing. ';
+    '';
+    ['The standard SPM TPM is not optimal for children (very thin skull, small head) and the elderly ' ...
+     '(thicker and fatty skull, larger head), as the head and skull change strongly with age. ' ...
+     'The automatic selection uses a fast affine registration of all TPMs to estimate how good each TPM fits to the image ' ...
+     'and selects the best fitting one (the selection is stored in the XML file). '];
+    ''};
+  % optimized 7-class TPM (Blaiotta classes in the SPM field of view) that is
+  % only available in some SPM installations (not used by the automatic selection)
+  Ptpms = boney_segment_preprocessing('tpms');
+  if exist(Ptpms{4},'file')
+    ctpm.labels{end+1}  = 'Optimized 7-class TPM (TPM7blr)';
+    ctpm.values{end+1}  = 4;
+    ctpm.help           = [ctpm.help; {
+      ['The optimized 7-class TPM (mni0R1p5_TPM7blr) combines the SPM TPM and the BlaiottaTPM classes in MNI space. ' ...
+       'It gave the best bone thickness estimates in adults but failed in young children and is therefore not used by the automatic selection. '];
+      ''}];
+  end
 
   % normalization tissue 
   % - multiple choises possible .. this is more for our tests
@@ -318,24 +333,11 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
 % Extend help
 % #########
 
-  % use non-linear SPM registration 
-  % - slower but maybe a bit better
-  % - was originaly thinking about using Shooting for bones but without
-  %   clear substructure (the bone marrow is not stable enough) this is difficult
-  nlreg                 = cfg_menu;
-  nlreg.tag             = 'nlreg';
-  nlreg.name            = 'Use non-linear normalization (expert)';
-  nlreg.labels          = {'No','Yes'}; 
-  nlreg.values          = {0,1};
-  nlreg.val             = {0};
-  nlreg.hidden          = expertgui<1;
-  nlreg.help            = {'Use non-linear SPM normalization (no ready yet). ';''};
-  
   % main parameter structure passed to cat_plot_boxplot
   opts                  = cfg_exbranch;
   opts.tag              = 'opts';
   opts.name             = 'Options';
-  opts.val              = { ctpm, pmethod, bmethod, bnorm, nlreg, classic, reslim, affreg, ...
+  opts.val              = { ctpm, pmethod, bmethod, bnorm, classic, reslim, affreg, ...
     refine, reduce, atlas, mask, nproc, prerun, rerun, verb }; 
   opts.help             = {'Specify processing parameters and atlas/mask files. '};
 
@@ -402,7 +404,7 @@ function segment = boney_cfg_segment(files,nproc,expertgui,verb)
   writevol.values       = {0,1,2,3,4,5};
   writevol.val          = {0};
   %writevol.hidden       = expertgui<1;
-  writevol.help         = {'Write refined bone segment volumes used for extraction into a "vol" subdirectory.';''};
+  writevol.help         = {'Write refined bone segment volumes used for extraction (into a "mri" subdirectory if subdirectories are used).';''};
  
   % - here we have the general registration issue 
   writesurf             = cfg_menu;
@@ -555,57 +557,42 @@ function dep = vout_boney_cfg_segment(job)
     dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
   end
 
-  if job.output.writeseg % only native 
+  if job.output.writeseg == 1 % only native 
     for ci = 1:5
       dep(end+1)          = cfg_dep;
       dep(end).sname      = sprintf('cls %d',ci);
-      dep(end).src_output = substruct('.','cls','{}',{'1'},'{}',{':'});
+      dep(end).src_output = substruct('.','cls','{}',{ci},'{}',{':'});
       dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
     end
   end
   
   % bone volume that includes both cortex and marrow
-  if job.output.writevol == 1 || job.output.writevol == 3
+  % (writevol: 1-native, 2-affine, 3-warped, 4-affine+warped, 5-all)
+  if any(job.output.writevol == [1 5])
     dep(end+1)          = cfg_dep;
     dep(end).sname      = 'Bone(native)';
-    dep(end).src_output = substruct('.','bone_native','{}',{':'});
+    dep(end).src_output = substruct('.','bone','()',{':'});
     dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
   end
-  if job.output.writevol == 2 || job.output.writevol == 3
+  if any(job.output.writevol == [2 4 5])
     dep(end+1)          = cfg_dep;
     dep(end).sname      = 'Bone(affine)';
-    dep(end).src_output = substruct('.','rbone_affine','{}',{':'});
+    dep(end).src_output = substruct('.','rbone_affine','()',{':'});
     dep(end).tgt_spec   = cfg_findspec({{'filter','image','strtype','e'}});
   end
   
 
   % there are multiple surfaces, but as no registration was done they cannot
   % be used so far (e.g., to create an average etc.)
-  if job.output.writesurf
-    dep(end+1)          = cfg_dep;
-    dep(end).sname      = 'Surfaces';
-    dep(end).src_output = substruct('.','bcentral');
-    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
-
-    dep(end+1)          = cfg_dep;
-    dep(end).sname      = 'Surfaces';
-    dep(end).src_output = substruct('.','bcentral');
-    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
-
-    dep(end+1)          = cfg_dep;
-    dep(end).sname      = 'Surfaces';
-    dep(end).src_output = substruct('.','bmarrow');
-    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
-
-    dep(end+1)          = cfg_dep;
-    dep(end).sname      = 'Surfaces';
-    dep(end).src_output = substruct('.','bthickness');
-    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
-
-    dep(end+1)          = cfg_dep;
-    dep(end).sname      = 'Surfaces';
-    dep(end).src_output = substruct('.','hthickness');
-    dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
+  if job.output.writesurf && job.opts.bmethod == 2
+    sfields = {'bcentral','bcortex','bmarrow','bthickness','hthickness'};
+    snames  = {'Bone central surface','Bone cortex','Bone marrow','Bone thickness','Head thickness'};
+    for si = 1:numel(sfields)
+      dep(end+1)          = cfg_dep;
+      dep(end).sname      = snames{si};
+      dep(end).src_output = substruct('.',sfields{si},'()',{':'});
+      dep(end).tgt_spec   = cfg_findspec({{'filter','any','strtype','e'}});
+    end
   end
   
 return

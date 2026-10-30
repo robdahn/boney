@@ -1,12 +1,12 @@
 function [Vo, Ym, Yc, Ybonemarrow, tismri, Si, Stm, Affine] = ... 
-  boney_segment_fst(Pi, Pc4, job, seg8t, tis, vx_vol) 
+  boney_segment_fst(P, job, seg8t, tis, vx_vol) 
 %boney_segment_fst. Fast bone processing, export and report preparation.  
 % 
-%  [Vo, Yo, Ym, Yc, Yc4, Ybonemarrow, tismri, Si, St, Sti, Affine] = ... 
-%    boney_segment_fst(Pi, Pc4, job, seg8t, tis, vx_vol) 
+%  [Vo, Ym, Yc, Ybonemarrow, tismri, Si, Stm, Affine] = ... 
+%    boney_segment_fst(P, job, seg8t, tis, vx_vol) 
 %
-%  Pi           .. ith input file
-%  Pc4          .. bone class image
+%  P            .. filename structure of the subject (bias corrected 
+%                  image P.bc and bone class P.cls{4} are used)
 %  job          .. main job structure to include some parameters in the
 %                  filename etc.
 %  seg8t        .. spm8 structure without larger fields
@@ -38,10 +38,10 @@ function [Vo, Ym, Yc, Ybonemarrow, tismri, Si, Stm, Affine] = ...
   Yc = {};                    % no general tissue classes 
   Si = ''; Stm = '';          % no surfaces at all
 
-  Vo = spm_vol(Pi);
+  Vo = spm_vol(P.bc); % bias corrected image
   Yo = single(spm_read_vols(Vo));
 
-  Vc4   = spm_vol(Pc4); 
+  Vc4   = spm_vol(P.cls{4}); 
   Yc{4} = single(spm_read_vols(Vc4));
 
   % approximation of TIV as enclosed volume
@@ -56,7 +56,7 @@ function [Vo, Ym, Yc, Ybonemarrow, tismri, Si, Stm, Affine] = ...
   
   % prepare measures just for the bone (class 4)
   tismri.help.TIV      = 'Total intracranial volume (GM + WM + CSF) - fast approximation.';
-  tismri.help.vol      = 'Volume of the SPM tissues classes in mm (probability >.5).';
+  tismri.help.vol      = 'Volume of the SPM tissues classes in cm3 (probability >.5).';
   tismri.help.volr     = 'Relative volume of the SPM tissues classes (probability >.5) normalized by TIV.';
   tismri.help.Tth      = 'Median intensity of the (optimized) tissue class (~peak intensity).'; 
   tismri.help.Tsd      = 'SD of the intensity of the (optimized) tissue class (~peak intensity).'; 
@@ -73,7 +73,7 @@ function [Vo, Ym, Yc, Ybonemarrow, tismri, Si, Stm, Affine] = ...
   tismri.TIV          = cat_stat_nansum(Ytiv(:)>0.5) .* prod(vx_vol) / 1000;
   tismri.vol          = [nan nan nan cat_stat_nansum(Yc{4}(:)>0.5) .* prod(vx_vol) / 1000 nan nan]; 
   tismri.volr         = tismri.vol ./ tismri.TIV;
-  tismri.Tth          = [nan nan nan cat_stat_nansum(Yo(Yc{4}(:)>0.5)) / tis.seg8o(2) nan nan]; 
+  tismri.Tth          = [nan nan nan cat_stat_nanmedian(Yo(Yc{4}(:)>0.5)) / tis.seg8o(2) nan nan]; 
   tismri.Tsd          = [nan nan nan cat_stat_nanstd(Yo(Yc{4}(:)>0.5)) / tis.seg8o(2) nan nan]; 
   tismri.bone_med     = cat_stat_nanmedian( Ybonemarrow(Yc{4}(:)>.5) );
   tismri.int          = struct('GM', nan, 'WM', nan, 'CSF', nan,...
@@ -103,7 +103,7 @@ function [Vo, Ym, Yc, Ybonemarrow, tismri, Si, Stm, Affine] = ...
   
     job.output.bonemarrow  = struct('native',1,'warped',0,'dartel',3);
     % midline map also for masking masking
-    cat_io_writenii(Vo,Ybonemarrow,'',sprintf('bone%d_',job.opts.bmethod), ...
+    cat_io_writenii(Vo,Ybonemarrow,P.mripath,'bonemarrow_', ...
       'bone','uint16',[0,0.001], ... 
       min([1 0 2],[job.output.bonemarrow.native job.output.bonemarrow.warped job.output.bonemarrow.dartel]),trans);
     clear trans

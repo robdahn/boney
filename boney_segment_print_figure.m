@@ -28,7 +28,8 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow, Si,St, out,job,Affine)
   
 
   % == setup of SPM figure and print options == 
-  popts = prepareReport(out.P.org,out.P.mrirdir);
+  popts = prepareReport(out.P.org);
+  restorefig = onCleanup(@() set(popts.fig(ishandle(popts.fig)),'Visible',popts.figvis)); %#ok<NASGU> % also in case of errors
   
   
   % == Table 1: full spm classes values ==
@@ -54,8 +55,8 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow, Si,St, out,job,Affine)
 
   % == error messages ==
   %  - show only in case of no refinement or as note?
-  printErrors
- 
+  printErrors(popts)
+
 
  
   % == histogram ==
@@ -79,7 +80,7 @@ function boney_segment_print_figure(Vo,Ym,Yc,Ybonemarrow, Si,St, out,job,Affine)
   printSurfaces(St,Si,job,out,popts)
 
 end
-function popts = prepareReport(fname,resdir)
+function popts = prepareReport(fname)
 %prepareReport. Setup of SPM figure and print options.
 
   % fontsettings
@@ -97,22 +98,27 @@ function popts = prepareReport(fname,resdir)
   popts.mrkcol    = cat_io_colormaps('marks',100)/1.5;
   
   % setup SPM figure
-  popts.fig = spm_figure('FindWin','Graphics'); 
+  %  - the SPM Graphics window is required by spm_orthviews but we create it
+  %    hidden (or hide an existing one) to avoid popups while printing,
+  %    the previous visibility is restored at the end of the report
+  popts.fig = spm_figure('FindWin','Graphics');
+  if isempty(popts.fig)
+    popts.fig = spm_figure('Create','Graphics','Graphics','off');
+  end
+  popts.figvis = get(popts.fig,'Visible');
+  set(popts.fig,'Visible','off');
   set(0,'CurrentFigure',popts.fig)
   spm_figure('Clear',popts.fig);
-  if isempty(popts.fig)
-    popts.fig = spm_figure('Create','Graphics','visible','on'); 
-  end
-  colormap gray; 
+  colormap(popts.fig,'gray');
 
   % main text report box with header (filename)
   popts.ax = axes('Position',[0.01 0.75 0.98 0.245],'Visible','off','Parent',popts.fig);
-  [pp,ff,ee] = spm_fileparts( fname ); 
-  pp = spm_fileparts( spm_str_manip( pp ,sprintf('k%d',max(0,80 - numel(resdir)))) ); 
+  %  - show the input file with its directory (blue) shortened to keep the
+  %    header within the page width
+  [pp,ff,ee] = spm_fileparts( fname );
+  pp = spm_str_manip( [pp filesep] , sprintf('a%d',max(8,84 - numel([ff ee]))));
   pp = strrep( strrep( pp ,'\','\\'), '_','\_'); ff = strrep( strrep( ff ,'\','\\'), '_','\_');
-  resdir  = spm_str_manip( resdir , sprintf('k%d',max(0,80 - numel(ff))));
-  resdir2 = strrep( strrep( spm_str_manip( [filesep resdir filesep]),'\','\\'), '_','\_');
-  fname2 = [pp '\color[rgb]{0,0.5,1}' resdir2 '\color[rgb]{0,0,0}' ff ee]; 
+  fname2 = ['\color[rgb]{0,0.5,1}' pp '\color[rgb]{0,0,0}' ff ee];
   text(0,0.99, ['Bone marrow extraction: ' fname2 '       '],...
     'FontSize',popts.fontsize+1,'FontWeight','Bold','Interpreter','tex','Parent',popts.ax);
 
@@ -195,11 +201,11 @@ function printTPMtable(job,out,popts)
   if out.spm8.isCTseg && ~job.opts.normCT 
     out.tis.seg8x = out.tismri.Tth;  % ... see comments for further measures but better to keep it simple       
     FN  = {'clsn','seg8x','vol','volr'};                                  % 'den','clsG','seg8nv',
-    FNn = {'TPM class','Med.Int.','Volume mm3','Volume (%TIV)'};          % 'Volume density','n-Class(well)','Main-std',
+    FNn = {'TPM class','Med.Int.','Volume cm3','Volume (%TIV)'};          % 'Volume density','n-Class(well)','Main-std',
     FNt = {'%s','%0.0f','%0.0f','%0.1f'};                                 % '%0.0f','%s','%0.3f',
   else
     FN  = {'clsn','seg8n','vol','volr'};                                  % 'den','clsG','seg8nv',
-    FNn = {'TPM class','Norm.Med.Int.','Volume mm3','Volume (%TIV)'};     % 'Volume density','n-Class(well)','Main-std',
+    FNn = {'TPM class','Norm.Med.Int.','Volume cm3','Volume (%TIV)'};     % 'Volume density','n-Class(well)','Main-std',
     FNt = {'%s','%0.3f','%0.0f','%0.1f'};                                 % '%0.0f','%s','%0.3f',
   end
   if isempty(out.tismri) || ~isfield(out.tismri,'vol')
@@ -273,7 +279,7 @@ function printMainTable(job,out,popts,Si,St)
   FNf{2} = {bmf        , [xr 'ROI']   , [xr 'ROI']   , [xr 'ROI']      , [xr 'ROI']      , 'vROI'      };
   FNn{2} = {'boneMed'  , [xr 'Bcor']  , [xr 'Bmar']  , [xr 'Bth']      , [xr 'Hth']      , 'vHmed'     };
   FNt{2} = {'%0.3f'    , '%0.3f'      , '%0.3f'      , '%0.3f'         , '%0.3f'         , '%0.3f'     };
-  FNi{2} = {1          , 3            , 4            , 1               , 1               , 1           };
+  FNi{2} = {1          , 3            , 3            , 3               , 3               , 1           }; % 3 = occipital ROI as on the command line
   %%
   for fnj = 1:2
     if job.opts.bmethod || (job.opts.bmethod==0 && fnj==1)
@@ -367,7 +373,8 @@ function printHistogram(Ym,Yc,Ybonemarrow,job,out,popts)
       end
       xlim([-300 1800]); %title('normalized intensities');
     else
-      % default MRI case with all volumes 
+      % default MRI case with all volumes but the background
+      clsi( clsi==6 ) = [];
       for ci = clsi % inverse order to have relevant things in the foreground
         if ~strcmpi(spm_check_version,'octave') 
           hhst(ci) = histogram(ax2,Ym( Yc{ci}(:)>.5 & Ym(:)>0 & Ym(:)<2) , 0:0.01:2, ...
@@ -384,8 +391,7 @@ function printHistogram(Ym,Yc,Ybonemarrow,job,out,popts)
     end
 
     %% setup axes of the histogram box
-    if numel(clsi)>1, clsi(1) = []; end
-    ylim([0 max([1,hstmax(clsi)*1.3] )]); box on; 
+    ylim([0 max([1,hstmax(clsi(clsi~=6))*1.3] )]); box on; % without background
     if ~(out.spm8.isCTseg && ~job.opts.normCT)
       set(ax2,'FontSize',popts.fontsize * 0.85, 'XTickLabelRotation', 0, ... 
         'XTickLabel', {'0','','','0.5','','','1','','','1.5','','','2'});
@@ -426,38 +432,39 @@ function printHistogram(Ym,Yc,Ybonemarrow,job,out,popts)
       end
     end
 
-    if numel(Yc)==6 
-      lg = legend(flip({'GM','WM','CSF','bone','head','BG'}),'box','off'); 
-    else 
-      lg = legend({'bone','GM','WM','CSF'},'box','off'); % ######### this need refinement but it is ok
-    end 
+    % legend only for the plotted histograms (not the peak lines)
+    clsn = {'GM','WM','CSF','bone','head','BG'};
+    lg   = legend(hhst(clsi), clsn(clsi), 'box','off');
     lgpos = get(lg,'Position'); lgpos(1) = .89; set(lg,'Position',lgpos); 
   end  
 end
-function printErrors
+function printErrors(popts)
 %printErrors. Print errors ... in development
+%  - one line per level with the short identifiers (without the function
+%    name that is printed on the command line) to stay within the page
 
-  wstr   = ''; % empty line
-  wname  = {'note','warning','alert'}; 
-  wcolor = [0 0 1; 1 0.5 0; 0.8 0 0]; 
+  wstr   = {};
+  wname  = {'note','warning','alert'};
+  wcolor = [0 0 1; 1 0.5 0; 0.8 0 0];
   for wi=2:-1:0
-    warn = cat_io_addwarning(wi); 
+    warn = cat_io_addwarning(wi);
     wn   = numel(warn);
     if wn
       if cat_get_defaults('extopts.expertgui') > -wi
-        msg  =  strrep(warn(1).identifier,'_','\_') ; 
+        msg  = strrep( regexprep( warn(1).identifier ,'^.*:','') ,'_','\_');
         for wmi=2:wn
-          msg = [msg ', ' strrep( warn(wmi).identifier,'_','\_') ];
+          msg = [msg ', ' strrep( regexprep( warn(wmi).identifier ,'^.*:','') ,'_','\_') ]; %#ok<AGROW>
         end
-        
+
         if wn~=1, wnamepl='s'; else, wnamepl=''; end
-        wstr = [wstr ...
-          sprintf('\\color[rgb]{%0.1f %0.1f %0.1f}\\bf{%d %s%s} (%s)',...
-            wcolor(wi+1,:), wn,wname{wi+1},wnamepl, msg)]; 
+        wstr{end+1} = sprintf('\\color[rgb]{%0.1f %0.1f %0.1f}\\bf%d %s%s\\rm (%s)',...
+            wcolor(wi+1,:), wn,wname{wi+1},wnamepl, msg); %#ok<AGROW>
       end
     end
   end
-  text(0.01,0.1,wstr,'Interpreter','tex'); 
+  if ~isempty(wstr)
+    text(0.01,0.1,wstr,'Interpreter','tex','FontSize',popts.fontsize,'Parent',popts.ax);
+  end
 end
 function printVolumes(Po,Vo,Ym,Yc,Ybonemarrow,St,job,out,popts)
 %printVolumes. Call SPM orthview and print the MRI image and its segments.

@@ -25,16 +25,6 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
    
     Ybone        = Yc{4};
     Ybrain       = (Yhead - Ybone) .* cat_vol_morph(Yhead>.5,'e') .* (Ybraindist1<4); % .* Ybrain;
-%{ 
-    Ybrain       = Ybrain .* cat_vol_morph(cat_vol_morph( Ybrain>.5 , 'o'),'d');
-    Ybraindist   = vbx_dist( single(Ybrain>0.5) , Ybone>.5, vx_vol, 1) .* (Ybone>0.5);
-    Yheaddist    = vbx_dist( single(Yhead<0.5)  , Ybone>.5, vx_vol, 1) .* (Ybone>0.5);
-    Ybonethick   = Ybraindist  + Yheaddist;  % correct for voxel-size
-    Ybonethick   = cat_vol_approx(Ybonethick,'rec');
-    Ybonethick   = cat_vol_smooth3X(Ybonethick,1); 
-    Ybonepp      = min(1,Yheaddist  ./ max(eps,Ybonethick));  Ybonepp(Ybrain>.5) = 1; % percentage map to
-    %Ybonemarrow  = Ym;
-%}
    
     % update
     Yhead       = single(Yc{5} + Yc{6});
@@ -44,39 +34,12 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
     
   else
   % MRI images
-    if 0
-      Yheadbone  = cat_vol_morph(cat_vol_morph( smooth3(Yc{4} + Yc{5} + Yc{6}) > 0.5,'c',3),'e');     % create 
-      Yheadbone  = cat_vol_smooth3X(Yheadbone,4)>.5;
-      Ybrain     = single(Yc{1} + Yc{2} + Yc{3} - Yheadbone);                                 % SPM brain 
-      Ybrainc    = (Yc{1} + Yc{2} + Yc{3}) .* (Ybrain<.5 & Yheadbone); 
-      Yc{4}      = Yc{4} + Ybrainc; 
-      Ybrain     = max( Ybrain , cat_vol_smooth3X(Ybrain,4)>.5); % remove vein
-      %%
-      Yhead      = min(1,single(Yc{5} + Yc{6}));
-      Yhead(~cat_vol_morph(cat_vol_morph(Yhead>.5,'lo',1),'d') & Yhead>.5 & Ybrain<.5) = 0.5; 
-      Ybg        = single(Yc{6});
-      Ybone      = single(Yc{4});
-     
-      %% 
-      if 1
-        Ybrain = single(Ybrain); Ybone = single(Ybone); Yhead = single(Yhead);
-        spm_smooth(Ybrain,Ybrain,2./vx_vol);
-        spm_smooth(Yhead,Yhead,2./vx_vol);
-        spm_smooth(Ybg,Ybg,2./vx_vol);
-      end
-      Ybone     = ~(Ybrain>.5 | Yhead>.5); 
-    else
-      Ybrain     = single(Yc{1} + Yc{2} + Yc{3});
-      Yhead      = single(Yc{5} + Yc{6});
-      Ybone      = single(Yc{4});
-    end
+    Ybrain     = single(Yc{1} + Yc{2} + Yc{3});
+    Yhead      = single(Yc{5} + Yc{6});
+    Ybone      = single(Yc{4});
     if ~isempty(Ye)
       Ybrain = Ybrain + Ye{1};
     end
-    
-    % remove PVE
-    %  Ybonee     = Ybone>.5 & ~cat_vol_morph(Ybone>.5,'e');
-    %  Ybonem     = cat_vol_localstat(single(Yo + ((Ybone<.5)*100)),Ybone>.5,2,2); 
     
     Ybrain = cat_vol_morph( cat_vol_morph( Ybrain>.5 , 'lc' , 2) , 'lo' , 2);
     Yhead  = ~cat_vol_morph( Yhead<.5 , 'lo' , 1); 
@@ -104,19 +67,6 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
     Ybonethick   = cat_vol_resize(Ybonethick,'dereduceV',res);
     Ybonepp      = cat_vol_resize(Ybonepp,'dereduceV',res);
     Ybonecpp     = cat_vol_resize(Ybonecpp,'dereduceV',res);
-%    clear Ybrainr Yheadr Ybone1r Ybraindist; 
-    %%
-    if 0
-      % head values
-      Ybonehead = ~(Ybrain>.5 | Ybg>.5); 
-      %Ybonehead    = Ybonehead .* (Ybraindist<30 & Ybonehead); 
-      % Ybg          = max(Ybg,Ybraindist>=30 & Ybonehead); 
-      Ybraindist2  = cat_vbdist( single(Ybrain>0.5) , Ybonehead, vx_vol) .* (Ybonehead>0.5);
-      Yheaddist2   = cat_vbdist( single(Ybg>0.5)    , Ybonehead, vx_vol) .* (Ybonehead>0.5);
-      Ybonethick2  = Ybraindist2 + Yheaddist2;  % correct for voxel-size
-      Ybonepp2     = min(1,Yheaddist2 ./ max(eps,Ybonethick2)); Ybonepp2(Ybrain>.5) = 1;    % percentage map to
-      Ybonepp      = max(Ybonepp,max(0,Ybonepp2*3-2));
-    end
     clear braindist Ybonedist
     
    
@@ -143,13 +93,15 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
     % bonemarrow 
     switch job.opts.bnorm
       case 'WM',                bnorm = 1 / 4;  % default scaling 
-      case 'GM',                bnorm = tismri.int.GM / 4; % 
+      case 'GM',                bnorm = tis.GM / 4; % GM/WM ratio as Ym is WM normalized
       case 'CSF',               bnorm = tis.CSF; % tismri.int.CSF was really bad
       case 'muscle',            bnorm = tismri.int.head_muscle / 3; % was good
       case 'bone',              bnorm = tismri.int.bone_cortex * 4; % not really good
       case 'fat',               bnorm = tis.head;  % tismri.int.head_fat / 16 was worse
       case 'GM-WM-contrast',    bnorm = (tismri.int.WM - tismri.int.GM) / tismri.int.WM ; 
       case 'bone-fat-contrast', bnorm = (tismri.int.head_fat - tismri.int.head_muscle) / tismri.int.head_fat / 3; % 
+      otherwise
+        error('boney:extractbone:bnorm','Unknown bone normalization "%s".',job.opts.bnorm); 
     end
   else
     bnorm = 1; 
@@ -162,19 +114,34 @@ function [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick, vROI, bnorm] = ...
     Ybonemarrow = single( Ym / bnorm * 2 ) .* Ybone;
   end
 
-%% ###################
-% edge-measure ! 
-% * this one is not realy working (in low fat cases?)
-% * bone / bone-marrow segmentation: 
-%   - bone marrow as outstanding maximum structure in the middle/center area
-%   
-if job.opts.refine >= 2 % with filter
-  Ybonecortexs = cat_vol_localstat( Ybonemarrow , Ybonemarrow>0, 1, 2 ); % min with about 1 vx
-  Ybonemarrows = cat_vol_localstat( Ybonemarrow , Ybonemarrow>0, 1, 3 ); % max with about 1 vx
-else
-  Ybonecortexs = Ybonemarrow;
-  Ybonemarrows = Ybonemarrow; 
-end
+  % edge-measure 
+  % * bone / bone-marrow segmentation: 
+  %   - bone marrow as outstanding maximum structure in the middle/center area
+  %   - bone cortex as minimum structure 
+  % * not realy working in low fat cases? 
+  if job.opts.refine % with filter
+    Ybonecortexs = cat_vol_localstat( Ybonemarrow , Ybonemarrow>0, 1, 2 ); % min with about 1 vx
+    Ybonemarrows = cat_vol_localstat( Ybonemarrow , Ybonemarrow>0, 1, 3 ); % max with about 1 vx
+  else
+    Ybonecortexs = Ybonemarrow;
+    Ybonemarrows = Ybonemarrow; 
+  end
+
+  % head fat 
+  % * simple threshold between muscle-like and fat tissue in the head class
+  %   (only for bright fat, i.e., not in case of fat suppression or CT)
+  % * the local fat fraction of the head is used to estimate the fat 
+  %   thickness as part of the head thickness 
+  if tis.weighting > 0 && tis.headFatType == 2 && ~isnan(tismri.head_fat) && ~isnan(tismri.head_muscle) 
+    Yhd          = single(Yc{5}>.5); 
+    Yfat         = Yhd .* min(1,max(0, (Ym - tismri.head_muscle) ./ max(eps,tismri.head_fat - tismri.head_muscle) )); 
+    Yheadfat     = cat_vol_smooth3X(Yfat, 4/mean(vx_vol)) ./ max(eps,cat_vol_smooth3X(Yhd, 4/mean(vx_vol))) .* (Yheadthick>0); 
+    Yfatthick    = Yheadthick .* Yheadfat; 
+    clear Yhd Yfat; 
+  else
+    Yheadfat     = nan(size(Ym),'single'); 
+    Yfatthick    = nan(size(Ym),'single'); 
+  end
 
   %% measures as column elements
   %  - first tested showed that mean/median works best for BMD and that SD/IQR are much worse 
@@ -182,7 +149,7 @@ end
   %    and (ii) we already did some outlier correction by masking  
   clear vROI;
   for ai = 1:numel(Ya)
-    vROI(ai).file = job.opts.Patlas{ai}; %#ok<*AGROW>
+    if numel(job.opts.Patlas)>=ai, vROI(ai).file = job.opts.Patlas{ai}; else, vROI(ai).file = ''; end %#ok<*AGROW>
     vROI(ai).help = [
         'A masked image is used (if available) for global values to extract only the upper part of the skull, ' ...
         'whereas no masking is used in case of atlas regions. '];
@@ -191,7 +158,7 @@ end
       if ri == 0 
         % global values
         vROI(ai).boneatlas_id(1,ri+1)      = inf;
-        if ~isempty( job.opts.Pmask{1} ) 
+        if ~isempty( job.opts.Pmask ) && ~isempty( job.opts.Pmask{1} ) 
           vROI(ai).boneatlas_name{1,ri+1}  = 'full-masked'; 
         else                            
           vROI(ai).boneatlas_name{1,ri+1}  = 'full-unmasked'; 
@@ -202,22 +169,27 @@ end
         vROI(ai).bonethickness(1,ri+1)     = cat_stat_nanmean(   Ybonethick(   Ymsk(:)  & Ybonethick(:)~=0  ) ); 
         vROI(ai).head(1,ri+1)              = cat_stat_nanmean(   Yskull(       Ymsk(:)  & Yskull(:)~=0      ) ); 
         vROI(ai).headthickness(1,ri+1)     = cat_stat_nanmean(   Yheadthick(   Ymsk(:)  & Yheadthick(:)~=0  ) ); 
+        vROI(ai).headfat(1,ri+1)           = cat_stat_nanmean(   Yheadfat(     Ymsk(:)  & Yheadthick(:)~=0  ) ); 
+        vROI(ai).headfatthickness(1,ri+1)  = cat_stat_nanmean(   Yfatthick(    Ymsk(:)  & Yheadthick(:)~=0  ) ); 
       elseif ri > 0
         % regional values
         vROI(ai).boneatlas_id(1,ri+1)    =  YaROIid{ai}(ri);  
-        if isempty(YaROIname{ai}) && isempty(YaROIname{ai}{ri}) %|| numel(YaROIname)>max(Ya(Ya(:)<intmax('uint16')))
-          vROI(ai).boneatlas_name{1,ri+1}  = sprintf('ROI%d',ri); 
-        elseif ri-1 <= numel(YaROIname{ai})
+        if iscell(YaROIname{ai}) && ri <= numel(YaROIname{ai}) && ~isempty(YaROIname{ai}{ri}) 
           vROI(ai).boneatlas_name{1,ri+1}  = YaROIname{ai}{ri};
         else
           vROI(ai).boneatlas_name{1,ri+1}  = sprintf('ROI%d',ri); 
         end
         %vROI(ai).nonnanvol(1,ri+1)       = sum(isnan( Ym (Ya{ai}(:)==YaROIid{ai}(ri))) ) ./ sum(Ya{ai}(:)==YaROIid{ai}(ri));
         vROI(ai).bonemarrow(1,ri+1)      = cat_stat_nanmean(  Ybonemarrows( Ybonemarrows(:)~=0 & Ya{ai}(:)==YaROIid{ai}(ri) & Ybonecpp(:)>.5 ) ); 
+        % (the regional cortex uses the max-filtered values of the outer 
+        % bone layer, what was clearly better in the UKB (r(vBMDH,hBMD) 
+        % .72 vs. .56 for the min-filtered values as in the global measure)
         vROI(ai).bonecortex(1,ri+1)      = cat_stat_nanmean(  Ybonemarrows( Ybonemarrows(:)~=0 & Ya{ai}(:)==YaROIid{ai}(ri) & Ybonecpp(:)<.5 ) ); 
         vROI(ai).bonethickness(1,ri+1)   = cat_stat_nanmean(  Ybonethick(   Ybonethick(:)~=0   & Ya{ai}(:)==YaROIid{ai}(ri)) );
         vROI(ai).head(1,ri+1)            = cat_stat_nanmean(  Yskull(       Yskull(:)~=0       & Ya{ai}(:)==YaROIid{ai}(ri)) ); 
         vROI(ai).headthickness(1,ri+1)   = cat_stat_nanmean(  Yheadthick(   Yheadthick(:)~=0   & Ya{ai}(:)==YaROIid{ai}(ri)) ); 
+        vROI(ai).headfat(1,ri+1)         = cat_stat_nanmean(  Yheadfat(     Yheadthick(:)~=0   & Ya{ai}(:)==YaROIid{ai}(ri)) ); 
+        vROI(ai).headfatthickness(1,ri+1)= cat_stat_nanmean(  Yfatthick(    Yheadthick(:)~=0   & Ya{ai}(:)==YaROIid{ai}(ri)) ); 
       end    
     end
   end
@@ -225,14 +197,9 @@ end
 
 
   %% restore resolution & boundary box
-  [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick] = cat_vol_resize({Ybonepp, Ybonethick, Ybonemarrow,Yheadthick} ,'dereduceV' ,RES); % ############### INTERPOLATION ???
+  [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick] = cat_vol_resize({Ybonepp, Ybonethick, Ybonemarrow,Yheadthick} ,'dereduceV' ,RES); 
   [Ybonepp, Ybonethick, Ybonemarrow, Yheadthick] = cat_vol_resize({Ybonepp, Ybonethick, Ybonemarrow,Yheadthick} ,'dereduceBrain',BB); 
 
-  if tis.headBoneType == 0 && tis.weighting > 0  &&  0 % #########
-    % #### RD20231102: This correction is completely arbitrary and needs
-    % explanation and further test (not working in OASIS3-1260 test-retest
-    Ybonemarrow = Ybonemarrow * 3;
-  end
   if tis.weighting == -1
     Ybonemarrow(Ybonemarrow==0) = -1024;
   end
@@ -309,7 +276,7 @@ function Yd = vbx_dist(Yb,Ym,vx_vol,steps,sm)
     Yd = Yd + 1/steps .* max(0,cat_vbdist( single( Yb > ss ) , Ym , vx_vol) - 0.5);
   end
 
-  maxd = max( size(Ym)./vx_vol); 
+  maxd = max( size(Ym).*vx_vol); % maximal distance in mm
   Yd(Yd>maxd | isnan(Yd) | isinf(Yd)) = 0;
   Yd(Yd<0) = 0; 
 end

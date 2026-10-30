@@ -42,36 +42,10 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
   Ybraindist0    = cat_vol_resize(Ybraindist0r ,'dereduceV' ,resR);         
   
 
-  % test if the head-class has a lot of very low intensity values
-  % the correction is done later if the refinement is selected
-  if ~seg8t.isCTseg && tis.weighting < 0
-    tismri.warning.clsUpdate = (sum( Yc{5}(:)>.5 & Ym(:)<.3 & Ybraindist0(:)<50 ) / sum( Yc{5}(:)>.5 & Ybraindist0(:)<50 ) ) > .2; 
-    if tismri.warning.clsUpdate && 0 % ###### INACTIVE ######
-      % create a (silent) warning
-      try 
-        cat_io_addwarning( [mfilename ':needSegUpdate'], ...
-          sprintf('Bad SPM tissue class 5 - probably overestimated (%0.2f)', ...
-          ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) , 1, [1 0], [], 0, job.opts.verb>1);
-      catch
-        if job.opts.verb > 1 % print only for expert
-          fprintf('\n');  
-          cat_io_addwarning(  [mfilename ':needSegUpdate'], ...
-            sprintf('Bad SPM tissue class 5 - probably overestimated (%0.2f)', ...
-            ( sum(Yc{5}(:)>.5 & Ym(:)<.1) ./ sum(Yc{5}(:)>.5 ) ) ) , 1, [1 0], [], 0, job.opts.verb>1);
-        end
-      end
-    end
-  end
 % ################### 
-% early correction of fatal errors that are easy to correct for ?
-% >> no, this is refined segmentation 
-% ###################
-
-% ###################
-% * detect skull-stripping 
-% * detect defacing 
 % * detect WMHs? (as a second peak in WM class)
 % * detect high intensity blood vessels
+% (skull-stripping and defacing are detected in boney_segment_QC)
 % ###################
 
 
@@ -100,11 +74,11 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
 
   % == evaluate/test the SPM segmentation == 
   tismri.help.TIV     = 'Total intracranial volume (GM + WM + CSF).';
-  tismri.help.vol     = 'Volume of the SPM tissues classes in mm (probability >.5).';
+  tismri.help.vol     = 'Volume of the SPM tissues classes in cm3 (probability >.5).';
   tismri.help.volr    = 'Relative volume of the SPM tissues classes (probability >.5) normalized by TIV.';
-  tismri.help.volfat  = 'Volume of fat tissue in the masked upper head (simple threshold to separate the head tissues, in mm).'; 
+  tismri.help.volfat  = 'Volume of fat tissue in the masked upper head (simple threshold to separate the head tissues, in cm3).'; 
   tismri.help.volfatr = 'Relative volume of fat tissue in the masked upper head (simple threshold to separate the head tissues).'; 
-  tismri.help.volmus  = 'Volume of muscle-like tissue in the masked upper head (simple threshold to separate the head tissues, in mm).'; 
+  tismri.help.volmus  = 'Volume of muscle-like tissue in the masked upper head (simple threshold to separate the head tissues, in cm3).'; 
   tismri.help.volmusr = 'Relative volume of muscle-like tissue in the masked upper head (simple threshold to separate the head tissues).'; 
   tismri.help.clsQC   = 'Relation of voxel with high vs. low density within 30 mm distance. ';
   %tismri.help.Tth     = 'Median intensity of the (optimized) tissue class (~peak intensity).'; 
@@ -119,6 +93,15 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
     ];
 
 
+
+  % defacing / masked background: ratio of the outer head boundary that 
+  % touches voxels with exact zero intensity (~0 in typical images, small 
+  % to moderate values in defaced images and ~1 for masked backgrounds)
+  tismri.help.zeroBGratio = 'Ratio of the outer head boundary with zero intensity (defacing or masked background).';
+  Yhead  = (Yc{1} + Yc{2} + Yc{3} + Yc{4} + Yc{5}) > .5; 
+  Yhbd   = cat_vol_morph(Yhead,'d',1) & ~Yhead; 
+  tismri.zeroBGratio = sum( Yo(Yhbd(:))==0 ) / max(1,sum( Yhbd(:) )); 
+  clear Yhead Yhbd; 
 
   tismri.TIV     = sum( (Yc{1}(:) + Yc{2}(:) + Yc{3}(:)) > 0.5) .* prod(vx_vol) / 1000; 
   tismri.volfat  = cat_stat_nansum( Yfat(:) ) .* prod(vx_vol) / 1000; % tissue volume 
@@ -135,8 +118,11 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
     tismri.volr(ci) = tismri.vol(ci) ./ tismri.TIV;
   
     % test if any class has more low probability values than high
-    tismri.clsQC(ci) = sum(Yc{ci}(:)>.5) ./ sum(Yc{ci}(:)>eps & Yc{ci}(:)<.5 & Ybraindist0(:)<30); 
-    if tismri.clsQC(ci)<.5
+    tismri.clsQC(ci) = sum(Yc{ci}(:)>.5) ./ sum(Yc{ci}(:)>eps & Yc{ci}(:)<.5 & Ybraindist0(:)<30);
+    % no note for the bone class as the underestimation is typical for fatty
+    % (bright) bone marrow and therefore related to low BMD rather than to
+    % segmentation problems (the value is still stored in clsQC)
+    if tismri.clsQC(ci)<.5 && ci~=4
       % we add only a note as this one is not so relevant so far
       try
         cat_io_addwarning( sprintf('%s:badSPMcls%d',mfilename,ci) , ...
@@ -155,7 +141,6 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
  
     % refined evaluation with class optimization 
     % otherwise just the median
-% ###################   
     switch ci .* (1-fast)
       case 1
         tismri.int.GM   = cat_stat_nanmedian(Yo(Yc{ci}>0.5));
@@ -211,7 +196,8 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
        
       case 5
         %% ################### needs refinement depending on number ###########
-        Ybrainskulldist   = cat_vbdist( Yc{1} + Yc{2} + Yc{3} + Yc{4} ) / mean(vx_vol);
+        % distance in mm to the brain and skull (to use only the upper head)
+        Ybrainskulldist   = cat_vbdist( single(Yc{1} + Yc{2} + Yc{3} + Yc{4}) , true(size(Ym)) , vx_vol);
        
         Ymx = smooth3( Yc{5}>.5 & Ym > tismri.int.bone_cortex * 4 ) > .5 & Ybrainskulldist<60;
         Ybx = cat_vol_localstat(Ym ,Ymx,1,3,3);  
@@ -225,45 +211,18 @@ function [tismri, Ybraindist0] = boney_segment_evalSPMseg(Yo,Ym,Yc,Ymsk,vx_vol, 
         Ybx = cat_vol_localstat(Ym ,Ymx,1,1,1);  
         mn  = cat_stat_kmeans(Ybx(Ymx(:)>.5),2); 
         if isnan(mn(2))
-          tismri.int.head_muscle = tis.seg8mns(1);
-          tismri.head_muscle     = tis.seg8mns(1);
+          % use the GM intensity (in Ym scale) as muscle-like fallback 
+          tismri.int.head_muscle = tis.seg8n(1);
+          tismri.head_muscle     = tis.seg8n(1);
         else
           tismri.int.head_muscle = mn(2);
           tismri.head_muscle     = mn(2);
         end
-        %{
-        tismri.int.head   = cat_stat_kmeans(Yo(cat_vol_morph(Yc{ci}>0.9,'e')),3); 
-        tismri.Tth(ci)    = tismri.int.head(3);
-        
-          
-        Ymus              = Yc{5}>.5 & Ym>mean([tis.CSF,tis.GM]) & Ym<.9; 
-        Ymus              = cat_vol_morph(smooth3(Ymus)>.5,'o'); 
-        if tis.headFatType == 0
-          Yfat            = Yc{5}>.5 & Ym>( cat_stat_nanmedian(Ym(Ymus(:)))  +  2*cat_stat_nanmedian(Ym(Ymus(:))) ); 
-        else
-          if tis.highBG 
-            Yfat          = Yc{5}>.5 & ~Ymus;
-          else
-            Yfat          = Yc{5}>.5 & ~Ymus & Ym>tis.background*2;
-          end
-        end
-        tismri.head_muscle = cat_stat_nanmedian(Ym(Ymus(:) & Ybrainskulldist(:) < 60));
-        tismri.head_fat    = cat_stat_nanmedian(Ym(Yfat(:) & Ybrainskulldist(:) < 60));
-        %}
 
       otherwise
         [Yir,Ymr]         = cat_vol_resize( {Yo .* (Yc{ci}>.5),(Yc{ci}>.9)} ,'reduceV' ,1,2,32,'meanm'); 
         tismri.Tth(ci)    = cat_stat_nanmedian(Yir(Ymr>.5));
     end
-    % SD in tissue class
-    %{
-      if ~exist('Yir','var')
-        [Yir,Ymr]           = cat_vol_resize( {Yo .* (Yc{ci}>.5),(Yc{ci}>.9)} ,'reduceV' ,1,2,32,'meanm'); 
-      end
-      tismri.Tsd(ci)        = cat_stat_nanstd(Yir(Ymr>.5));
-      tismri.Tiqr(ci)       = iqr(Yir(Ymr(:)>.5 & ~isnan(Yir(:))));
-      clear Yir Ymr;
-    %}
   end
   
   

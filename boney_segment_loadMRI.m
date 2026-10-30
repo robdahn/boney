@@ -52,9 +52,14 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, YaROIid, RES, BB] = ...
   if ~exist('cls'   ,'var'), cls    = 1:5; end
   if ~exist('bd'    ,'var'), bd     = 25;  end
 
-  if exist(P.boneyPPmat,'file')
-    try %#ok<TRYNC> % just standard load if not exist
-      load(P.boneyPPmat); 
+  % use the stored segmentation (writeseg==2) only if it is not older than 
+  % the SPM segmentation (if the segmentation still exists)
+  if exist(P.boneyPPmat,'file') 
+    dPP = dir(P.boneyPPmat); dS8 = dir(P.seg8); 
+    if isempty(dS8) || dPP.datenum >= dS8.datenum
+      try %#ok<TRYNC> % just standard load if not exist
+        load(P.boneyPPmat); 
+      end
     end
   end
   if ~exist('Yc','var') || ~exist('Yo','var') || ~exist('Vc','var') || ~exist('Vo','var')
@@ -63,7 +68,9 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, YaROIid, RES, BB] = ...
     Yo = single(spm_read_vols(Vo));
 
     % load segmentation
-    Pc = cell(1,6); Yc = cell(1,6); Yc{6} = ones(Vo.dim,'single');
+    % (the last class is the background that is estimated as remaining
+    % probability, also for the 7 classes of the BlaiottaTPM)
+    Pc = cell(1,max(cls)); Yc = cell(1,max(cls)+1); Yc{end} = ones(Vo.dim,'single');
     for ci = cls
       if seg8t.isCTseg % CTseg
         Pc{ci}  = fullfile(P.orgpp,sprintf('c%02d%s%s',ci,P.ppff(4:end),P.ee));
@@ -72,8 +79,9 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, YaROIid, RES, BB] = ...
       end
       Vc(ci)  = spm_vol(Pc{ci}); %#ok<AGROW>
       Yc{ci}  = single(spm_read_vols(Vc(ci)));
-      Yc{6}   = Yc{6} - Yc{ci};
+      Yc{end} = Yc{end} - Yc{ci};
     end
+    Yc{end} = max(0,Yc{end}); 
   
     % SPM/CAT segmentation
     if job.output.writeseg == 2
@@ -84,9 +92,8 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, YaROIid, RES, BB] = ...
 
   % create a linear intensity normalized image
   % .. unclear side effects ... and the histogram is not looking nice ?
-  % .. maybe use some log scaling based approach later
-% ###############################
-  if 0 %~isempty(Pa)
+  % .. maybe use some log scaling based approach later (if 0 block)
+  if 0 %#ok<*UNRCH> 
     minimg = min( Yo(:) );
     maximg = max( Yo(:) );
     mintis = min( tis.seg8o );
@@ -112,7 +119,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, YaROIid, RES, BB] = ...
     Ym = Yo;
   else
   % just a simple BG/WM based normalization
-    if tis.weighting == 2 % MT
+    if tis.weighting == 3 % MT
       Ym = (Yo - min([-.5 tis.intnorm(1) ])) / ( tis.intnorm(2) - min([-.5 tis.intnorm(1) ]));
     elseif tis.weighting == -1 % CT
       if job.opts.normCT %|| ~seg8t.isCTseg
@@ -129,7 +136,6 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, YaROIid, RES, BB] = ...
 
 
   % == do affine registration ==
-  % ##################### & job.opts.refine ????
   if job.opts.affreg > 0
     VG            = seg8t.tpm(1);
     if ~exist('Ytpmbrain','var')
@@ -184,19 +190,12 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, YaROIid, RES, BB] = ...
   else
     Affine = seg8t.Affine;
   end
-% ##############################
-% quantify qc of affine registration (and update)
-
-
-
-% #########
-% - add non-linear mapping
-% ##########
+  % (the affine registration is evaluated in boney_segment_QC)
 
   %% load atlas in individual space by applying the affine transformation
-  if ~isempty(job.opts.Patlas)
+  if ~isempty(job.opts.Patlas) && ~isempty(job.opts.Patlas{1})
     for ai = 1:numel( job.opts.Patlas )
-      if ~isempty(job.opts.Patlas{1})
+      if ~isempty(job.opts.Patlas{ai})
         Va     = spm_vol(job.opts.Patlas{ai});
         Ya{ai} = zeros(size(Ym),'single');
         for zi = 1:size(Ym,3)
@@ -207,7 +206,7 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, YaROIid, RES, BB] = ...
         if max(Ya{ai}(:))==1, Ya{ai} = Ya{ai} + 1; Yareset(ai) = 1; else, Yareset(ai) = 0; end
         Ya{ai}(isnan(Ya{ai}(:))) = 0; 
         clear Va;
-        [~,YD] = cat_vbdist(single(Ya{ai}>0.5),smooth3(Yc{6})<.5); Ya{ai} = Ya{ai}(YD);
+        [~,YD] = cat_vbdist(single(Ya{ai}>0.5),smooth3(Yc{end})<.5); Ya{ai} = Ya{ai}(YD);
         Pacsv{ai} = spm_file(job.opts.Patlas{ai},'ext','.csv');
         if exist(Pacsv{ai},'file')
           csv = cat_io_csv(Pacsv{ai});
@@ -219,46 +218,61 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, YaROIid, RES, BB] = ...
         end
       else
         Ya{ai}        = zeros(size(Ym),'single');
-        YaROIname{ai} = 0;
-        YaROIid{ai}   = 0;
+        YaROIname{ai} = {};
+        YaROIid{ai}   = [];
+        Yareset(ai)   = 0;
       end
     end
   else
-    Ya{ai}        = zeros(size(Ym),'single');
-    YaROIname{ai} = 0;
-    YaROIid{ai}   = 0;
+    Ya{1}         = zeros(size(Ym),'single');
+    YaROIname{1}  = {};
+    YaROIid{1}    = [];
+    Yareset(1)    = 0;
   end
 
   %% load mask in individual space by applying the affine transformation
   %  masked voxels where included (voxel == 1 in the map whereas the face == 2)
-  if ~isempty(job.opts.Pmask{1})
-    Vmsk = spm_vol(job.opts.Pmask{1});
-    Ymsk = zeros(size(Ym),'single');
-    for zi = 1:size(Ym,3)
-      Ymsk(:,:,zi) = single(spm_slice_vol( Vmsk , ...
-        (Vmsk.mat \ Affine * Vo.mat) * spm_matrix([0 0 zi]), ... % apply affine transformation
-        [size(Ym,1),size(Ym,2)],[0,NaN])); % nearest neighbor interpolation
+  if isempty(job.opts.Pmask), Ymsk{1} = true(size(Ym)); end
+  for ai = 1:numel( job.opts.Pmask )
+    if ~isempty(job.opts.Pmask{ai})
+      Vmsk(ai) = spm_vol(job.opts.Pmask{ai});
+      Ymsk{ai} = zeros(size(Ym),'single');
+      for zi = 1:size(Ym,3)
+        Ymsk{ai}(:,:,zi) = single(spm_slice_vol( Vmsk(ai) , ...
+          (Vmsk(ai).mat \ Affine * Vo.mat) * spm_matrix([0 0 zi]), ... % apply affine transformation
+          [size(Ym,1),size(Ym,2)],[0,NaN])); % nearest neighbor interpolation
+      end
+      % fill zeros and select the upper part (region==1)
+      [~,YD] = cat_vbdist(single(Ymsk{ai}>0),smooth3(Yc{end})<.5); Ymsk{ai} = Ymsk{ai}(YD);
+      if ai ==  1
+        Ymsk{ai} = Ymsk{ai}<1.5; % this mask is limited ... 
+      else
+        Ymsk{ai} = Ymsk{ai} / max(Ymsk{ai}(:)); 
+      end
+    else
+      Ymsk{ai} = true(size(Ym)); 
     end
-    clear Vmsk;
-    % fill zeros and select the upper part (region==1)
-    [~,YD] = cat_vbdist(single(Ymsk>0),smooth3(Yc{6})<.5); Ymsk = Ymsk(YD);
-    Ymsk = Ymsk<1.5; % this mask is limited ... ################## prepare masks ones for faster processing ! #############
-  else
-    Ymsk = true(size(Ym)); 
   end
 
   % extend atlas to all voxels
-  if ~isempty(job.opts.Patlas{1}) || ~isempty(job.opts.Pmask)
-    [~,YI] = cat_vbdist(single(Ya{ai}>0)); Ya{ai} = Ya{ai}(YI);
+  if ( ~isempty(job.opts.Patlas) && ~isempty(job.opts.Patlas{1}) ) || ~isempty(job.opts.Pmask)
+    for ai = 1:numel( Ya )
+      if ~any(Ya{ai}(:)>0), continue; end
+      [~,YI] = cat_vbdist(single(Ya{ai}>0)); 
+      Ya{ai} = Ya{ai}(YI);
+      if Yareset(ai), Ya{ai} = Ya{ai} - 1; end
+    end
   end
-  if Yareset(ai), Ya{ai} = Ya{ai} - 1; end
-
+  
 
   % limit boundary box
   Yb  = ( Yc{1} + Yc{2} + Yc{3} ) >.5;
-  [Yo,Ym,Ymsk,BB] = cat_vol_resize({Yo,Ym,Ymsk} ,'reduceBrain',tis.res_vx_vol,bd,Yb);
+  [Yo,Ym,BB] = cat_vol_resize({Yo,Ym} ,'reduceBrain',tis.res_vx_vol,bd,Yb);
   for ai = 1:numel(Ya)
     Ya{ai} = cat_vol_resize(Ya{ai} ,'reduceBrain',tis.res_vx_vol,bd,Yb);
+  end
+  for ai = 1:numel(Ymsk)
+    Ymsk{ai} = cat_vol_resize(Ymsk{ai} ,'reduceBrain',tis.res_vx_vol,bd,Yb);
   end
   for ci = 1:numel(Yc)
     Yc{ci} = cat_vol_resize(Yc{ci} ,'reduceBrain',tis.res_vx_vol,bd,Yb);
@@ -270,7 +284,9 @@ function [Vo, Yo, Yc, Ya, Ymsk, Ym, Affine, YaROIname, YaROIid, RES, BB] = ...
   for ai = 1:numel(Ya)
     Ya{ai}    = cat_vol_resize(Ya{ai}  ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'nearest');
   end
-  Ymsk        = cat_vol_resize(Ymsk    ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'meanm') > 0.5;
+  for ai = 1:numel(Ymsk)
+    Ymsk{ai}  = cat_vol_resize(Ymsk{ai}  ,'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'nearest');
+  end
   Ysum        = zeros(size(Ym),'single'); 
   for ci = 1:numel(Yc)
     Yc{ci} = cat_vol_resize(Yc{ci},'reduceV' ,tis.res_vx_vol,job.opts.reslim,16,'meanm');

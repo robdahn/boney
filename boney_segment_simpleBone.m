@@ -1,16 +1,17 @@
-function out = boney_segment_simpleBone(seg8t, Ym, Yp, refine)
+function out = boney_segment_simpleBone(seg8t, Ym, Yp, refine, vx_vol)
 %simpleBone. First simple version that worked surprisingly well.
 % There is a basic correction of the SPM bone segmentation to avoid 
 % misclassification of high-intensity bone marrow as head tissue. However, 
 % there is no further masking of critical regions (e.g. facial bones) or 
 % evaluation of different regions.
 % 
-%  out = boney_segment_simpleBone(seg8t,Ym,Yp)
+%  out = boney_segment_simpleBone(seg8t,Ym,Yp,refine,vx_vol)
 %
 %  seg8t      .. SPM unified segmentation structure with tissue peaks etc.
 %  Ym         .. intensity normalized image
 %  Yp         .. SPM tissue classes
 %  refine     .. do additional refinement
+%  vx_vol     .. voxel size (of the resolution reduced images)
 %  out        .. output structure with basic information
 %   .int_ci   .. median tissue intensity of each tissue class
 %   .vol_ci   .. volume of each tissue class
@@ -29,10 +30,13 @@ function out = boney_segment_simpleBone(seg8t, Ym, Yp, refine)
 % _________________________________________________________________________
 
 
-  % load SPM tissue segments
+  if ~exist('vx_vol','var'), vx_vol = [1 1 1]; end
+  vxcm3 = prod(vx_vol) / 1000; % voxel volume in cm3
+
+  % load SPM tissue segments (the BlaiottaTPM classes are already mapped)
   for ci = 1:(max(seg8t.lkp) - 1) 
-     out.int_ci(1,ci) = median(Ym(Yp{ci}>0.9));     % intensity
-     out.vol_ci(1,ci) = sum(Yp{ci}(:)>0.5) / 1000;  % volume
+     out.int_ci(1,ci) = median(Ym(Yp{ci}>0.9));       % intensity
+     out.vol_ci(1,ci) = sum(Yp{ci}(:)>0.5) * vxcm3;   % volume
   end
   % estimate TIV
   out.TIV = sum(out.vol_ci(1,1:3));
@@ -42,13 +46,7 @@ function out = boney_segment_simpleBone(seg8t, Ym, Yp, refine)
   % As the SPM segmentation often misaligns high values of the bone marrow  
   % to the head, a correction by morphological operations is required. 
   if refine
-    if max(seg8t.lkp) > 6
-      % old test case with simulated bone marrow class (that was not really
-      % working) 
-      Ymsk = smooth3(Yp{4} + Yp{5})>0.5;          % remove small noise
-    else
-      Ymsk = smooth3(Yp{4})>0.25;                 % remove small noise
-    end
+    Ymsk = smooth3(Yp{4})>0.25;                   % remove small noise
     Ymsk = cat_vol_morph(Ymsk,'l');               % get the largest bones element
     Ymsk = cat_vol_morph(Ymsk,'dc',6);            % remove holes in the bone
   else
@@ -57,7 +55,7 @@ function out = boney_segment_simpleBone(seg8t, Ym, Yp, refine)
 
   % extract CSF-normalized values (hist)
   out.con       = out.int_ci(1,3);                  % CSF contrast
-  out.bone_num  = (sum(Ymsk(:)) / 1000) / out.TIV;  % bone volume normalised by TIV
+  out.bone_num  = (sum(Ymsk(:)) * vxcm3) / out.TIV; % bone volume normalised by TIV
   out.bone_med  = median(Ym(Ymsk(:)))   / out.con;  % median bone intensity value
   out.bone_std  = std(Ym(Ymsk(:)))      / out.con;  % standard deviation of the bone intensity                  
 end
